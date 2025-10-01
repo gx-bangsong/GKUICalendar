@@ -275,9 +275,11 @@
             </intent-filter>
         </receiver>
 
-        <service android:name="com.android.calendar.alerts.AlertService"
+        <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            android:foregroundServiceType= "systemExempted"
             android:exported="false"
-            android:foregroundServiceType="systemExempted" />
+            tools:node="merge" />
 
         <service android:name="com.android.calendar.alerts.DismissAlarmsService" />
 
