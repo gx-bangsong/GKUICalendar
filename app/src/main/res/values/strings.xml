@@ -858,4 +858,23 @@
     <string name="chips_action_cancel">Cancel</string>
     <!-- Text displayed on the drop down item that is shown when app doesn't have Contact permission. This item will open dialog to request permission. [CHAR LIMIT=50] -->
     <string name="chips_permission_text">Allow contacts suggestions</string>
+
+    <!-- Date Calculator -->
+    <string name="date_calculator">Date Calculator</string>
+    <string name="date_calculation">Date Calculation</string>
+    <string name="date_interval">Date Interval</string>
+    <string name="lunar_converter">Lunar Converter</string>
+    <string name="start_date">Start Date</string>
+    <string name="end_date">End Date</string>
+    <string name="days_input_hint">Enter number of days</string>
+    <string name="push_forward">Forward</string>
+    <string name="push_backward">Backward</string>
+    <string name="start_calculation">Calculate</string>
+    <string name="result_is">Result: %1$s, %2$s</string>
+    <string name="interval_result">Difference is %d days</string>
+    <string name="gregorian_date">Gregorian Date</string>
+    <string name="lunar_date">Lunar Date</string>
+    <string name="enter_days_toast">Please enter number of days</string>
+    <string name="days_range_toast">Please enter a number between 0 and 10000</string>
+    <string name="select_date">Select Date</string>
 </resources>
