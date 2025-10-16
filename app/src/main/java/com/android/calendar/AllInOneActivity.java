@@ -960,6 +960,8 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
             if (mCurrentView != ViewType.AGENDA) {
                 mController.sendEvent(this, EventType.GO_TO, null, null, -1, ViewType.AGENDA);
             }
+        } else if (itemId == R.id.action_goto) {
+            goToDate();
         } else if (itemId == R.id.action_settings) {
             mController.sendEvent(this, EventType.LAUNCH_SETTINGS, null, null, 0, 0);
         } else if (itemId == R.id.action_about) {
