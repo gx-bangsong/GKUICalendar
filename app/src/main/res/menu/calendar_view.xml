@@ -24,7 +24,7 @@
     <group android:id="@+id/navigation_subheader" android:checkableBehavior="none">
         <item
             android:id="@+id/action_goto"
-            android:icon="@drawable/ic_menu_goto"
+            android:icon="@drawable/ic_baseline_calendar_today"
             android:title="@string/goto_date" />
         <item
             android:id="@+id/action_settings"
