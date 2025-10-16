@@ -8,7 +8,7 @@ import androidx.fragment.app.Fragment;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 import androidx.viewpager2.widget.ViewPager2;
 
-import com.android.calendar.R;
+import org.lineageos.etar.R;
 import com.android.calendar.date_calculator.fragment.DateCalculationFragment;
 import com.android.calendar.date_calculator.fragment.DateIntervalFragment;
 import com.android.calendar.date_calculator.fragment.LunarConverterFragment;
