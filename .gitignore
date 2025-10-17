@@ -20,6 +20,7 @@ gen/
 build/
 app/build/
 app/libs/*-release.aar
+app/src_aosp/main/java/ws/xsoh/etar/databinding/
 
 # Local configuration file (sdk path, etc)
 local.properties
