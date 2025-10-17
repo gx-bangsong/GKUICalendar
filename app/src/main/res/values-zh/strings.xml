@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="date_calculator">日期推算</string>
+    <string name="date_calculation">日期推算</string>
+    <string name="date_interval">日期间隔</string>
+    <string name="lunar_converter">公农历换算</string>
+    <string name="start_date">开始日期</string>
+    <string name="end_date">结束日期</string>
+    <string name="days_input_hint">输入天数</string>
+    <string name="push_forward">往后推</string>
+    <string name="push_backward">往前推</string>
+    <string name="start_calculation">开始计算</string>
+    <string name="result_is">结果: %1$s, %2$s</string>
+    <string name="interval_result">相差 %d 天</string>
+    <string name="gregorian_date">公历日期</string>
+    <string name="lunar_date">农历日期</string>
+    <string name="enter_days_toast">请输入天数</string>
+    <string name="days_range_toast">请输入0-10000之间的天数</string>
+    <string name="select_date">选择日期</string>
+    <string name="gregorian_to_lunar_title">公历转农历</string>
+    <string name="lunar_to_gregorian_title">农历转公历</string>
+    <string name="year_hint">年</string>
+    <string name="month_hint">月</string>
+    <string name="day_hint">日</string>
+    <string name="leap_month">闰月</string>
+    <string name="convert_to_gregorian">转换为公历</string>
+    <string name="enter_lunar_date_toast">请输入完整的农历年月日</string>
+    <string name="invalid_number_toast">请输入有效的数字</string>
+    <string name="invalid_lunar_date_toast">无效的农历日期</string>
+</resources>

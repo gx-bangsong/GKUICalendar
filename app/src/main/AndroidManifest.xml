@@ -99,6 +99,11 @@
         <activity android:name="com.android.calendar.AboutActivity">
         </activity>
 
+        <activity
+            android:name="com.android.calendar.date_calculator.DateCalculatorActivity"
+            android:label="@string/date_calculator"
+            android:parentActivityName="com.android.calendar.AllInOneActivity" />
+
         <activity android:name="com.android.calendar.EventInfoActivity"
             android:exported="true"
             android:parentActivityName="com.android.calendar.AllInOneActivity">

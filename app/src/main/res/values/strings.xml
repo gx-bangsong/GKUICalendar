@@ -858,4 +858,33 @@
     <string name="chips_action_cancel">Cancel</string>
     <!-- Text displayed on the drop down item that is shown when app doesn't have Contact permission. This item will open dialog to request permission. [CHAR LIMIT=50] -->
     <string name="chips_permission_text">Allow contacts suggestions</string>
+
+    <!-- Date Calculator -->
+    <string name="date_calculator">Date Calculator</string>
+    <string name="date_calculation">Date Calculation</string>
+    <string name="date_interval">Date Interval</string>
+    <string name="lunar_converter">Lunar Converter</string>
+    <string name="start_date">Start Date</string>
+    <string name="end_date">End Date</string>
+    <string name="days_input_hint">Enter number of days</string>
+    <string name="push_forward">Forward</string>
+    <string name="push_backward">Backward</string>
+    <string name="start_calculation">Calculate</string>
+    <string name="result_is">Result: %1$s, %2$s</string>
+    <string name="interval_result">Difference is %d days</string>
+    <string name="gregorian_date">Gregorian Date</string>
+    <string name="lunar_date">Lunar Date</string>
+    <string name="enter_days_toast">Please enter number of days</string>
+    <string name="days_range_toast">Please enter a number between 0 and 10000</string>
+    <string name="select_date">Select Date</string>
+    <string name="gregorian_to_lunar_title">Gregorian to Lunar</string>
+    <string name="lunar_to_gregorian_title">Lunar to Gregorian</string>
+    <string name="year_hint">Year</string>
+    <string name="month_hint">Month</string>
+    <string name="day_hint">Day</string>
+    <string name="leap_month">Leap month</string>
+    <string name="convert_to_gregorian">Convert to Gregorian</string>
+    <string name="enter_lunar_date_toast">Please enter a complete Lunar date</string>
+    <string name="invalid_number_toast">Please enter a valid number</string>
+    <string name="invalid_lunar_date_toast">Invalid Lunar date</string>
 </resources>
