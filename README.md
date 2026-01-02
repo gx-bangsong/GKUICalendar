@@ -22,6 +22,7 @@ this app would be just a dream. So thanks to them!
 - Dark and light theme.
 - Support offline calendar.
 - Agenda widget.
+- Anniversary and Countdown event types.
 - Support sharing calendars via ICS and the ability to import/export from SD card.
 - Multilingual UI.
 
