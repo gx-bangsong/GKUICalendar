@@ -93,6 +93,7 @@ public class Event implements Cloneable {
             Events.GUESTS_CAN_MODIFY,        // 19
             Instances.ALL_DAY + "=1 OR (" + Instances.END + "-" + Instances.BEGIN + ")>="
                     + DateUtils.DAY_IN_MILLIS + " AS " + DISPLAY_AS_ALLDAY, // 20
+            Instances.CUSTOM_APP_URI,        // 21
     };
     private static final String EVENTS_WHERE = DISPLAY_AS_ALLDAY + "=0";
     private static final String ALLDAY_WHERE = DISPLAY_AS_ALLDAY + "=1";
@@ -117,6 +118,7 @@ public class Event implements Cloneable {
     private static final int PROJECTION_ORGANIZER_INDEX = 18;
     private static final int PROJECTION_GUESTS_CAN_INVITE_OTHERS_INDEX = 19;
     private static final int PROJECTION_DISPLAY_AS_ALLDAY = 20;
+    private static final int PROJECTION_CUSTOM_APP_URI = 21;
     private static String mNoTitleString;
     private static int mNoColorColor;
 
@@ -128,6 +130,7 @@ public class Event implements Cloneable {
     public boolean allDay;
     public String organizer;
     public boolean guestsCanModify;
+    public String eventType;
 
     public int startDay;       // start Julian day
     public int endDay;         // end Julian day
@@ -369,6 +372,12 @@ public class Event implements Cloneable {
         e.hasAlarm = cEvents.getInt(PROJECTION_HAS_ALARM_INDEX) != 0;
 
         e.status = cEvents.getInt(PROJECTION_STATUS_INDEX);
+
+        e.eventType = null;
+        String customAppUri = cEvents.getString(PROJECTION_CUSTOM_APP_URI);
+        if (customAppUri != null && customAppUri.startsWith("etar://event_type/")) {
+            e.eventType = customAppUri.substring("etar://event_type/".length());
+        }
 
         // Check if this is a repeating event
         String rrule = cEvents.getString(PROJECTION_RRULE_INDEX);
