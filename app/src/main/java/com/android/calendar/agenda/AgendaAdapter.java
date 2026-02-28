@@ -35,6 +35,7 @@ import com.android.calendar.ColorChipView;
 import com.android.calendar.DynamicTheme;
 import com.android.calendar.Utils;
 import com.android.calendar.calendarcommon2.Time;
+import com.android.calendar.event.EventExtraUtils;
 
 import java.util.Formatter;
 import java.util.Locale;
@@ -173,6 +174,13 @@ public class AgendaAdapter extends ResourceCursorAdapter {
         if (titleString == null || titleString.length() == 0) {
             titleString = mNoTitleLabel;
         }
+        String customAppUri = cursor.getString(AgendaWindowAdapter.INDEX_CUSTOM_APP_URI);
+        if (customAppUri != null && (
+                customAppUri.equals("etar://event_type/" + EventExtraUtils.EVENT_TYPE_ANNIVERSARY) ||
+                customAppUri.equals("etar://event_type/" + EventExtraUtils.EVENT_TYPE_COUNTDOWN) ||
+                customAppUri.equals("etar://event_type/" + EventExtraUtils.EVENT_TYPE_BIRTHDAY))) {
+            titleString = "⭐ " + titleString;
+        }
         title.setText(titleString);
 
         // When
@@ -211,11 +219,32 @@ public class AgendaAdapter extends ResourceCursorAdapter {
         }
         when.setText(whenString);
 
-        // Where
+        // Where & Extra info
         String whereString = cursor.getString(AgendaWindowAdapter.INDEX_EVENT_LOCATION);
+        // customAppUri already fetched above for title
+        String extraInfo = null;
+        if (customAppUri != null) {
+            if (customAppUri.equals("etar://event_type/" + EventExtraUtils.EVENT_TYPE_ANNIVERSARY)) {
+                extraInfo = EventExtraUtils.getAnniversaryDisplayString(context, begin, System.currentTimeMillis());
+            } else if (customAppUri.equals("etar://event_type/" + EventExtraUtils.EVENT_TYPE_COUNTDOWN)) {
+                extraInfo = EventExtraUtils.getCountdownDisplayString(context, begin, System.currentTimeMillis());
+            }
+        }
+
+        StringBuilder locationAndExtra = new StringBuilder();
+        if (extraInfo != null) {
+            locationAndExtra.append(extraInfo);
+        }
         if (whereString != null && whereString.length() > 0) {
+            if (locationAndExtra.length() > 0) {
+                locationAndExtra.append(" · ");
+            }
+            locationAndExtra.append(whereString);
+        }
+
+        if (locationAndExtra.length() > 0) {
             where.setVisibility(View.VISIBLE);
-            where.setText(whereString);
+            where.setText(locationAndExtra.toString());
         } else {
             where.setVisibility(View.GONE);
         }

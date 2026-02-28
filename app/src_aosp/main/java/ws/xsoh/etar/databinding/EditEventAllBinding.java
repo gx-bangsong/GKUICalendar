@@ -7,6 +7,7 @@ import android.view.ViewGroup;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.HorizontalScrollView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -21,6 +22,8 @@ import androidx.constraintlayout.widget.Group;
 import androidx.viewbinding.ViewBinding;
 import androidx.viewbinding.ViewBindings;
 import com.android.calendar.chips.RecipientEditTextView;
+import com.google.android.material.chip.Chip;
+import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.materialswitch.MaterialSwitch;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
@@ -86,6 +89,12 @@ public final class EditEventAllBinding implements ViewBinding {
 
   @NonNull
   public final TextView endTimeHomeTz;
+
+  @NonNull
+  public final ChipGroup eventTypeGroup;
+
+  @NonNull
+  public final HorizontalScrollView eventTypeScrollView;
 
   @NonNull
   public final LinearLayout fromRowHomeTz;
@@ -181,6 +190,18 @@ public final class EditEventAllBinding implements ViewBinding {
   public final LinearLayout toRowHomeTz;
 
   @NonNull
+  public final Chip typeAnniversary;
+
+  @NonNull
+  public final Chip typeBirthday;
+
+  @NonNull
+  public final Chip typeCountdown;
+
+  @NonNull
+  public final Chip typeEvent;
+
+  @NonNull
   public final EditText url;
 
   @NonNull
@@ -243,6 +264,7 @@ public final class EditEventAllBinding implements ViewBinding {
       @NonNull ImageView descriptionIcon, @NonNull TextInputLayout descriptionRow,
       @NonNull ConstraintLayout editEventAll, @NonNull Button endDate,
       @NonNull TextView endDateHomeTz, @NonNull Button endTime, @NonNull TextView endTimeHomeTz,
+      @NonNull ChipGroup eventTypeGroup, @NonNull HorizontalScrollView eventTypeScrollView,
       @NonNull LinearLayout fromRowHomeTz, @NonNull ImageView imageView,
       @NonNull MaterialSwitch isAllDay, @NonNull TextView isAllDayLabel,
       @NonNull AutoCompleteTextView location, @NonNull TextView organizer,
@@ -256,13 +278,14 @@ public final class EditEventAllBinding implements ViewBinding {
       @NonNull Button startTime, @NonNull TextView startTimeHomeTz, @NonNull Button timezoneButton,
       @NonNull Group timezoneButtonRow, @NonNull ImageView timezoneIcon,
       @NonNull TextView timezoneTextView, @NonNull LinearLayout timezoneTextviewRow,
-      @NonNull TextInputEditText title, @NonNull LinearLayout toRowHomeTz, @NonNull EditText url,
-      @NonNull ImageView urlIcon, @NonNull TextInputLayout urlRow, @NonNull View view,
-      @NonNull View view1, @NonNull View view2, @NonNull View view3, @NonNull View view4,
-      @NonNull View view5, @NonNull View view6, @NonNull View view7, @NonNull Spinner visibility,
-      @NonNull ImageView visibilityIcon, @NonNull TextView when, @NonNull TextView whenLabel,
-      @NonNull LinearLayout whenRow, @NonNull ImageView whereIcon,
-      @NonNull TextInputLayout whereRow) {
+      @NonNull TextInputEditText title, @NonNull LinearLayout toRowHomeTz,
+      @NonNull Chip typeAnniversary, @NonNull Chip typeBirthday, @NonNull Chip typeCountdown,
+      @NonNull Chip typeEvent, @NonNull EditText url, @NonNull ImageView urlIcon,
+      @NonNull TextInputLayout urlRow, @NonNull View view, @NonNull View view1, @NonNull View view2,
+      @NonNull View view3, @NonNull View view4, @NonNull View view5, @NonNull View view6,
+      @NonNull View view7, @NonNull Spinner visibility, @NonNull ImageView visibilityIcon,
+      @NonNull TextView when, @NonNull TextView whenLabel, @NonNull LinearLayout whenRow,
+      @NonNull ImageView whereIcon, @NonNull TextInputLayout whereRow) {
     this.rootView = rootView;
     this.addAttendeesGroup = addAttendeesGroup;
     this.addAttendeesRow = addAttendeesRow;
@@ -282,6 +305,8 @@ public final class EditEventAllBinding implements ViewBinding {
     this.endDateHomeTz = endDateHomeTz;
     this.endTime = endTime;
     this.endTimeHomeTz = endTimeHomeTz;
+    this.eventTypeGroup = eventTypeGroup;
+    this.eventTypeScrollView = eventTypeScrollView;
     this.fromRowHomeTz = fromRowHomeTz;
     this.imageView = imageView;
     this.isAllDay = isAllDay;
@@ -313,6 +338,10 @@ public final class EditEventAllBinding implements ViewBinding {
     this.timezoneTextviewRow = timezoneTextviewRow;
     this.title = title;
     this.toRowHomeTz = toRowHomeTz;
+    this.typeAnniversary = typeAnniversary;
+    this.typeBirthday = typeBirthday;
+    this.typeCountdown = typeCountdown;
+    this.typeEvent = typeEvent;
     this.url = url;
     this.urlIcon = urlIcon;
     this.urlRow = urlRow;
@@ -465,6 +494,18 @@ public final class EditEventAllBinding implements ViewBinding {
       id = R.id.end_time_home_tz;
       TextView endTimeHomeTz = ViewBindings.findChildViewById(rootView, id);
       if (endTimeHomeTz == null) {
+        break missingId;
+      }
+
+      id = R.id.event_type_group;
+      ChipGroup eventTypeGroup = ViewBindings.findChildViewById(rootView, id);
+      if (eventTypeGroup == null) {
+        break missingId;
+      }
+
+      id = R.id.event_type_scroll_view;
+      HorizontalScrollView eventTypeScrollView = ViewBindings.findChildViewById(rootView, id);
+      if (eventTypeScrollView == null) {
         break missingId;
       }
 
@@ -654,6 +695,30 @@ public final class EditEventAllBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.type_anniversary;
+      Chip typeAnniversary = ViewBindings.findChildViewById(rootView, id);
+      if (typeAnniversary == null) {
+        break missingId;
+      }
+
+      id = R.id.type_birthday;
+      Chip typeBirthday = ViewBindings.findChildViewById(rootView, id);
+      if (typeBirthday == null) {
+        break missingId;
+      }
+
+      id = R.id.type_countdown;
+      Chip typeCountdown = ViewBindings.findChildViewById(rootView, id);
+      if (typeCountdown == null) {
+        break missingId;
+      }
+
+      id = R.id.type_event;
+      Chip typeEvent = ViewBindings.findChildViewById(rootView, id);
+      if (typeEvent == null) {
+        break missingId;
+      }
+
       id = R.id.url;
       EditText url = ViewBindings.findChildViewById(rootView, id);
       if (url == null) {
@@ -766,13 +831,14 @@ public final class EditEventAllBinding implements ViewBinding {
           attendees, attendeesIcon, availability, availabilityIcon, calendarSelectorGroupBackground,
           calendarSelectorGroupIcon, calendarsSpinner, changeColor, description, descriptionIcon,
           descriptionRow, editEventAll, endDate, endDateHomeTz, endTime, endTimeHomeTz,
-          fromRowHomeTz, imageView, isAllDay, isAllDayLabel, location, organizer, organizerLabel,
-          organizerRow, reminderAdd, reminderIcon, reminderItemsContainer, responseGroup,
-          responseLabel, responseMaybe, responseNo, responseRow, responseValue, responseYes, rrule,
-          rruleIcon, startDate, startDateHomeTz, startTime, startTimeHomeTz, timezoneButton,
-          timezoneButtonRow, timezoneIcon, timezoneTextView, timezoneTextviewRow, title,
-          toRowHomeTz, url, urlIcon, urlRow, view, view1, view2, view3, view4, view5, view6, view7,
-          visibility, visibilityIcon, when, whenLabel, whenRow, whereIcon, whereRow);
+          eventTypeGroup, eventTypeScrollView, fromRowHomeTz, imageView, isAllDay, isAllDayLabel,
+          location, organizer, organizerLabel, organizerRow, reminderAdd, reminderIcon,
+          reminderItemsContainer, responseGroup, responseLabel, responseMaybe, responseNo,
+          responseRow, responseValue, responseYes, rrule, rruleIcon, startDate, startDateHomeTz,
+          startTime, startTimeHomeTz, timezoneButton, timezoneButtonRow, timezoneIcon,
+          timezoneTextView, timezoneTextviewRow, title, toRowHomeTz, typeAnniversary, typeBirthday,
+          typeCountdown, typeEvent, url, urlIcon, urlRow, view, view1, view2, view3, view4, view5,
+          view6, view7, visibility, visibilityIcon, when, whenLabel, whenRow, whereIcon, whereRow);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

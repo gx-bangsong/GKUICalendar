@@ -47,6 +47,7 @@ import androidx.core.content.ContextCompat;
 
 import com.android.calendar.DynamicTheme;
 import com.android.calendar.Event;
+import com.android.calendar.event.EventExtraUtils;
 import com.android.calendar.LunarUtils;
 import com.android.calendar.Utils;
 import com.android.calendar.settings.ViewDetailsPreferences;
@@ -1565,6 +1566,13 @@ public class MonthWeekEventsView extends SimpleWeekView {
             if (isTimeInline(preferences)) {
                 baseText.append(getFormattedTime(preferences));
                 baseText.append(" ");
+            }
+            if (mEvent.eventType != null) {
+                if (mEvent.eventType.equals(EventExtraUtils.EVENT_TYPE_ANNIVERSARY) ||
+                    mEvent.eventType.equals(EventExtraUtils.EVENT_TYPE_COUNTDOWN) ||
+                    mEvent.eventType.equals(EventExtraUtils.EVENT_TYPE_BIRTHDAY)) {
+                    baseText.append("⭐ ");
+                }
             }
             baseText.append(mEvent.title);
             if (preferences.LOCATION_VISIBILITY && mEvent.location != null && mEvent.location.length() > 0) {
