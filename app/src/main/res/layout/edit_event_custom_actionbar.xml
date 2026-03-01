@@ -41,6 +41,8 @@
         android:paddingHorizontal="24dp"
         android:text="@string/save_label"
         android:textAllCaps="false"
+        android:textColor="?attr/colorOnPrimary"
+        app:backgroundTint="?attr/colorPrimary"
         app:cornerRadius="24dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
