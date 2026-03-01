@@ -92,7 +92,6 @@ import com.android.calendar.timezonepicker.TimeZonePickerDialog;
 import com.android.calendar.timezonepicker.TimeZonePickerUtils;
 
 import com.google.android.material.datepicker.CalendarConstraints;
-import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.datepicker.MaterialDatePicker;
 import com.google.android.material.datepicker.MaterialPickerOnPositiveButtonClickListener;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -155,7 +154,6 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
     Spinner mAccessLevelSpinner;
     RadioGroup mResponseRadioGroup;
     TextView mTitleTextView;
-    ChipGroup mEventTypeGroup;
     AutoCompleteTextView mLocationTextView;
     EventLocationAdapter mLocationAdapter;
     TextView mDescriptionTextView;
@@ -240,7 +238,6 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         // cache all the widgets
         mCalendarsSpinner = (Spinner) view.findViewById(R.id.calendars_spinner);
         mTitleTextView = (TextView) view.findViewById(R.id.title);
-        mEventTypeGroup = (ChipGroup) view.findViewById(R.id.event_type_group);
         mLocationTextView = (AutoCompleteTextView) view.findViewById(R.id.location);
         mDescriptionTextView = (TextView) view.findViewById(R.id.description);
         mUrlTextView = (TextView) view.findViewById(R.id.url);
@@ -1007,7 +1004,6 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         populateWhen();
         populateRepeats();
         updateAttendees(model.mAttendeesList);
-        updateEventType(model.mEventType);
 
         updateView();
         mScrollView.setVisibility(View.VISIBLE);
@@ -1597,68 +1593,6 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
 
     @Override
     public void onNothingSelected(AdapterView<?> parent) {
-    }
-
-    private void updateEventType(String eventType) {
-        if (mEventTypeGroup == null) return;
-        mEventTypeGroup.setOnCheckedStateChangeListener(null); // Clear to avoid loops during init
-        int chipId;
-        if (EventExtraUtils.EVENT_TYPE_BIRTHDAY.equals(eventType)) {
-            chipId = R.id.type_birthday;
-        } else if (EventExtraUtils.EVENT_TYPE_ANNIVERSARY.equals(eventType)) {
-            chipId = R.id.type_anniversary;
-        } else if (EventExtraUtils.EVENT_TYPE_COUNTDOWN.equals(eventType)) {
-            chipId = R.id.type_countdown;
-        } else {
-            chipId = R.id.type_event;
-        }
-        mEventTypeGroup.check(chipId);
-        onEventTypeChanged(eventType);
-
-        mEventTypeGroup.setOnCheckedStateChangeListener((group, checkedIds) -> {
-            if (checkedIds.isEmpty()) return;
-            int id = checkedIds.get(0);
-            String newType;
-            if (id == R.id.type_birthday) {
-                newType = EventExtraUtils.EVENT_TYPE_BIRTHDAY;
-            } else if (id == R.id.type_anniversary) {
-                newType = EventExtraUtils.EVENT_TYPE_ANNIVERSARY;
-            } else if (id == R.id.type_countdown) {
-                newType = EventExtraUtils.EVENT_TYPE_COUNTDOWN;
-            } else {
-                newType = EventExtraUtils.EVENT_TYPE_NORMAL;
-            }
-            mModel.mEventType = newType;
-            onEventTypeChanged(newType);
-        });
-    }
-
-    private void onEventTypeChanged(String eventType) {
-        if (EventExtraUtils.EVENT_TYPE_ANNIVERSARY.equals(eventType)) {
-            mTitleTextView.setHint(R.string.hint_anniversary);
-            mAllDayCheckBox.setChecked(true);
-            updateRecurrenceRule(EditEventHelper.REPEATS_YEARLY);
-        } else if (EventExtraUtils.EVENT_TYPE_COUNTDOWN.equals(eventType)) {
-            mTitleTextView.setHint(R.string.hint_countdown);
-            mAllDayCheckBox.setChecked(true);
-            updateRecurrenceRule(EditEventHelper.DOES_NOT_REPEAT);
-        } else if (EventExtraUtils.EVENT_TYPE_BIRTHDAY.equals(eventType)) {
-            mTitleTextView.setHint(R.string.hint_what);
-            mAllDayCheckBox.setChecked(true);
-            updateRecurrenceRule(EditEventHelper.REPEATS_YEARLY);
-        } else {
-            mTitleTextView.setHint(R.string.hint_what);
-        }
-    }
-
-    private void updateRecurrenceRule(int selection) {
-        EditEventHelper.updateRecurrenceRule(selection, mModel,
-                Utils.getFirstDayOfWeekAsCalendar(mActivity));
-        mRrule = mModel.mRrule;
-        if (mRrule != null) {
-            mEventRecurrence.parse(mRrule);
-        }
-        populateRepeats();
     }
 
     public void showTimerPickerDialog(View view) {

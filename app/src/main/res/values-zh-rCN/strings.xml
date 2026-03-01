@@ -53,20 +53,6 @@
     <string name="show_controls" msgid="715520586028062621">"显示控件"</string>
     <string name="select_synced_calendars_button" msgid="8890542984949996251">"同步的日历"</string>
     <string name="hint_what" msgid="709155115005044531">"活动名称"</string>
-    <string name="hint_anniversary">"请输入纪念日内容"</string>
-    <string name="hint_countdown">"请输入倒计时内容"</string>
-
-    <string name="event_type_event">"日程"</string>
-    <string name="event_type_birthday">"生日"</string>
-    <string name="event_type_anniversary">"纪念日"</string>
-    <string name="event_type_countdown">"倒数日"</string>
-
-    <string name="anniversary_years_passed">"已 %1$d 年"</string>
-    <string name="anniversary_today">"今天是纪念日"</string>
-    <string name="countdown_days_remaining">"%1$d 天后"</string>
-    <string name="countdown_today">"今天"</string>
-    <string name="countdown_days_passed">"已过 %1$d 天"</string>
-
     <string name="hint_where" msgid="4972598001033801974">"地点"</string>
     <string name="hint_description" msgid="1910143586169033232">"说明"</string>
     <string name="hint_attendees" msgid="1650488163176888480">"邀请对象"</string>

@@ -172,20 +172,6 @@
 
     <!-- Default value of What field (as a hint to the user) [CHAR LIMIT=15] -->
     <string name="hint_what">"Event name"</string>
-    <string name="hint_anniversary">"Anniversary content"</string>
-    <string name="hint_countdown">"Countdown content"</string>
-
-    <string name="event_type_event">"Event"</string>
-    <string name="event_type_birthday">"Birthday"</string>
-    <string name="event_type_anniversary">"Anniversary"</string>
-    <string name="event_type_countdown">"Countdown"</string>
-
-    <string name="anniversary_years_passed">"Already %1$d years"</string>
-    <string name="anniversary_today">"Today is the anniversary"</string>
-    <string name="countdown_days_remaining">"%1$d days remaining"</string>
-    <string name="countdown_today">"Today"</string>
-    <string name="countdown_days_passed">"%1$d days passed"</string>
-
     <!-- Default value of Where field (as a hint to the user)[CHAR LIMIT=15] -->
     <string name="hint_where">"Location"</string>
     <!-- Default value of Description field (as a hint to the user) [CHAR LIMIT=15]-->
