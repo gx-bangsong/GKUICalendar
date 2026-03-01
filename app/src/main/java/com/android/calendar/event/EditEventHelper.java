@@ -99,8 +99,7 @@ public class EditEventHelper {
             Events.ACCOUNT_NAME, // 25
             Events.ACCOUNT_TYPE, // 26
             Events.EXDATE, // 27
-            Events.ORIGINAL_INSTANCE_TIME, // 28
-            Events.CUSTOM_APP_URI // 29
+            Events.ORIGINAL_INSTANCE_TIME // 28
     };
     protected static final int EVENT_INDEX_ID = 0;
     protected static final int EVENT_INDEX_TITLE = 1;
@@ -131,7 +130,6 @@ public class EditEventHelper {
     protected static final int EVENT_INDEX_ACCOUNT_TYPE = 26;
     protected static final int EVENT_INDEX_EXDATE = 27;
     protected static final int EVENT_INDEX_ORIGINAL_INSTANCE_TIME = 28;
-    protected static final int EVENT_INDEX_CUSTOM_APP_URI = 29;
 
     public static final String[] REMINDERS_PROJECTION = new String[] {
             Reminders._ID, // 0
@@ -514,30 +512,6 @@ public class EditEventHelper {
                         .withSelection(EXTENDED_WHERE_EVENT_NAME, new String[] { Long.toString(model.mId), ExtendedProperty.URL_NAME });
                 ops.add(b.build());
                 // And then, insert the new url
-                b = ContentProviderOperation.newInsert(extendedPropUri)
-                        .withValues(values);
-            }
-            ops.add(b.build());
-        }
-
-        // Save event type
-        if (model.mEventType != null && !model.mEventType.equals(EventExtraUtils.EVENT_TYPE_NORMAL)) {
-            Uri extendedPropUri = ExtendedProperty.contentUri(model.mCalendarAccountName, model.mCalendarAccountType);
-            values.clear();
-            values.put(ExtendedProperties.NAME, EventExtraUtils.EVENT_TYPE_EXTENDED_PROP);
-            values.put(ExtendedProperties.VALUE, model.mEventType);
-
-            if (newEvent) {
-                b = ContentProviderOperation.newInsert(extendedPropUri)
-                        .withValues(values);
-                b.withValueBackReference(ExtendedProperties.EVENT_ID, eventIdIndex);
-            } else {
-                values.put(ExtendedProperties.EVENT_ID, model.mId);
-                // Delete old event type property first
-                b = ContentProviderOperation.newDelete(extendedPropUri)
-                        .withSelection(EXTENDED_WHERE_EVENT_NAME, new String[] { Long.toString(model.mId), EventExtraUtils.EVENT_TYPE_EXTENDED_PROP });
-                ops.add(b.build());
-                // Insert new event type
                 b = ContentProviderOperation.newInsert(extendedPropUri)
                         .withValues(values);
             }
@@ -1262,12 +1236,6 @@ public class EditEventHelper {
         model.mAccessLevel = accessLevel;
         model.mEventStatus = cursor.getInt(EVENT_INDEX_EVENT_STATUS);
 
-        model.mEventType = EventExtraUtils.EVENT_TYPE_NORMAL;
-        String customAppUri = cursor.getString(EVENT_INDEX_CUSTOM_APP_URI);
-        if (customAppUri != null && customAppUri.startsWith("etar://event_type/")) {
-            model.mEventType = customAppUri.substring("etar://event_type/".length());
-        }
-
         boolean hasRRule = !TextUtils.isEmpty(rRule);
 
         // We expect only one of these, so ignore the other
@@ -1452,12 +1420,6 @@ public class EditEventHelper {
         }
         values.put(Events.AVAILABILITY, model.mAvailability);
         values.put(Events.HAS_ATTENDEE_DATA, model.mHasAttendeeData ? 1 : 0);
-
-        if (model.mEventType != null && !model.mEventType.equals(EventExtraUtils.EVENT_TYPE_NORMAL)) {
-            values.put(Events.CUSTOM_APP_URI, "etar://event_type/" + model.mEventType);
-        } else {
-            values.put(Events.CUSTOM_APP_URI, (String) null);
-        }
 
         int accessLevel = model.mAccessLevel;
         values.put(Events.ACCESS_LEVEL, accessLevel);

@@ -30,7 +30,6 @@ import androidx.annotation.Nullable;
 
 import com.android.calendar.event.EditEventHelper;
 import com.android.calendar.event.EventColorCache;
-import com.android.calendar.event.EventExtraUtils;
 import com.android.calendar.event.ExtendedProperty;
 import com.android.calendar.settings.GeneralPreferences;
 import com.android.calendar.common.Rfc822Validator;
@@ -78,8 +77,6 @@ public class CalendarEventModel implements Serializable {
     public String mExDate = null;
     public String mOrganizer = null;
     public String mOrganizerDisplayName = null;
-
-    public String mEventType = EventExtraUtils.EVENT_TYPE_NORMAL;
     /**
      * Read-Only - Derived from other fields
      */
@@ -258,7 +255,6 @@ public class CalendarEventModel implements Serializable {
         mOwnerAccount = null;
 
         mTitle = null;
-        mEventType = EventExtraUtils.EVENT_TYPE_NORMAL;
         mLocation = null;
         mDescription = null;
         mUrl = null;
@@ -377,7 +373,6 @@ public class CalendarEventModel implements Serializable {
         result = prime * result + ((mTimezone == null) ? 0 : mTimezone.hashCode());
         result = prime * result + ((mTimezone2 == null) ? 0 : mTimezone2.hashCode());
         result = prime * result + ((mTitle == null) ? 0 : mTitle.hashCode());
-        result = prime * result + ((mEventType == null) ? 0 : mEventType.hashCode());
         result = prime * result + (mAvailability);
         result = prime * result + ((mUri == null) ? 0 : mUri.hashCode());
         result = prime * result + mAccessLevel;
@@ -416,14 +411,6 @@ public class CalendarEventModel implements Serializable {
                 return false;
             }
         } else if (!mTitle.equals(other.mTitle)) {
-            return false;
-        }
-
-        if (mEventType == null) {
-            if (other.mEventType != null) {
-                return false;
-            }
-        } else if (!mEventType.equals(other.mEventType)) {
             return false;
         }
 
@@ -720,14 +707,6 @@ public class CalendarEventModel implements Serializable {
                 return false;
             }
         } else if (!mTimezone2.equals(originalModel.mTimezone2)) {
-            return false;
-        }
-
-        if (mEventType == null) {
-            if (originalModel.mEventType != null) {
-                return false;
-            }
-        } else if (!mEventType.equals(originalModel.mEventType)) {
             return false;
         }
 

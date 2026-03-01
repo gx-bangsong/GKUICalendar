@@ -113,7 +113,6 @@ import com.android.calendar.event.AttendeesView;
 import com.android.calendar.event.EditEventActivity;
 import com.android.calendar.event.EditEventHelper;
 import com.android.calendar.event.EventColorPickerDialog;
-import com.android.calendar.event.EventExtraUtils;
 import com.android.calendar.event.EventViewUtils;
 import com.android.calendar.event.ExtendedProperty;
 import com.android.calendar.icalendar.IcalendarUtils;
@@ -351,7 +350,6 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
     private Cursor mRemindersCursor;
     private Cursor mExtendedCursor;
     private String mEventUrl;
-    private String mEventType;
     private long mStartMillis;
     private long mEndMillis;
     private boolean mAllDay;
@@ -1510,12 +1508,6 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
             return;
         }
 
-        mEventType = EventExtraUtils.EVENT_TYPE_NORMAL;
-        String customAppUri = mEventCursor.getString(EVENT_INDEX_CUSTOM_APP_URI);
-        if (customAppUri != null && customAppUri.startsWith("etar://event_type/")) {
-            mEventType = customAppUri.substring("etar://event_type/".length());
-        }
-
         Context context = view.getContext();
         if (context == null) {
             return;
@@ -1573,7 +1565,6 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
 
         // When
         updateWhenTextView(view);
-        updateEventTypeDisplay();
 
         // Display the repeat string (if any)
         String repeatString = null;
@@ -1656,25 +1647,6 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
         // Url
         if (mEventUrl != null && !mEventUrl.isBlank()) {
             mUrl.setText(mEventUrl);
-        }
-    }
-
-    private void updateEventTypeDisplay() {
-        // Extra info for anniversary/countdown
-        if (mEventType != null && !mEventType.equals(EventExtraUtils.EVENT_TYPE_NORMAL)) {
-            String extraInfo = null;
-            if (mEventType.equals(EventExtraUtils.EVENT_TYPE_ANNIVERSARY)) {
-                extraInfo = EventExtraUtils.getAnniversaryDisplayString(mContext, mStartMillis, System.currentTimeMillis());
-            } else if (mEventType.equals(EventExtraUtils.EVENT_TYPE_COUNTDOWN)) {
-                extraInfo = EventExtraUtils.getCountdownDisplayString(mContext, mStartMillis, System.currentTimeMillis());
-            }
-
-            if (extraInfo != null) {
-                String currentWhen = mWhenDateTime.getText().toString();
-                if (!currentWhen.contains(extraInfo)) {
-                    mWhenDateTime.setText(extraInfo + " · " + currentWhen);
-                }
-            }
         }
     }
 
@@ -2092,16 +2064,12 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
                 case ExtendedProperty.URL_NAME_PRIV:
                     mEventUrl = value;
                     break;
-                case EventExtraUtils.EVENT_TYPE_EXTENDED_PROP:
-                    mEventType = value;
-                    break;
                 default:
                     Log.i(TAG, "Got an unhandled extended property: " + name);
                     break;
             }
         }
         updateExtended();
-        updateEventTypeDisplay();
     }
 
     void updateResponse(View view) {

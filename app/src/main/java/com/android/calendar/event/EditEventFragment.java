@@ -926,10 +926,6 @@ public class EditEventFragment extends Fragment implements EventHandler, OnColor
                                     mView.mUrlTextView.setTextKeepState(mModel.mUrl);
                                 }
                                 break;
-                            case EventExtraUtils.EVENT_TYPE_EXTENDED_PROP:
-                                mModel.mEventType = value;
-                                mOriginalModel.mEventType = value;
-                                break;
                         }
                     }
 
