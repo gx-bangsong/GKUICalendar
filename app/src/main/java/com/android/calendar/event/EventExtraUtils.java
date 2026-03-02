@@ -28,18 +28,11 @@ public class EventExtraUtils {
         LocalDate startDate = java.time.Instant.ofEpochMilli(startMillis).atZone(java.time.ZoneOffset.UTC).toLocalDate();
         LocalDate today = java.time.Instant.ofEpochMilli(todayMillis).atZone(java.time.ZoneId.systemDefault()).toLocalDate();
 
-        long years = calculateYearsSince(startDate, today);
-        if (years <= 0) {
-             // If it's the first year or before the first anniversary
-             if (startDate.getMonth() == today.getMonth() && startDate.getDayOfMonth() == today.getDayOfMonth()) {
-                 return context.getString(R.string.anniversary_today);
-             }
-        }
-
         if (startDate.getMonth() == today.getMonth() && startDate.getDayOfMonth() == today.getDayOfMonth()) {
             return context.getString(R.string.anniversary_today);
         }
 
+        long years = calculateYearsSince(startDate, today);
         return context.getString(R.string.anniversary_years_passed, (int)years);
     }
 
