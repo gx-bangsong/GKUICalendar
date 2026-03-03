@@ -158,7 +158,7 @@
 
         <!-- FROM / TO Rows -->
         <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/start_row"
+            android:id="@+id/start_row_container"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
@@ -195,7 +195,7 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/end_row"
+            android:id="@+id/end_row_container"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:paddingVertical="8dp"
