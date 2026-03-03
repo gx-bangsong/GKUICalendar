@@ -355,4 +355,15 @@
     <string name="chips_action_copy" msgid="6984158516334578792">"复制"</string>
     <string name="chips_action_cancel" msgid="2582257014578396781">"取消"</string>
     <string name="chips_permission_text" msgid="5601284803674008863">"允许推荐联系人"</string>
+
+    <!-- Anniversary & Countdown -->
+    <string name="event_type_event">活动</string>
+    <string name="event_type_birthday">生日</string>
+    <string name="event_type_anniversary">纪念日</string>
+    <string name="event_type_countdown">倒数日</string>
+    <string name="anniversary_years_passed">已经 %d 年</string>
+    <string name="anniversary_today">周年快乐！</string>
+    <string name="countdown_days_remaining">还剩下 %d 天</string>
+    <string name="countdown_days_passed">已经过去 %d 天</string>
+    <string name="countdown_today">就在今天！</string>
 </resources>

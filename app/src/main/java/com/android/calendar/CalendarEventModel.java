@@ -77,6 +77,7 @@ public class CalendarEventModel implements Serializable {
     public String mExDate = null;
     public String mOrganizer = null;
     public String mOrganizerDisplayName = null;
+    public String mEventType = com.android.calendar.event.EventExtraUtils.EVENT_TYPE_NORMAL;
     /**
      * Read-Only - Derived from other fields
      */

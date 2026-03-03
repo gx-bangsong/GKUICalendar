@@ -887,4 +887,15 @@
     <string name="enter_lunar_date_toast">Please enter a complete Lunar date</string>
     <string name="invalid_number_toast">Please enter a valid number</string>
     <string name="invalid_lunar_date_toast">Invalid Lunar date</string>
+
+    <!-- Anniversary & Countdown -->
+    <string name="event_type_event">Event</string>
+    <string name="event_type_birthday">Birthday</string>
+    <string name="event_type_anniversary">Anniversary</string>
+    <string name="event_type_countdown">Countdown</string>
+    <string name="anniversary_years_passed">Already %d years</string>
+    <string name="anniversary_today">Happy Anniversary!</string>
+    <string name="countdown_days_remaining">Still %d days</string>
+    <string name="countdown_days_passed">Already %d days passed</string>
+    <string name="countdown_today">Today is the day!</string>
 </resources>
