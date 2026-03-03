@@ -162,6 +162,8 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
     TextView mTimezoneTextView;
     MultiAutoCompleteTextView mAttendeesList;
     View mCalendarSelectorGroupBackground;
+    View mStartRow;
+    View mEndRow;
     View mLocationGroup;
     View mDescriptionGroup;
     View mUrlGroup;
@@ -271,6 +273,8 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         mLocationGroup = view.findViewById(R.id.where_row);
         mDescriptionGroup = view.findViewById(R.id.description_row);
         mUrlGroup = view.findViewById(R.id.url_row);
+        mStartRow = view.findViewById(R.id.start_row);
+        mEndRow = view.findViewById(R.id.end_row);
         mStartHomeGroup = view.findViewById(R.id.from_row_home_tz);
         mEndHomeGroup = view.findViewById(R.id.to_row_home_tz);
         mAttendeesList = (MultiAutoCompleteTextView) view.findViewById(R.id.attendees);
@@ -1186,6 +1190,8 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             for (View v : mEditOnlyList) {
                 v.setVisibility(View.GONE);
             }
+            mStartRow.setVisibility(View.GONE);
+            mEndRow.setVisibility(View.GONE);
             for (View v : mEditViewList) {
                 v.setEnabled(false);
                 v.setBackgroundDrawable(null);
@@ -1213,6 +1219,8 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             for (View v : mEditOnlyList) {
                 v.setVisibility(View.VISIBLE);
             }
+            mStartRow.setVisibility(View.VISIBLE);
+            mEndRow.setVisibility(View.VISIBLE);
             for (View v : mEditViewList) {
                 v.setEnabled(true);
                 if (v.getTag() != null) {
