@@ -4,12 +4,13 @@ package ws.xsoh.etar.databinding;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.LinearLayout;
-import android.widget.TextView;
+import android.widget.ImageButton;
+import android.widget.RelativeLayout;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.viewbinding.ViewBinding;
 import androidx.viewbinding.ViewBindings;
+import com.google.android.material.button.MaterialButton;
 import java.lang.NullPointerException;
 import java.lang.Override;
 import java.lang.String;
@@ -17,16 +18,16 @@ import ws.xsoh.etar.R;
 
 public final class EditEventCustomActionbarBinding implements ViewBinding {
   @NonNull
-  private final LinearLayout rootView;
+  private final RelativeLayout rootView;
 
   @NonNull
-  public final TextView actionCancel;
+  public final ImageButton actionCancel;
 
   @NonNull
-  public final TextView actionDone;
+  public final MaterialButton actionDone;
 
-  private EditEventCustomActionbarBinding(@NonNull LinearLayout rootView,
-      @NonNull TextView actionCancel, @NonNull TextView actionDone) {
+  private EditEventCustomActionbarBinding(@NonNull RelativeLayout rootView,
+      @NonNull ImageButton actionCancel, @NonNull MaterialButton actionDone) {
     this.rootView = rootView;
     this.actionCancel = actionCancel;
     this.actionDone = actionDone;
@@ -34,7 +35,7 @@ public final class EditEventCustomActionbarBinding implements ViewBinding {
 
   @Override
   @NonNull
-  public LinearLayout getRoot() {
+  public RelativeLayout getRoot() {
     return rootView;
   }
 
@@ -60,18 +61,19 @@ public final class EditEventCustomActionbarBinding implements ViewBinding {
     int id;
     missingId: {
       id = R.id.action_cancel;
-      TextView actionCancel = ViewBindings.findChildViewById(rootView, id);
+      ImageButton actionCancel = ViewBindings.findChildViewById(rootView, id);
       if (actionCancel == null) {
         break missingId;
       }
 
       id = R.id.action_done;
-      TextView actionDone = ViewBindings.findChildViewById(rootView, id);
+      MaterialButton actionDone = ViewBindings.findChildViewById(rootView, id);
       if (actionDone == null) {
         break missingId;
       }
 
-      return new EditEventCustomActionbarBinding((LinearLayout) rootView, actionCancel, actionDone);
+      return new EditEventCustomActionbarBinding((RelativeLayout) rootView, actionCancel,
+          actionDone);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));
