@@ -201,7 +201,7 @@
             android:paddingVertical="8dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="@+id/is_all_day_label"
-            app:layout_constraintTop_toBottomOf="@+id/start_row">
+            app:layout_constraintTop_toBottomOf="@+id/start_row_container">
 
             <Button
                 android:id="@+id/end_date"
@@ -261,7 +261,7 @@
             android:textSize="16sp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@+id/timezone_icon"
-            app:layout_constraintTop_toBottomOf="@+id/end_row" />
+            app:layout_constraintTop_toBottomOf="@+id/end_row_container" />
 
         <!-- REPEATS -->
         <ImageView

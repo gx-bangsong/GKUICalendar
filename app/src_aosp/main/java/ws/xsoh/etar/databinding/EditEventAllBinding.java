@@ -7,7 +7,6 @@ import android.view.ViewGroup;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.HorizontalScrollView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -22,7 +21,6 @@ import androidx.constraintlayout.widget.Group;
 import androidx.viewbinding.ViewBinding;
 import androidx.viewbinding.ViewBindings;
 import com.android.calendar.chips.RecipientEditTextView;
-import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.materialswitch.MaterialSwitch;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
@@ -84,19 +82,10 @@ public final class EditEventAllBinding implements ViewBinding {
   public final TextView endDateHomeTz;
 
   @NonNull
-  public final ConstraintLayout endRowContainer;
-
-  @NonNull
   public final Button endTime;
 
   @NonNull
   public final TextView endTimeHomeTz;
-
-  @NonNull
-  public final ChipGroup eventTypes;
-
-  @NonNull
-  public final HorizontalScrollView eventTypesScroll;
 
   @NonNull
   public final LinearLayout fromRowHomeTz;
@@ -144,6 +133,9 @@ public final class EditEventAllBinding implements ViewBinding {
   public final RadioButton responseNo;
 
   @NonNull
+  public final LinearLayout responseRow;
+
+  @NonNull
   public final RadioGroup responseValue;
 
   @NonNull
@@ -156,31 +148,10 @@ public final class EditEventAllBinding implements ViewBinding {
   public final ImageView rruleIcon;
 
   @NonNull
-  public final View separatorAttendees;
-
-  @NonNull
-  public final View separatorCalendar;
-
-  @NonNull
-  public final View separatorDatetime;
-
-  @NonNull
-  public final View separatorDetails;
-
-  @NonNull
-  public final View separatorReminders;
-
-  @NonNull
-  public final View separatorTitle;
-
-  @NonNull
   public final Button startDate;
 
   @NonNull
   public final TextView startDateHomeTz;
-
-  @NonNull
-  public final ConstraintLayout startRowContainer;
 
   @NonNull
   public final Button startTime;
@@ -219,6 +190,30 @@ public final class EditEventAllBinding implements ViewBinding {
   public final TextInputLayout urlRow;
 
   @NonNull
+  public final View view;
+
+  @NonNull
+  public final View view1;
+
+  @NonNull
+  public final View view2;
+
+  @NonNull
+  public final View view3;
+
+  @NonNull
+  public final View view4;
+
+  @NonNull
+  public final View view5;
+
+  @NonNull
+  public final View view6;
+
+  @NonNull
+  public final View view7;
+
+  @NonNull
   public final Spinner visibility;
 
   @NonNull
@@ -247,27 +242,24 @@ public final class EditEventAllBinding implements ViewBinding {
       @NonNull ImageButton changeColor, @NonNull EditText description,
       @NonNull ImageView descriptionIcon, @NonNull TextInputLayout descriptionRow,
       @NonNull ConstraintLayout editEventAll, @NonNull Button endDate,
-      @NonNull TextView endDateHomeTz, @NonNull ConstraintLayout endRowContainer,
-      @NonNull Button endTime, @NonNull TextView endTimeHomeTz, @NonNull ChipGroup eventTypes,
-      @NonNull HorizontalScrollView eventTypesScroll, @NonNull LinearLayout fromRowHomeTz,
-      @NonNull ImageView imageView, @NonNull MaterialSwitch isAllDay,
-      @NonNull TextView isAllDayLabel, @NonNull AutoCompleteTextView location,
-      @NonNull TextView organizer, @NonNull TextView organizerLabel,
-      @NonNull LinearLayout organizerRow, @NonNull Button reminderAdd,
-      @NonNull ImageView reminderIcon, @NonNull LinearLayout reminderItemsContainer,
-      @NonNull Group responseGroup, @NonNull TextView responseLabel,
-      @NonNull RadioButton responseMaybe, @NonNull RadioButton responseNo,
+      @NonNull TextView endDateHomeTz, @NonNull Button endTime, @NonNull TextView endTimeHomeTz,
+      @NonNull LinearLayout fromRowHomeTz, @NonNull ImageView imageView,
+      @NonNull MaterialSwitch isAllDay, @NonNull TextView isAllDayLabel,
+      @NonNull AutoCompleteTextView location, @NonNull TextView organizer,
+      @NonNull TextView organizerLabel, @NonNull LinearLayout organizerRow,
+      @NonNull Button reminderAdd, @NonNull ImageView reminderIcon,
+      @NonNull LinearLayout reminderItemsContainer, @NonNull Group responseGroup,
+      @NonNull TextView responseLabel, @NonNull RadioButton responseMaybe,
+      @NonNull RadioButton responseNo, @NonNull LinearLayout responseRow,
       @NonNull RadioGroup responseValue, @NonNull RadioButton responseYes, @NonNull Button rrule,
-      @NonNull ImageView rruleIcon, @NonNull View separatorAttendees,
-      @NonNull View separatorCalendar, @NonNull View separatorDatetime,
-      @NonNull View separatorDetails, @NonNull View separatorReminders,
-      @NonNull View separatorTitle, @NonNull Button startDate, @NonNull TextView startDateHomeTz,
-      @NonNull ConstraintLayout startRowContainer, @NonNull Button startTime,
-      @NonNull TextView startTimeHomeTz, @NonNull Button timezoneButton,
+      @NonNull ImageView rruleIcon, @NonNull Button startDate, @NonNull TextView startDateHomeTz,
+      @NonNull Button startTime, @NonNull TextView startTimeHomeTz, @NonNull Button timezoneButton,
       @NonNull Group timezoneButtonRow, @NonNull ImageView timezoneIcon,
       @NonNull TextView timezoneTextView, @NonNull LinearLayout timezoneTextviewRow,
       @NonNull TextInputEditText title, @NonNull LinearLayout toRowHomeTz, @NonNull EditText url,
-      @NonNull ImageView urlIcon, @NonNull TextInputLayout urlRow, @NonNull Spinner visibility,
+      @NonNull ImageView urlIcon, @NonNull TextInputLayout urlRow, @NonNull View view,
+      @NonNull View view1, @NonNull View view2, @NonNull View view3, @NonNull View view4,
+      @NonNull View view5, @NonNull View view6, @NonNull View view7, @NonNull Spinner visibility,
       @NonNull ImageView visibilityIcon, @NonNull TextView when, @NonNull TextView whenLabel,
       @NonNull LinearLayout whenRow, @NonNull ImageView whereIcon,
       @NonNull TextInputLayout whereRow) {
@@ -288,11 +280,8 @@ public final class EditEventAllBinding implements ViewBinding {
     this.editEventAll = editEventAll;
     this.endDate = endDate;
     this.endDateHomeTz = endDateHomeTz;
-    this.endRowContainer = endRowContainer;
     this.endTime = endTime;
     this.endTimeHomeTz = endTimeHomeTz;
-    this.eventTypes = eventTypes;
-    this.eventTypesScroll = eventTypesScroll;
     this.fromRowHomeTz = fromRowHomeTz;
     this.imageView = imageView;
     this.isAllDay = isAllDay;
@@ -308,19 +297,13 @@ public final class EditEventAllBinding implements ViewBinding {
     this.responseLabel = responseLabel;
     this.responseMaybe = responseMaybe;
     this.responseNo = responseNo;
+    this.responseRow = responseRow;
     this.responseValue = responseValue;
     this.responseYes = responseYes;
     this.rrule = rrule;
     this.rruleIcon = rruleIcon;
-    this.separatorAttendees = separatorAttendees;
-    this.separatorCalendar = separatorCalendar;
-    this.separatorDatetime = separatorDatetime;
-    this.separatorDetails = separatorDetails;
-    this.separatorReminders = separatorReminders;
-    this.separatorTitle = separatorTitle;
     this.startDate = startDate;
     this.startDateHomeTz = startDateHomeTz;
-    this.startRowContainer = startRowContainer;
     this.startTime = startTime;
     this.startTimeHomeTz = startTimeHomeTz;
     this.timezoneButton = timezoneButton;
@@ -333,6 +316,14 @@ public final class EditEventAllBinding implements ViewBinding {
     this.url = url;
     this.urlIcon = urlIcon;
     this.urlRow = urlRow;
+    this.view = view;
+    this.view1 = view1;
+    this.view2 = view2;
+    this.view3 = view3;
+    this.view4 = view4;
+    this.view5 = view5;
+    this.view6 = view6;
+    this.view7 = view7;
     this.visibility = visibility;
     this.visibilityIcon = visibilityIcon;
     this.when = when;
@@ -465,12 +456,6 @@ public final class EditEventAllBinding implements ViewBinding {
         break missingId;
       }
 
-      id = R.id.end_row_container;
-      ConstraintLayout endRowContainer = ViewBindings.findChildViewById(rootView, id);
-      if (endRowContainer == null) {
-        break missingId;
-      }
-
       id = R.id.end_time;
       Button endTime = ViewBindings.findChildViewById(rootView, id);
       if (endTime == null) {
@@ -480,18 +465,6 @@ public final class EditEventAllBinding implements ViewBinding {
       id = R.id.end_time_home_tz;
       TextView endTimeHomeTz = ViewBindings.findChildViewById(rootView, id);
       if (endTimeHomeTz == null) {
-        break missingId;
-      }
-
-      id = R.id.event_types;
-      ChipGroup eventTypes = ViewBindings.findChildViewById(rootView, id);
-      if (eventTypes == null) {
-        break missingId;
-      }
-
-      id = R.id.event_types_scroll;
-      HorizontalScrollView eventTypesScroll = ViewBindings.findChildViewById(rootView, id);
-      if (eventTypesScroll == null) {
         break missingId;
       }
 
@@ -585,6 +558,12 @@ public final class EditEventAllBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.response_row;
+      LinearLayout responseRow = ViewBindings.findChildViewById(rootView, id);
+      if (responseRow == null) {
+        break missingId;
+      }
+
       id = R.id.response_value;
       RadioGroup responseValue = ViewBindings.findChildViewById(rootView, id);
       if (responseValue == null) {
@@ -609,42 +588,6 @@ public final class EditEventAllBinding implements ViewBinding {
         break missingId;
       }
 
-      id = R.id.separator_attendees;
-      View separatorAttendees = ViewBindings.findChildViewById(rootView, id);
-      if (separatorAttendees == null) {
-        break missingId;
-      }
-
-      id = R.id.separator_calendar;
-      View separatorCalendar = ViewBindings.findChildViewById(rootView, id);
-      if (separatorCalendar == null) {
-        break missingId;
-      }
-
-      id = R.id.separator_datetime;
-      View separatorDatetime = ViewBindings.findChildViewById(rootView, id);
-      if (separatorDatetime == null) {
-        break missingId;
-      }
-
-      id = R.id.separator_details;
-      View separatorDetails = ViewBindings.findChildViewById(rootView, id);
-      if (separatorDetails == null) {
-        break missingId;
-      }
-
-      id = R.id.separator_reminders;
-      View separatorReminders = ViewBindings.findChildViewById(rootView, id);
-      if (separatorReminders == null) {
-        break missingId;
-      }
-
-      id = R.id.separator_title;
-      View separatorTitle = ViewBindings.findChildViewById(rootView, id);
-      if (separatorTitle == null) {
-        break missingId;
-      }
-
       id = R.id.start_date;
       Button startDate = ViewBindings.findChildViewById(rootView, id);
       if (startDate == null) {
@@ -654,12 +597,6 @@ public final class EditEventAllBinding implements ViewBinding {
       id = R.id.start_date_home_tz;
       TextView startDateHomeTz = ViewBindings.findChildViewById(rootView, id);
       if (startDateHomeTz == null) {
-        break missingId;
-      }
-
-      id = R.id.start_row_container;
-      ConstraintLayout startRowContainer = ViewBindings.findChildViewById(rootView, id);
-      if (startRowContainer == null) {
         break missingId;
       }
 
@@ -735,6 +672,54 @@ public final class EditEventAllBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.view;
+      View view = ViewBindings.findChildViewById(rootView, id);
+      if (view == null) {
+        break missingId;
+      }
+
+      id = R.id.view1;
+      View view1 = ViewBindings.findChildViewById(rootView, id);
+      if (view1 == null) {
+        break missingId;
+      }
+
+      id = R.id.view2;
+      View view2 = ViewBindings.findChildViewById(rootView, id);
+      if (view2 == null) {
+        break missingId;
+      }
+
+      id = R.id.view3;
+      View view3 = ViewBindings.findChildViewById(rootView, id);
+      if (view3 == null) {
+        break missingId;
+      }
+
+      id = R.id.view4;
+      View view4 = ViewBindings.findChildViewById(rootView, id);
+      if (view4 == null) {
+        break missingId;
+      }
+
+      id = R.id.view5;
+      View view5 = ViewBindings.findChildViewById(rootView, id);
+      if (view5 == null) {
+        break missingId;
+      }
+
+      id = R.id.view6;
+      View view6 = ViewBindings.findChildViewById(rootView, id);
+      if (view6 == null) {
+        break missingId;
+      }
+
+      id = R.id.view7;
+      View view7 = ViewBindings.findChildViewById(rootView, id);
+      if (view7 == null) {
+        break missingId;
+      }
+
       id = R.id.visibility;
       Spinner visibility = ViewBindings.findChildViewById(rootView, id);
       if (visibility == null) {
@@ -780,16 +765,14 @@ public final class EditEventAllBinding implements ViewBinding {
       return new EditEventAllBinding((LinearLayout) rootView, addAttendeesGroup, addAttendeesRow,
           attendees, attendeesIcon, availability, availabilityIcon, calendarSelectorGroupBackground,
           calendarSelectorGroupIcon, calendarsSpinner, changeColor, description, descriptionIcon,
-          descriptionRow, editEventAll, endDate, endDateHomeTz, endRowContainer, endTime,
-          endTimeHomeTz, eventTypes, eventTypesScroll, fromRowHomeTz, imageView, isAllDay,
-          isAllDayLabel, location, organizer, organizerLabel, organizerRow, reminderAdd,
-          reminderIcon, reminderItemsContainer, responseGroup, responseLabel, responseMaybe,
-          responseNo, responseValue, responseYes, rrule, rruleIcon, separatorAttendees,
-          separatorCalendar, separatorDatetime, separatorDetails, separatorReminders,
-          separatorTitle, startDate, startDateHomeTz, startRowContainer, startTime, startTimeHomeTz,
-          timezoneButton, timezoneButtonRow, timezoneIcon, timezoneTextView, timezoneTextviewRow,
-          title, toRowHomeTz, url, urlIcon, urlRow, visibility, visibilityIcon, when, whenLabel,
-          whenRow, whereIcon, whereRow);
+          descriptionRow, editEventAll, endDate, endDateHomeTz, endTime, endTimeHomeTz,
+          fromRowHomeTz, imageView, isAllDay, isAllDayLabel, location, organizer, organizerLabel,
+          organizerRow, reminderAdd, reminderIcon, reminderItemsContainer, responseGroup,
+          responseLabel, responseMaybe, responseNo, responseRow, responseValue, responseYes, rrule,
+          rruleIcon, startDate, startDateHomeTz, startTime, startTimeHomeTz, timezoneButton,
+          timezoneButtonRow, timezoneIcon, timezoneTextView, timezoneTextviewRow, title,
+          toRowHomeTz, url, urlIcon, urlRow, view, view1, view2, view3, view4, view5, view6, view7,
+          visibility, visibilityIcon, when, whenLabel, whenRow, whereIcon, whereRow);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

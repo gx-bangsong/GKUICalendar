@@ -33,6 +33,7 @@ import android.graphics.Paint;
 import android.graphics.Paint.Align;
 import android.graphics.Paint.Style;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
@@ -333,6 +334,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
     // Pre-allocate these objects and re-use them
     private final Rect mRect = new Rect();
+    private final RectF mRectF = new RectF();
     private final Rect mDestRect = new Rect();
     private final Rect mSelectionRect = new Rect();
     // This encloses the more allDay events icon
@@ -424,10 +426,11 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private static int EVENT_RECT_TOP_MARGIN = 1;
     private static int EVENT_RECT_BOTTOM_MARGIN = 0;
     private static int EVENT_RECT_LEFT_MARGIN = 1;
-    private static int EVENT_RECT_RIGHT_MARGIN = 0;
+    private static int EVENT_RECT_RIGHT_MARGIN = 4;
     private static int EVENT_RECT_STROKE_WIDTH = 2;
     private static int EVENT_TEXT_TOP_MARGIN = 2;
     private static int EVENT_TEXT_BOTTOM_MARGIN = 2;
+    private static float EVENT_CORNER_RADIUS;
     private static int EVENT_TEXT_LEFT_MARGIN = 6;
     private static int EVENT_TEXT_RIGHT_MARGIN = 6;
     private static int ALL_DAY_EVENT_RECT_BOTTOM_MARGIN = 1;
@@ -684,6 +687,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         EVENT_TEXT_FONT_SIZE = (int) mResources.getDimension(eventTextSizeId);
         NEW_EVENT_HINT_FONT_SIZE = (int) mResources.getDimension(R.dimen.new_event_hint_text_size);
         EVENT_TEXT_TOP_MARGIN = (int) mResources.getDimension(R.dimen.event_text_vertical_margin);
+        EVENT_CORNER_RADIUS = mResources.getDimension(R.dimen.event_corner_radius);
         EVENT_TEXT_BOTTOM_MARGIN = EVENT_TEXT_TOP_MARGIN;
         EVENT_ALL_DAY_TEXT_TOP_MARGIN = EVENT_TEXT_TOP_MARGIN;
         EVENT_ALL_DAY_TEXT_BOTTOM_MARGIN = EVENT_TEXT_TOP_MARGIN;
@@ -3053,9 +3057,9 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         p.setColor(mMoreEventsTextColor);
         p.setStrokeWidth(EVENT_RECT_STROKE_WIDTH);
         p.setStyle(Style.STROKE);
-        p.setAntiAlias(false);
-        canvas.drawRect(r, p);
         p.setAntiAlias(true);
+        mRectF.set(r);
+        canvas.drawRoundRect(mRectF, 4.0f, 4.0f, p);
         p.setStyle(Style.FILL);
         p.setTextSize(EVENT_TEXT_FONT_SIZE);
         String text = mResources.getQuantityString(R.plurals.month_more_events, remainingEvents);
@@ -3500,7 +3504,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 break;
         }
 
-        p.setAntiAlias(false);
+        p.setAntiAlias(true);
 
         int floorHalfStroke = (int) Math.floor(EVENT_RECT_STROKE_WIDTH / 2.0f);
         int ceilHalfStroke = (int) Math.ceil(EVENT_RECT_STROKE_WIDTH / 2.0f);
@@ -3509,11 +3513,13 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 visibleBot);
         r.left += floorHalfStroke;
         r.right -= ceilHalfStroke;
+        mRectF.set(r);
+        float radius = EVENT_CORNER_RADIUS;
         p.setStrokeWidth(EVENT_RECT_STROKE_WIDTH);
         p.setColor(color);
         int alpha = p.getAlpha();
         p.setAlpha(mEventsAlpha);
-        canvas.drawRect(r, p);
+        canvas.drawRoundRect(mRectF, radius, radius, p);
         p.setAlpha(alpha);
         p.setStyle(Style.FILL);
 
@@ -3535,9 +3541,8 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
             if (paintIt) {
                 p.setColor(color);
-                canvas.drawRect(r, p);
+                canvas.drawRoundRect(mRectF, radius, radius, p);
             }
-            p.setAntiAlias(true);
         }
 
         // Draw cal color square border

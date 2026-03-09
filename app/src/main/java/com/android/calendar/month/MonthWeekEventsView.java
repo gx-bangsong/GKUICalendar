@@ -26,6 +26,7 @@ import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.RectF;
 import android.graphics.Paint.Align;
 import android.graphics.Paint.Style;
 import android.graphics.Typeface;
@@ -70,6 +71,7 @@ public class MonthWeekEventsView extends SimpleWeekView {
     private static final boolean DEBUG_LAYOUT = false;
     private static final int mClickedAlpha = 128;
     protected static StringBuilder mStringBuilder = new StringBuilder(50);
+    private final RectF mRectF = new RectF();
     // TODO recreate formatter when locale changes
     protected static Formatter mFormatter = new Formatter(mStringBuilder, Locale.getDefault());
     /* NOTE: these are not constants, and may be multiplied by a scale factor */
@@ -150,6 +152,7 @@ public class MonthWeekEventsView extends SimpleWeekView {
     protected int mMonthEventOtherColor;
     protected int mMonthEventExtraOtherColor;
     protected int mMonthWeekNumColor;
+    private float mMonthEventCornerRadius;
     protected int mMonthBusyBitsBusyTimeColor;
     protected int mMonthBusyBitsConflictTimeColor;
     protected int mDaySeparatorInnerColor;
@@ -235,6 +238,7 @@ public class MonthWeekEventsView extends SimpleWeekView {
         Resources res = context.getResources();
 
         mMonthWeekNumColor = DynamicTheme.getColor(context, "month_week_num_color");
+        mMonthEventCornerRadius = context.getResources().getDimension(R.dimen.month_event_corner_radius);
         mMonthNumColor = DynamicTheme.getColor(context, "month_day_number");
         mMonthNumOtherColor = DynamicTheme.getColor(context, "month_day_number_other");
         mMonthNumTodayColor = DynamicTheme.getColor(context, "month_today_number");
@@ -1536,7 +1540,9 @@ public class MonthWeekEventsView extends SimpleWeekView {
             mBoundaries.setRectangle(mFormat.getDaySpan(day), mFormat.getEventLines());
             mEventSquarePaint.setStyle(getRectanglePaintStyle());
             mEventSquarePaint.setColor(getRectangleColor());
-            canvas.drawRect(r, mEventSquarePaint);
+            mEventSquarePaint.setAntiAlias(true);
+            mRectF.set(r);
+            canvas.drawRoundRect(mRectF, mMonthEventCornerRadius, mMonthEventCornerRadius, mEventSquarePaint);
         }
 
         protected int getAvailableSpaceForText(int spanningDays) {
