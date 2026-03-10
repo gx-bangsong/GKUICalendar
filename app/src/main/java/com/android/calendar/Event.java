@@ -93,6 +93,7 @@ public class Event implements Cloneable {
             Events.GUESTS_CAN_MODIFY,        // 19
             Instances.ALL_DAY + "=1 OR (" + Instances.END + "-" + Instances.BEGIN + ")>="
                     + DateUtils.DAY_IN_MILLIS + " AS " + DISPLAY_AS_ALLDAY, // 20
+            Instances.CUSTOM_APP_URI,        // 21
     };
     private static final String EVENTS_WHERE = DISPLAY_AS_ALLDAY + "=0";
     private static final String ALLDAY_WHERE = DISPLAY_AS_ALLDAY + "=1";
@@ -117,6 +118,7 @@ public class Event implements Cloneable {
     private static final int PROJECTION_ORGANIZER_INDEX = 18;
     private static final int PROJECTION_GUESTS_CAN_INVITE_OTHERS_INDEX = 19;
     private static final int PROJECTION_DISPLAY_AS_ALLDAY = 20;
+    private static final int PROJECTION_CUSTOM_APP_URI_INDEX = 21;
     private static String mNoTitleString;
     private static int mNoColorColor;
 
@@ -128,6 +130,7 @@ public class Event implements Cloneable {
     public boolean allDay;
     public String organizer;
     public boolean guestsCanModify;
+    public String customAppUri;
 
     public int startDay;       // start Julian day
     public int endDay;         // end Julian day
@@ -343,9 +346,14 @@ public class Event implements Cloneable {
         e.allDay = cEvents.getInt(PROJECTION_ALL_DAY_INDEX) != 0;
         e.organizer = cEvents.getString(PROJECTION_ORGANIZER_INDEX);
         e.guestsCanModify = cEvents.getInt(PROJECTION_GUESTS_CAN_INVITE_OTHERS_INDEX) != 0;
+        e.customAppUri = cEvents.getString(PROJECTION_CUSTOM_APP_URI_INDEX);
 
         if (e.title == null || e.title.length() == 0) {
             e.title = mNoTitleString;
+        }
+
+        if (e.customAppUri != null && e.customAppUri.startsWith("etar://event_type/")) {
+            e.title = "⭐ " + e.title;
         }
 
         if (!cEvents.isNull(PROJECTION_COLOR_INDEX)) {

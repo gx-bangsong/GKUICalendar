@@ -148,6 +148,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
     TextView mEndTimeHome;
     TextView mEndDateHome;
     SwitchCompat mAllDayCheckBox;
+    com.google.android.material.chip.ChipGroup mEventTypeGroup;
     Spinner mCalendarsSpinner;
     Button mRruleButton;
     Spinner mAvailabilitySpinner;
@@ -162,6 +163,8 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
     TextView mTimezoneTextView;
     MultiAutoCompleteTextView mAttendeesList;
     View mCalendarSelectorGroupBackground;
+    View mStartRowContainer;
+    View mEndRowContainer;
     View mLocationGroup;
     View mDescriptionGroup;
     View mUrlGroup;
@@ -260,6 +263,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         mEndTimeHome = (TextView) view.findViewById(R.id.end_time_home_tz);
         mEndDateHome = (TextView) view.findViewById(R.id.end_date_home_tz);
         mAllDayCheckBox = view.findViewById(R.id.is_all_day);
+        mEventTypeGroup = view.findViewById(R.id.event_types);
         mRruleButton = (Button) view.findViewById(R.id.rrule);
         mAvailabilitySpinner = (Spinner) view.findViewById(R.id.availability);
         mAccessLevelSpinner = (Spinner) view.findViewById(R.id.visibility);
@@ -271,6 +275,8 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         mLocationGroup = view.findViewById(R.id.where_row);
         mDescriptionGroup = view.findViewById(R.id.description_row);
         mUrlGroup = view.findViewById(R.id.url_row);
+        mStartRowContainer = view.findViewById(R.id.start_row_container);
+        mEndRowContainer = view.findViewById(R.id.end_row_container);
         mStartHomeGroup = view.findViewById(R.id.from_row_home_tz);
         mEndHomeGroup = view.findViewById(R.id.to_row_home_tz);
         mAttendeesList = (MultiAutoCompleteTextView) view.findViewById(R.id.attendees);
@@ -861,6 +867,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         }
 
         mRrule = model.mRrule;
+        setupEventTypeChips(model.mEventType);
         if (!TextUtils.isEmpty(mRrule)) {
             mEventRecurrence.parse(mRrule);
         }
@@ -1186,6 +1193,8 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             for (View v : mEditOnlyList) {
                 v.setVisibility(View.GONE);
             }
+            mStartRowContainer.setVisibility(View.GONE);
+            mEndRowContainer.setVisibility(View.GONE);
             for (View v : mEditViewList) {
                 v.setEnabled(false);
                 v.setBackgroundDrawable(null);
@@ -1213,6 +1222,8 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             for (View v : mEditOnlyList) {
                 v.setVisibility(View.VISIBLE);
             }
+            mStartRowContainer.setVisibility(View.VISIBLE);
+            mEndRowContainer.setVisibility(View.VISIBLE);
             for (View v : mEditViewList) {
                 v.setEnabled(true);
                 if (v.getTag() != null) {
@@ -1771,6 +1782,47 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
                     accountName.setVisibility(TextView.VISIBLE);
                 }
             }
+        }
+    }
+
+    private void setupEventTypeChips(String selectedType) {
+        if (mEventTypeGroup == null) return;
+        mEventTypeGroup.removeAllViews();
+
+        addEventTypeChip(R.string.event_type_event, EventExtraUtils.EVENT_TYPE_NORMAL, selectedType);
+        addEventTypeChip(R.string.event_type_birthday, EventExtraUtils.EVENT_TYPE_BIRTHDAY, selectedType);
+        addEventTypeChip(R.string.event_type_anniversary, EventExtraUtils.EVENT_TYPE_ANNIVERSARY, selectedType);
+        addEventTypeChip(R.string.event_type_countdown, EventExtraUtils.EVENT_TYPE_COUNTDOWN, selectedType);
+    }
+
+    private void addEventTypeChip(int labelRes, String type, String selectedType) {
+        com.google.android.material.chip.Chip chip = new com.google.android.material.chip.Chip(mActivity);
+        chip.setText(labelRes);
+        chip.setCheckable(true);
+        chip.setChecked(type.equals(selectedType));
+        chip.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                mModel.mEventType = type;
+                applySpecialEventTypeRules(type);
+            }
+        });
+        mEventTypeGroup.addView(chip);
+    }
+
+    private void applySpecialEventTypeRules(String type) {
+        switch (type) {
+            case EventExtraUtils.EVENT_TYPE_ANNIVERSARY:
+            case EventExtraUtils.EVENT_TYPE_BIRTHDAY:
+                mAllDayCheckBox.setChecked(true);
+                mRrule = "FREQ=YEARLY";
+                mEventRecurrence.parse(mRrule);
+                populateRepeats();
+                break;
+            case EventExtraUtils.EVENT_TYPE_COUNTDOWN:
+                mAllDayCheckBox.setChecked(true);
+                mRrule = null;
+                populateRepeats();
+                break;
         }
     }
 }

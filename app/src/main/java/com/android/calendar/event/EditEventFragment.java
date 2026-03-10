@@ -346,6 +346,7 @@ public class EditEventFragment extends Fragment implements EventHandler, OnColor
             doneActionView.setOnClickListener(mActionBarListener);
             ActionBar.LayoutParams layout = new ActionBar.LayoutParams(ActionBar.LayoutParams.MATCH_PARENT, ActionBar.LayoutParams.MATCH_PARENT);
             mActivity.getSupportActionBar().setCustomView(actionBarButtons, layout);
+            mActivity.getSupportActionBar().setDisplayShowCustomEnabled(true);
         }
 
         return view;
@@ -925,6 +926,10 @@ public class EditEventFragment extends Fragment implements EventHandler, OnColor
                                 if (value != null) {
                                     mView.mUrlTextView.setTextKeepState(mModel.mUrl);
                                 }
+                                break;
+                            case EventExtraUtils.EVENT_TYPE_EXTENDED_PROP:
+                                mModel.mEventType = value;
+                                mOriginalModel.mEventType = value;
                                 break;
                         }
                     }

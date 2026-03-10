@@ -35,6 +35,7 @@ import com.android.calendar.ColorChipView;
 import com.android.calendar.DynamicTheme;
 import com.android.calendar.Utils;
 import com.android.calendar.calendarcommon2.Time;
+import com.android.calendar.event.EventExtraUtils;
 
 import java.util.Formatter;
 import java.util.Locale;
@@ -173,6 +174,26 @@ public class AgendaAdapter extends ResourceCursorAdapter {
         if (titleString == null || titleString.length() == 0) {
             titleString = mNoTitleLabel;
         }
+
+        String customAppUri = cursor.getString(AgendaWindowAdapter.INDEX_CUSTOM_APP_URI);
+        if (customAppUri != null && customAppUri.startsWith("etar://event_type/")) {
+            String eventType = customAppUri.substring("etar://event_type/".length());
+            titleString = "⭐ " + titleString;
+
+            long begin = cursor.getLong(AgendaWindowAdapter.INDEX_BEGIN);
+            long now = System.currentTimeMillis();
+            String extraInfo = "";
+            if (EventExtraUtils.EVENT_TYPE_ANNIVERSARY.equals(eventType) || EventExtraUtils.EVENT_TYPE_BIRTHDAY.equals(eventType)) {
+                extraInfo = EventExtraUtils.getAnniversaryDisplayString(context, begin, now);
+            } else if (EventExtraUtils.EVENT_TYPE_COUNTDOWN.equals(eventType)) {
+                extraInfo = EventExtraUtils.getCountdownDisplayString(context, begin, now);
+            }
+
+            if (!TextUtils.isEmpty(extraInfo)) {
+                titleString += " (" + extraInfo + ")";
+            }
+        }
+
         title.setText(titleString);
 
         // When

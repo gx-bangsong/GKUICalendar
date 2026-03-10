@@ -20,6 +20,7 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Paint.Style;
+import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.View;
 
@@ -47,6 +48,7 @@ public class ColorChipView extends View {
     private int mDrawStyle = DRAW_FULL;
     private float mDefStrokeWidth;
     private Paint mPaint;
+    private final RectF mRectF = new RectF();
 
     public ColorChipView(Context context) {
         super(context);
@@ -62,6 +64,7 @@ public class ColorChipView extends View {
         mPaint = new Paint();
         mDefStrokeWidth = mPaint.getStrokeWidth();
         mPaint.setStyle(Style.FILL_AND_STROKE);
+        mPaint.setAntiAlias(true);
     }
 
 
@@ -88,45 +91,29 @@ public class ColorChipView extends View {
     @Override
     public void onDraw(Canvas c) {
 
-        int right = getWidth() - 1;
-        int bottom = getHeight() - 1;
+        float right = getWidth();
+        float bottom = getHeight();
         mPaint.setColor(mDrawStyle == DRAW_FADED ?
                 Utils.getDeclinedColorFromColor(mColor) : mColor);
+        mRectF.set(0, 0, right, bottom);
+        float radius = Math.min(right, bottom) / 2f;
 
         switch (mDrawStyle) {
             case DRAW_FADED:
             case DRAW_FULL:
-                mPaint.setStrokeWidth(mDefStrokeWidth);
-                c.drawRect(0, 0, right, bottom, mPaint);
+                mPaint.setStyle(Style.FILL);
+                c.drawRoundRect(mRectF, radius, radius, mPaint);
                 break;
             case DRAW_BORDER:
                 if (mBorderWidth <= 0) {
                     return;
                 }
-                int halfBorderWidth = mBorderWidth / 2;
-                int top = halfBorderWidth;
-                int left = halfBorderWidth;
+                mPaint.setStyle(Style.STROKE);
                 mPaint.setStrokeWidth(mBorderWidth);
-
-                float[] lines = new float[16];
-                int ptr = 0;
-                lines [ptr++] = 0;
-                lines [ptr++] = top;
-                lines [ptr++] = right;
-                lines [ptr++] = top;
-                lines [ptr++] = 0;
-                lines [ptr++] = bottom - halfBorderWidth;
-                lines [ptr++] = right;
-                lines [ptr++] = bottom - halfBorderWidth;
-                lines [ptr++] = left;
-                lines [ptr++] = 0;
-                lines [ptr++] = left;
-                lines [ptr++] = bottom;
-                lines [ptr++] = right - halfBorderWidth;
-                lines [ptr++] = 0;
-                lines [ptr++] = right - halfBorderWidth;
-                lines [ptr++] = bottom;
-                c.drawLines(lines, mPaint);
+                float inset = mBorderWidth / 2f;
+                mRectF.inset(inset, inset);
+                radius = Math.max(0, radius - inset);
+                c.drawRoundRect(mRectF, radius, radius, mPaint);
                 break;
         }
     }

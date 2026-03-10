@@ -1554,6 +1554,23 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
 
         // What
         if (eventName != null) {
+            String customAppUri = mEventCursor.getString(EVENT_INDEX_CUSTOM_APP_URI);
+            if (customAppUri != null && customAppUri.startsWith("etar://event_type/")) {
+                String eventType = customAppUri.substring("etar://event_type/".length());
+                eventName = "⭐ " + eventName;
+
+                long now = System.currentTimeMillis();
+                String extraInfo = "";
+                if (com.android.calendar.event.EventExtraUtils.EVENT_TYPE_ANNIVERSARY.equals(eventType) || com.android.calendar.event.EventExtraUtils.EVENT_TYPE_BIRTHDAY.equals(eventType)) {
+                    extraInfo = com.android.calendar.event.EventExtraUtils.getAnniversaryDisplayString(context, mStartMillis, now);
+                } else if (com.android.calendar.event.EventExtraUtils.EVENT_TYPE_COUNTDOWN.equals(eventType)) {
+                    extraInfo = com.android.calendar.event.EventExtraUtils.getCountdownDisplayString(context, mStartMillis, now);
+                }
+
+                if (!TextUtils.isEmpty(extraInfo)) {
+                    eventName += " (" + extraInfo + ")";
+                }
+            }
             setTextCommon(view, R.id.title, eventName);
         }
 

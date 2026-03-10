@@ -143,6 +143,8 @@ dependencies {
 
 	// lifecycle
 	implementation(libs.androidx.lifecycle.livedata)
+
+	testImplementation(libs.androidx.test.runner)
 }
 
 configure<GenerateBpPluginExtension> {

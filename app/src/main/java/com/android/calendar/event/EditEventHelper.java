@@ -99,7 +99,8 @@ public class EditEventHelper {
             Events.ACCOUNT_NAME, // 25
             Events.ACCOUNT_TYPE, // 26
             Events.EXDATE, // 27
-            Events.ORIGINAL_INSTANCE_TIME // 28
+            Events.ORIGINAL_INSTANCE_TIME, // 28
+            Events.CUSTOM_APP_URI // 29
     };
     protected static final int EVENT_INDEX_ID = 0;
     protected static final int EVENT_INDEX_TITLE = 1;
@@ -130,6 +131,7 @@ public class EditEventHelper {
     protected static final int EVENT_INDEX_ACCOUNT_TYPE = 26;
     protected static final int EVENT_INDEX_EXDATE = 27;
     protected static final int EVENT_INDEX_ORIGINAL_INSTANCE_TIME = 28;
+    protected static final int EVENT_INDEX_CUSTOM_APP_URI = 29;
 
     public static final String[] REMINDERS_PROJECTION = new String[] {
             Reminders._ID, // 0
@@ -512,6 +514,27 @@ public class EditEventHelper {
                         .withSelection(EXTENDED_WHERE_EVENT_NAME, new String[] { Long.toString(model.mId), ExtendedProperty.URL_NAME });
                 ops.add(b.build());
                 // And then, insert the new url
+                b = ContentProviderOperation.newInsert(extendedPropUri)
+                        .withValues(values);
+            }
+            ops.add(b.build());
+        }
+
+        if (!EventExtraUtils.EVENT_TYPE_NORMAL.equals(model.mEventType)) {
+            Uri extendedPropUri = ExtendedProperty.contentUri(model.mCalendarAccountName, model.mCalendarAccountType);
+            values.clear();
+            values.put(ExtendedProperties.NAME, EventExtraUtils.EVENT_TYPE_EXTENDED_PROP);
+            values.put(ExtendedProperties.VALUE, model.mEventType);
+
+            if (newEvent) {
+                b = ContentProviderOperation.newInsert(extendedPropUri)
+                        .withValues(values);
+                b.withValueBackReference(ExtendedProperties.EVENT_ID, eventIdIndex);
+            } else {
+                values.put(ExtendedProperties.EVENT_ID, model.mId);
+                b = ContentProviderOperation.newDelete(extendedPropUri)
+                        .withSelection(EXTENDED_WHERE_EVENT_NAME, new String[] { Long.toString(model.mId), EventExtraUtils.EVENT_TYPE_EXTENDED_PROP });
+                ops.add(b.build());
                 b = ContentProviderOperation.newInsert(extendedPropUri)
                         .withValues(values);
             }
@@ -1223,6 +1246,13 @@ public class EditEventHelper {
         model.mOriginalTime = cursor.getLong(EVENT_INDEX_ORIGINAL_INSTANCE_TIME);
         model.mOrganizer = cursor.getString(EVENT_INDEX_ORGANIZER);
         model.mIsOrganizer = model.mOwnerAccount.equalsIgnoreCase(model.mOrganizer);
+
+        String customAppUri = cursor.getString(EVENT_INDEX_CUSTOM_APP_URI);
+        if (customAppUri != null && customAppUri.startsWith("etar://event_type/")) {
+            model.mEventType = customAppUri.substring("etar://event_type/".length());
+        } else {
+            model.mEventType = EventExtraUtils.EVENT_TYPE_NORMAL;
+        }
         model.mGuestsCanModify = cursor.getInt(EVENT_INDEX_GUESTS_CAN_MODIFY) != 0;
 
         int rawEventColor;
@@ -1398,6 +1428,11 @@ public class EditEventHelper {
         values.put(Events.CALENDAR_ID, calendarId);
         values.put(Events.EVENT_TIMEZONE, timezone);
         values.put(Events.TITLE, title);
+        if (!EventExtraUtils.EVENT_TYPE_NORMAL.equals(model.mEventType)) {
+            values.put(Events.CUSTOM_APP_URI, "etar://event_type/" + model.mEventType);
+        } else {
+            values.put(Events.CUSTOM_APP_URI, (String) null);
+        }
         values.put(Events.ALL_DAY, isAllDay ? 1 : 0);
         values.put(Events.DTSTART, startMillis);
         values.put(Events.EXDATE, model.mExDate);
