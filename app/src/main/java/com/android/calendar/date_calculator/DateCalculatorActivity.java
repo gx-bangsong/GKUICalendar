@@ -13,6 +13,9 @@ import com.android.calendar.date_calculator.fragment.DateCalculationFragment;
 import com.android.calendar.date_calculator.fragment.DateIntervalFragment;
 import com.android.calendar.date_calculator.fragment.LunarConverterFragment;
 import com.android.calendar.theme.DynamicThemeKt;
+import com.android.calendar.theme.ThemeUtils;
+import com.android.calendar.theme.model.Theme;
+import com.google.android.material.appbar.AppBarLayout;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 
@@ -27,6 +30,20 @@ public class DateCalculatorActivity extends AppCompatActivity {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+
+        Theme selectedTheme = ThemeUtils.INSTANCE.getTheme(this);
+        boolean isPureBlackModeEnabled = ThemeUtils.INSTANCE.isPureBlackModeEnabled(this);
+        boolean isDark = selectedTheme == Theme.DARK || (selectedTheme == Theme.SYSTEM && DynamicThemeKt.isSystemInDarkTheme(this));
+
+        if (isDark) {
+            AppBarLayout appBarLayout = findViewById(R.id.app_bar);
+            int color = isPureBlackModeEnabled ? android.graphics.Color.BLACK : getResources().getColor(R.color.bg_dark, getTheme());
+            appBarLayout.setBackgroundColor(color);
+            toolbar.setBackgroundColor(color);
+            if (getWindow() != null) {
+                getWindow().setStatusBarColor(color);
+            }
+        }
 
         ViewPager2 viewPager = findViewById(R.id.view_pager);
         TabLayout tabLayout = findViewById(R.id.tab_layout);
