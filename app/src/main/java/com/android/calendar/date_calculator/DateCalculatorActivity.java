@@ -24,7 +24,7 @@ public class DateCalculatorActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        DynamicThemeKt.applyThemeAndPrimaryColor(this);
+        DynamicThemeKt.applyThemeAndPrimaryColor(this, true);
         setContentView(R.layout.date_calculator_activity);
 
         Toolbar toolbar = findViewById(R.id.toolbar);
