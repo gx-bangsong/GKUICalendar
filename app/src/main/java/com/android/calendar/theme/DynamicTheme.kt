@@ -74,15 +74,15 @@ private fun AppCompatActivity.setSystemBarConfiguration(light: Boolean) {
                 isAppearanceLightNavigationBars = light
             }
         }
-        window.statusBarColor = Color.TRANSPARENT
-        window.navigationBarColor = Color.TRANSPARENT
+        window.statusBarColor = getStyledAttributeColor(androidx.appcompat.R.attr.colorPrimary)
+        window.navigationBarColor = getStyledAttributeColor(android.R.attr.colorBackground)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            window.isNavigationBarContrastEnforced = false
+            window.isNavigationBarContrastEnforced = true
         }
     }
 }
 
-private fun Context.getStyledAttributeColor(id: Int): Int {
+fun Context.getStyledAttributeColor(id: Int): Int {
     val arr = obtainStyledAttributes(TypedValue().data, intArrayOf(id))
     val styledAttr = arr.getColor(0, Color.WHITE)
     arr.recycle()
