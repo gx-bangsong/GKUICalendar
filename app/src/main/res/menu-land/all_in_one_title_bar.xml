@@ -52,6 +52,11 @@
         android:title="@string/cal_import_menu_title"
         app:showAsAction="never" />
     <item
+        android:id="@+id/action_date_calculator"
+        android:title="@string/date_calculator"
+        android:orderInCategory="5"
+        app:showAsAction="never"/>
+    <item
         android:id="@+id/action_hide_controls"
         android:alphabeticShortcut="h"
         android:title="@string/hide_controls"

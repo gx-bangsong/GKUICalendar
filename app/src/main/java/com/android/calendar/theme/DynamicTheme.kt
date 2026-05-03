@@ -8,6 +8,7 @@ import android.os.Build
 import android.util.TypedValue
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.android.calendar.theme.ThemeUtils.isPureBlackModeEnabled
 import com.android.calendar.theme.model.Theme
@@ -33,6 +34,7 @@ fun AppCompatActivity.applyThemeAndPrimaryColor() {
     // Set selected theme mode to the app
     when (selectedTheme) {
         Theme.SYSTEM -> {
+            setSystemBarConfiguration(light = !isSystemInDarkTheme)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 uiModeManager.setApplicationNightMode(UiModeManager.MODE_NIGHT_CUSTOM)
             } else {
@@ -61,14 +63,21 @@ fun AppCompatActivity.applyThemeAndPrimaryColor() {
 }
 
 private fun AppCompatActivity.setSystemBarConfiguration(light: Boolean) {
-    WindowInsetsControllerCompat(this.window, this.window.decorView.rootView).apply {
-        // Status bar color
-        isAppearanceLightStatusBars = light
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowInsetsControllerCompat(this.window, this.window.decorView).apply {
+            // Status bar color
+            isAppearanceLightStatusBars = light
 
-        // Navigation bar color
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-            isAppearanceLightNavigationBars = light
-            window.navigationBarColor = getStyledAttributeColor(android.R.attr.colorBackground)
+            // Navigation bar color
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+                isAppearanceLightNavigationBars = light
+            }
+        }
+        window.statusBarColor = Color.TRANSPARENT
+        window.navigationBarColor = Color.TRANSPARENT
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
         }
     }
 }
