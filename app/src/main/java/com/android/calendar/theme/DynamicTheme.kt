@@ -17,7 +17,8 @@ import ws.xsoh.etar.R
 val AppCompatActivity.isSystemInDarkTheme: Boolean
     get() = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
 
-fun AppCompatActivity.applyThemeAndPrimaryColor() {
+@JvmOverloads
+fun AppCompatActivity.applyThemeAndPrimaryColor(useColorPrimaryForStatusBar: Boolean = false) {
     val selectedTheme = ThemeUtils.getTheme(this)
     val selectedColor = ThemeUtils.getColor()
 
@@ -34,7 +35,7 @@ fun AppCompatActivity.applyThemeAndPrimaryColor() {
     // Set selected theme mode to the app
     when (selectedTheme) {
         Theme.SYSTEM -> {
-            setSystemBarConfiguration(light = !isSystemInDarkTheme)
+            setSystemBarConfiguration(light = !isSystemInDarkTheme, useColorPrimaryForStatusBar = useColorPrimaryForStatusBar)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 uiModeManager.setApplicationNightMode(UiModeManager.MODE_NIGHT_CUSTOM)
             } else {
@@ -43,7 +44,7 @@ fun AppCompatActivity.applyThemeAndPrimaryColor() {
         }
 
         Theme.LIGHT -> {
-            setSystemBarConfiguration(light = true)
+            setSystemBarConfiguration(light = true, useColorPrimaryForStatusBar = useColorPrimaryForStatusBar)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 uiModeManager.setApplicationNightMode(UiModeManager.MODE_NIGHT_NO)
             } else {
@@ -52,7 +53,7 @@ fun AppCompatActivity.applyThemeAndPrimaryColor() {
         }
 
         else -> {
-            setSystemBarConfiguration(light = false)
+            setSystemBarConfiguration(light = false, useColorPrimaryForStatusBar = useColorPrimaryForStatusBar)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 uiModeManager.setApplicationNightMode(UiModeManager.MODE_NIGHT_YES)
             } else {
@@ -62,7 +63,7 @@ fun AppCompatActivity.applyThemeAndPrimaryColor() {
     }
 }
 
-private fun AppCompatActivity.setSystemBarConfiguration(light: Boolean) {
+private fun AppCompatActivity.setSystemBarConfiguration(light: Boolean, useColorPrimaryForStatusBar: Boolean) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         WindowInsetsControllerCompat(this.window, this.window.decorView).apply {
@@ -74,7 +75,7 @@ private fun AppCompatActivity.setSystemBarConfiguration(light: Boolean) {
                 isAppearanceLightNavigationBars = light
             }
         }
-        window.statusBarColor = getStyledAttributeColor(androidx.appcompat.R.attr.colorPrimary)
+        window.statusBarColor = if (useColorPrimaryForStatusBar) getStyledAttributeColor(androidx.appcompat.R.attr.colorPrimary) else Color.TRANSPARENT
         window.navigationBarColor = getStyledAttributeColor(android.R.attr.colorBackground)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             window.isNavigationBarContrastEnforced = true
