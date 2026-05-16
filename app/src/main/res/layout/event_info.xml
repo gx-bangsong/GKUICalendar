@@ -14,7 +14,6 @@
      limitations under the License.
 -->
 <FrameLayout
-    android:background="?attr/android:windowBackground"
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -109,11 +108,20 @@
                         android:textSize="14sp"/>
                 </LinearLayout>
 
-                <!-- Organizer -->
+                <!-- ATTENDEES -->
+                <include
+                    android:id="@+id/attendee_list"
+                    layout="@layout/contact_item" />
+
+                <!-- REMINDERS -->
+                <include
+                    android:id="@+id/reminders_container"
+                    layout="@layout/contact_item" />
+
+                <!-- ORGANIZER -->
                 <LinearLayout
                     android:id="@+id/organizer_container"
                     android:visibility="gone"
-                    android:paddingEnd="16dip"
                     android:orientation="horizontal"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content">

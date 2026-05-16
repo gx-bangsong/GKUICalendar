@@ -65,7 +65,7 @@ fun AppCompatActivity.applyThemeAndPrimaryColor(useColorPrimaryForStatusBar: Boo
 
 private fun AppCompatActivity.setSystemBarConfiguration(light: Boolean, useColorPrimaryForStatusBar: Boolean) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-        WindowCompat.setDecorFitsSystemWindows(window, true)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         WindowInsetsControllerCompat(this.window, this.window.decorView).apply {
             // Status bar color
             isAppearanceLightStatusBars = light
@@ -75,7 +75,7 @@ private fun AppCompatActivity.setSystemBarConfiguration(light: Boolean, useColor
                 isAppearanceLightNavigationBars = light
             }
         }
-        window.statusBarColor = if (useColorPrimaryForStatusBar) getStyledAttributeColor(androidx.appcompat.R.attr.colorPrimary) else getStyledAttributeColor(android.R.attr.windowBackground)
+        window.statusBarColor = if (useColorPrimaryForStatusBar) getStyledAttributeColor(androidx.appcompat.R.attr.colorPrimary) else getStyledAttributeColor(android.R.attr.colorBackground)
         window.navigationBarColor = getStyledAttributeColor(android.R.attr.colorBackground)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             window.isNavigationBarContrastEnforced = true
@@ -84,7 +84,7 @@ private fun AppCompatActivity.setSystemBarConfiguration(light: Boolean, useColor
 }
 
 fun Context.getStyledAttributeColor(id: Int): Int {
-    val arr = obtainStyledAttributes(TypedValue().data, intArrayOf(id))
+    val arr = obtainStyledAttributes(intArrayOf(id))
     val styledAttr = arr.getColor(0, Color.WHITE)
     arr.recycle()
     return styledAttr
