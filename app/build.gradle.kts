@@ -6,6 +6,7 @@ import org.lineageos.generatebp.models.Module
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
+    id("kotlin-kapt")
     alias(libs.plugins.ec4j.editorconfig)
     alias(libs.plugins.lineageos.generatebp)
 }
@@ -17,6 +18,13 @@ editorconfig {
 kotlin {
     jvmToolchain(21)
 }
+
+configurations.all {
+    resolutionStrategy.force("org.jetbrains.kotlin:kotlin-stdlib:1.9.24")
+    resolutionStrategy.force("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.24")
+    resolutionStrategy.force("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.24")
+}
+
 
 android {
 	namespace = "ws.xsoh.etar"
@@ -145,6 +153,14 @@ dependencies {
 	implementation(libs.androidx.lifecycle.livedata)
 
 	testImplementation(libs.androidx.test.runner)
+
+	implementation(libs.androidx.room.runtime)
+	kapt(libs.androidx.room.compiler)
+	implementation(libs.androidx.room.ktx)
+}
+
+kapt {
+    correctErrorTypes = true
 }
 
 configure<GenerateBpPluginExtension> {

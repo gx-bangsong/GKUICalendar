@@ -898,4 +898,22 @@
     <string name="countdown_days_remaining">Still %d days</string>
     <string name="countdown_days_passed">Already %d days passed</string>
     <string name="countdown_today">Today is the day!</string>
+    <!-- Shift Scheduling Assistant -->
+    <string name="shift_scheduler_title">Shift Scheduler</string>
+    <string name="shift_presets">Shift Presets</string>
+    <string name="add_shift_preset">Add Shift Preset</string>
+    <string name="edit_shift_preset">Edit Shift Preset</string>
+    <string name="shift_title">Shift Title</string>
+    <string name="start_time">Start Time</string>
+    <string name="end_time">End Time</string>
+    <string name="alarm_offset">Alarm Offset (minutes)</string>
+    <string name="ignore_holiday">Force ring on statutory holidays</string>
+    <string name="save_shift">Save</string>
+    <string name="clear_selection">Clear</string>
+    <string name="select_preset">Select a preset</string>
+    <string name="select_calendar">Select calendar</string>
+    <string name="shift_save_success">Shift events saved</string>
+    <string name="no_dates_selected">No dates selected</string>
+    <string name="delete_preset">Delete Preset</string>
+    <string name="confirm_delete_preset">Are you sure you want to delete this preset?</string>
 </resources>

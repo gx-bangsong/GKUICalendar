@@ -31,6 +31,8 @@ android_app {
         "androidx.lifecycle_lifecycle-runtime-ktx",
         "androidx.lifecycle_lifecycle-viewmodel-savedstate",
         "androidx.preference_preference",
+        "androidx.room_room-ktx",
+        "androidx.room_room-runtime",
         "androidx.savedstate_savedstate",
         "com.google.android.material_material",
         "Etar-Calendar_org.dmfs_lib-recur",
