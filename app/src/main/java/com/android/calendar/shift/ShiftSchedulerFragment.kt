@@ -170,6 +170,7 @@ class ShiftSchedulerFragment : Fragment() {
             weekParams[SimpleWeeksAdapter.WEEK_PARAMS_WEEK_START] = mFirstDayOfWeek
             weekParams[SimpleWeeksAdapter.WEEK_PARAMS_JULIAN_DAY] = Time.getJulianDay(mSelectedDay.toMillis(), 0)
             weekParams[SimpleWeeksAdapter.WEEK_PARAMS_DAYS_PER_WEEK] = mDaysPerWeek
+            weekParams[SimpleWeeksAdapter.WEEK_PARAMS_NUM_WEEKS] = mNumWeeks
 
             val context = context ?: return
             if (mAdapter == null) {

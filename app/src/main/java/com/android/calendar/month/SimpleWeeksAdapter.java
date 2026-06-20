@@ -137,7 +137,7 @@ public class SimpleWeeksAdapter extends BaseAdapter implements OnTouchListener {
         if (params.containsKey(WEEK_PARAMS_FOCUS_MONTH)) {
             mFocusMonth = params.get(WEEK_PARAMS_FOCUS_MONTH);
         }
-        if (params.containsKey(WEEK_PARAMS_FOCUS_MONTH)) {
+        if (params.containsKey(WEEK_PARAMS_NUM_WEEKS)) {
             mNumWeeks = params.get(WEEK_PARAMS_NUM_WEEKS);
         }
         if (params.containsKey(WEEK_PARAMS_SHOW_WEEK)) {
