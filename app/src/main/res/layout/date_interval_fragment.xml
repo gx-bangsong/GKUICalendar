@@ -13,7 +13,7 @@
             android:id="@+id/start_date_label"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/start_date" />
+            android:text="@string/shift_start_date_label" />
 
         <TextView
             android:id="@+id/start_date_text"

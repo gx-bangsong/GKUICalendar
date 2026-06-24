@@ -4,42 +4,51 @@ import android.content.Context
 import android.os.Handler
 import android.view.View
 import android.view.ViewGroup
-import com.android.calendar.calendarcommon2.Time
+import android.widget.AbsListView
 import com.android.calendar.month.MonthByWeekAdapter
-import java.util.HashMap
-import java.util.HashSet
+import com.android.calendar.month.SimpleWeeksAdapter
 
-class ShiftMonthByWeekAdapter(
-    context: Context,
-    params: HashMap<String, Int>,
-    handler: Handler?
-) : MonthByWeekAdapter(context, params, handler) {
+class ShiftMonthByWeekAdapter(context: Context, params: HashMap<String, Int>, handler: Handler)
+    : MonthByWeekAdapter(context, params, handler) {
 
-    private val selectedDays = HashSet<Int>()
-    private var selectionColor: Int = 0
+    private val selectedDaysMap = mutableMapOf<Int, Int>() // JulianDay -> Color
     var onDayTappedListener: ((Int) -> Unit)? = null
 
-    fun setSelectedDays(days: Set<Int>, color: Int) {
-        selectedDays.clear()
-        selectedDays.addAll(days)
-        selectionColor = color
+    fun setSelectedDays(days: Map<Int, Int>) {
+        selectedDaysMap.clear()
+        selectedDaysMap.putAll(days)
         notifyDataSetChanged()
     }
 
-    override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-        val v: ShiftMonthWeekView
-        if (convertView != null && convertView is ShiftMonthWeekView) {
-            v = convertView
-        } else {
-            v = ShiftMonthWeekView(mContext)
-        }
-
-        val view = super.getView(position, v, parent) as ShiftMonthWeekView
-        view.setSelectedDays(selectedDays, selectionColor)
-        return view
+    override fun onDayTapped(day: com.android.calendar.calendarcommon2.Time) {
+        onDayTappedListener?.invoke(com.android.calendar.calendarcommon2.Time.getJulianDay(day.toMillis(), 0))
     }
 
-    override fun onDayTapped(day: Time) {
-        onDayTappedListener?.invoke(Time.getJulianDay(day.toMillis(), 0))
+    override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
+        val v = if (convertView is ShiftMonthWeekView) {
+            convertView
+        } else {
+            ShiftMonthWeekView(mContext)
+        }
+
+        val params = AbsListView.LayoutParams(
+            AbsListView.LayoutParams.MATCH_PARENT, AbsListView.LayoutParams.MATCH_PARENT
+        )
+        v.layoutParams = params
+        v.setClickable(true)
+        v.setOnTouchListener(this)
+
+        val drawingParams = HashMap<String, Int>()
+        drawingParams.put(SimpleWeeksAdapter.WEEK_PARAMS_DAYS_PER_WEEK, mDaysPerWeek)
+        drawingParams.put(SimpleWeeksAdapter.WEEK_PARAMS_WEEK_START, mFirstDayOfWeek)
+        drawingParams.put(SimpleWeeksAdapter.WEEK_PARAMS_JULIAN_DAY, mFirstJulianDay + position * mDaysPerWeek)
+        drawingParams.put(SimpleWeeksAdapter.WEEK_PARAMS_SHOW_WEEK, if (mShowWeekNumber) 1 else 0)
+        drawingParams.put(SimpleWeeksAdapter.WEEK_PARAMS_FOCUS_MONTH, mFocusMonth)
+
+        v.setMonthParams(drawingParams, mSelectedDay.timezone)
+        v.setSelection(selectedDaysMap)
+        v.invalidate()
+
+        return v
     }
 }

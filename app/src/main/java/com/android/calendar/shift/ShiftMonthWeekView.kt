@@ -3,66 +3,49 @@ package com.android.calendar.shift
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
-import android.util.AttributeSet
 import com.android.calendar.month.MonthWeekEventsView
-import java.util.HashSet
+import java.util.HashMap
 
-class ShiftMonthWeekView @JvmOverloads constructor(
-    context: Context,
-    attrs: AttributeSet? = null
-) : MonthWeekEventsView(context) {
-
-    private val selectedJulianDays = HashSet<Int>()
-    private var selectionColor: Int = 0x660000FF.toInt() // 40% opacity blue default
+class ShiftMonthWeekView(context: Context) : MonthWeekEventsView(context) {
 
     private val selectionPaint = Paint().apply {
         style = Paint.Style.FILL
+        isAntiAlias = true
     }
 
-    private val borderPaint = Paint().apply {
-        style = Paint.Style.STROKE
-        strokeWidth = 4f
-    }
+    private var selectedDays: Map<Int, Int>? = null
 
-    fun setSelectedDays(julianDays: Set<Int>, color: Int) {
-        selectedJulianDays.clear()
-        selectedJulianDays.addAll(julianDays)
-        selectionColor = (color and 0x00FFFFFF) or 0x66000000
-        selectionPaint.color = selectionColor
-        borderPaint.color = color
+    fun setSelection(days: Map<Int, Int>) {
+        selectedDays = days
         invalidate()
     }
 
     override fun onDraw(canvas: Canvas) {
-        super.onDraw(canvas)
         drawSelection(canvas)
+        super.onDraw(canvas)
     }
 
     private fun drawSelection(canvas: Canvas) {
+        val days = selectedDays ?: return
         for (i in 0 until mNumDays) {
             val julianDay = mFirstJulianDay + i
-            if (selectedJulianDays.contains(julianDay)) {
-                val x = i * (width - mPadding * 2) / mNumDays + mPadding
-                val r = (i + 1) * (width - mPadding * 2) / mNumDays + mPadding
+            val color = days[julianDay] ?: continue
 
-                // Draw translucent overlay
-                canvas.drawRect(
-                    x.toFloat(),
-                    0f,
-                    r.toFloat(),
-                    height.toFloat(),
-                    selectionPaint
-                )
+            selectionPaint.color = (color and 0x00FFFFFF) or 0x44000000
 
-                // Draw border
-                canvas.drawRect(
-                    x.toFloat() + 2f,
-                    2f,
-                    r.toFloat() - 2f,
-                    height.toFloat() - 2f,
-                    borderPaint
-                )
-            }
+            val r = (mWidth - mPadding * 2) / mNumDays
+            val x = (2 * i + 1) * r / 2 + mPadding
+            val y = mHeight / 2
+
+            val radius = Math.min(r, mHeight) / 2 - 2
+            canvas.drawCircle(x.toFloat(), y.toFloat(), radius.toFloat(), selectionPaint)
+
+            selectionPaint.color = color or 0xFF000000.toInt()
+            canvas.drawCircle(x.toFloat(), (mHeight - 10).toFloat(), 6f, selectionPaint)
         }
+    }
+
+    fun setMonthParams(params: HashMap<String, Int>, tz: String) {
+        setWeekParams(params, tz)
     }
 }
