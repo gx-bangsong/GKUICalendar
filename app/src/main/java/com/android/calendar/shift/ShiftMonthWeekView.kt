@@ -4,7 +4,6 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
 import com.android.calendar.month.MonthWeekEventsView
-import java.util.HashMap
 
 class ShiftMonthWeekView(context: Context) : MonthWeekEventsView(context) {
 
@@ -43,9 +42,5 @@ class ShiftMonthWeekView(context: Context) : MonthWeekEventsView(context) {
             selectionPaint.color = color or 0xFF000000.toInt()
             canvas.drawCircle(x.toFloat(), (mHeight - 10).toFloat(), 6f, selectionPaint)
         }
-    }
-
-    fun setMonthParams(params: HashMap<String, Int>, tz: String) {
-        setWeekParams(params, tz)
     }
 }

@@ -6,9 +6,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.AbsListView
 import com.android.calendar.month.MonthByWeekAdapter
-import com.android.calendar.month.SimpleWeeksAdapter
 
-class ShiftMonthByWeekAdapter(context: Context, params: HashMap<String, Int>, handler: Handler)
+class ShiftMonthByWeekAdapter(context: Context, params: java.util.HashMap<String, Int>, handler: Handler)
     : MonthByWeekAdapter(context, params, handler) {
 
     private val selectedDaysMap = mutableMapOf<Int, Int>() // JulianDay -> Color
@@ -24,7 +23,7 @@ class ShiftMonthByWeekAdapter(context: Context, params: HashMap<String, Int>, ha
         onDayTappedListener?.invoke(com.android.calendar.calendarcommon2.Time.getJulianDay(day.toMillis(), 0))
     }
 
-    override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
+    override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
         val v = if (convertView is ShiftMonthWeekView) {
             convertView
         } else {
@@ -38,14 +37,19 @@ class ShiftMonthByWeekAdapter(context: Context, params: HashMap<String, Int>, ha
         v.setClickable(true)
         v.setOnTouchListener(this)
 
-        val drawingParams = HashMap<String, Int>()
-        drawingParams.put(SimpleWeeksAdapter.WEEK_PARAMS_DAYS_PER_WEEK, mDaysPerWeek)
-        drawingParams.put(SimpleWeeksAdapter.WEEK_PARAMS_WEEK_START, mFirstDayOfWeek)
-        drawingParams.put(SimpleWeeksAdapter.WEEK_PARAMS_JULIAN_DAY, mFirstJulianDay + position * mDaysPerWeek)
-        drawingParams.put(SimpleWeeksAdapter.WEEK_PARAMS_SHOW_WEEK, if (mShowWeekNumber) 1 else 0)
-        drawingParams.put(SimpleWeeksAdapter.WEEK_PARAMS_FOCUS_MONTH, mFocusMonth)
+        val drawingParams = java.util.HashMap<String, Int>()
+        // SimpleWeekView constants
+        drawingParams.put("height", parent.height / mNumWeeks)
+        drawingParams.put("week_start", mFirstDayOfWeek)
+        drawingParams.put("selected_day", mFirstJulianDay + position * mDaysPerWeek)
+        drawingParams.put("show_wk_num", if (mShowWeekNumber) 1 else 0)
+        drawingParams.put("num_days", mDaysPerWeek)
+        drawingParams.put("week", position)
+        drawingParams.put("focus_month", mFocusMonth)
+        // MonthWeekEventsView constants
+        drawingParams.put("orientation", mOrientation)
 
-        v.setMonthParams(drawingParams, mSelectedDay.timezone)
+        v.setWeekParams(drawingParams, mSelectedDay.timezone)
         v.setSelection(selectedDaysMap)
         v.invalidate()
 
