@@ -16,12 +16,14 @@ import com.android.calendar.calendarcommon2.Time
 import com.android.calendar.month.MonthByWeekFragment
 import com.android.calendar.month.SimpleWeeksAdapter
 import com.android.calendar.shift.db.ShiftDatabase
+import com.android.calendar.shift.db.ShiftOverride
 import com.android.calendar.shift.db.ShiftPreset
+import com.android.calendar.shift.db.ShiftRotationRule
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.android.material.textfield.TextInputEditText
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import ws.xsoh.etar.R
 import java.util.*
@@ -32,13 +34,15 @@ class ShiftSchedulerFragment : Fragment() {
     private lateinit var presetsRecycler: RecyclerView
     private lateinit var presetsAdapter: ShiftPresetsAdapter
     private lateinit var monthFragment: ShiftMonthGridFragment
-    private val selectedDaysMap = mutableMapOf<Int, ShiftPreset>()
-    private var selectedCalendarId: Long = -1
 
-    private lateinit var daysOnEdit: TextInputEditText
-    private lateinit var daysOffEdit: TextInputEditText
+    private var selectedCalendarId: Long = -1
     private var anchorJulianDay: Int = Time.getJulianDay(System.currentTimeMillis(), 0)
-    private var customPattern: List<ShiftPreset?>? = null
+
+    private var allPresets: Map<Long, ShiftPreset> = emptyMap()
+    private var activeRule: ShiftRotationRule? = null
+    private var allOverrides: Map<Int, Long> = emptyMap()
+
+    private var paintModeEnabled = false
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -47,24 +51,28 @@ class ShiftSchedulerFragment : Fragment() {
 
         calendarSpinner = view.findViewById(R.id.calendar_spinner)
         presetsRecycler = view.findViewById(R.id.presets_recycler)
-        daysOnEdit = view.findViewById(R.id.days_on_edit)
-        daysOffEdit = view.findViewById(R.id.days_off_edit)
 
         val paintModeSwitch = view.findViewById<SwitchMaterial>(R.id.paint_mode_switch)
+        paintModeSwitch.setOnCheckedChangeListener { _, isChecked ->
+            paintModeEnabled = isChecked
+            // monthFragment.getCalendarListView()?.setOnTouchListener { _, _ -> isChecked }
+        }
 
         view.findViewById<Button>(R.id.btn_add_preset).setOnClickListener { showPresetDialog(null) }
-        view.findViewById<Button>(R.id.btn_clear).setOnClickListener {
-            selectedDaysMap.clear()
-            updateGridSelection()
-        }
-        view.findViewById<Button>(R.id.btn_save).setOnClickListener { saveShifts() }
-        view.findViewById<Button>(R.id.btn_pick_start_date).setOnClickListener { pickStartDate() }
-        view.findViewById<Button>(R.id.btn_auto_fill).setOnClickListener { autoFillPattern() }
+        view.findViewById<Button>(R.id.btn_clear).setOnClickListener { clearOverrides() }
+        view.findViewById<Button>(R.id.btn_save).setOnClickListener { saveShiftsToCalendar() }
+
+        val btnPickStartDate = view.findViewById<Button>(R.id.btn_pick_start_date)
+        val time = Time(); time.setJulianDay(anchorJulianDay); btnPickStartDate.text = String.format("%04d-%02d-%02d", time.year, time.month + 1, time.day)
+        btnPickStartDate.setOnClickListener { pickStartDate(btnPickStartDate) }
+
+        view.findViewById<Button>(R.id.btn_auto_fill).setOnClickListener { autoFillSimpleRule(view) }
         view.findViewById<Button>(R.id.btn_custom_rule).setOnClickListener { showRotationTemplateDialog() }
 
         setupPresets()
         setupCalendarSpinner()
-        setupMonthGrid(paintModeSwitch)
+        setupMonthGrid()
+        observeData()
 
         return view
     }
@@ -79,33 +87,37 @@ class ShiftSchedulerFragment : Fragment() {
         activity?.findViewById<FloatingActionButton>(R.id.floating_action_button)?.show()
     }
 
-    private fun setupPresets() {
-        presetsAdapter = ShiftPresetsAdapter(emptyList(), { _ -> }, { preset -> showPresetDialog(preset) })
-        presetsRecycler.layoutManager = LinearLayoutManager(requireContext())
-        presetsRecycler.adapter = presetsAdapter
-
+    private fun observeData() {
+        val dao = ShiftDatabase.getDatabase(requireContext()).shiftPresetDao()
         lifecycleScope.launch {
-            ShiftDatabase.getDatabase(requireContext()).shiftPresetDao().getAllPresets().collectLatest {
-                presetsAdapter.updatePresets(it)
+            combine(
+                dao.getAllPresets(),
+                dao.getActiveRule(),
+                dao.getAllOverrides()
+            ) { presets, rule, overrides ->
+                Triple(presets, rule, overrides)
+            }.collect { (presets, rule, overrides) ->
+                allPresets = presets.associateBy { it.id }
+                activeRule = rule
+                allOverrides = overrides.associateBy({ it.julianDay }, { it.presetId })
+                presetsAdapter.updatePresets(presets)
+                updateGridSelection()
             }
         }
     }
 
+    private fun setupPresets() {
+        presetsAdapter = ShiftPresetsAdapter(emptyList(), { _ -> }, { preset -> showPresetDialog(preset) })
+        presetsRecycler.layoutManager = LinearLayoutManager(requireContext())
+        presetsRecycler.adapter = presetsAdapter
+    }
+
     private fun showPresetDialog(preset: ShiftPreset?) {
-        val dialog = ShiftPresetDialogFragment.newInstance(preset)
-        dialog.listener = object : ShiftPresetDialogFragment.OnPresetSavedListener {
-            override fun onPresetSaved() {}
-        }
-        dialog.show(parentFragmentManager, "preset_dialog")
+        ShiftPresetDialogFragment.newInstance(preset).show(parentFragmentManager, "preset_dialog")
     }
 
     private fun showRotationTemplateDialog() {
-        val dialog = ShiftRotationTemplateDialogFragment()
-        dialog.onPatternConfirmed = { pattern ->
-            customPattern = pattern
-            Toast.makeText(requireContext(), R.string.shift_custom, Toast.LENGTH_SHORT).show()
-        }
-        dialog.show(parentFragmentManager, "rotation_template")
+        ShiftRotationTemplateDialogFragment.newInstance(anchorJulianDay).show(parentFragmentManager, "rotation_template")
     }
 
     private fun setupCalendarSpinner() {
@@ -121,111 +133,116 @@ class ShiftSchedulerFragment : Fragment() {
                         }
                     }
                     it.close()
-                    val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, calendars.map { it.second })
-                    adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-                    calendarSpinner.adapter = adapter
-                    calendarSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-                        override fun onItemSelected(p: AdapterView<*>?, v: View?, pos: Int, id: Long) {
-                            selectedCalendarId = calendars[pos].first
+                    if (calendars.isNotEmpty()) {
+                        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, calendars.map { it.second })
+                        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+                        calendarSpinner.adapter = adapter
+                        calendarSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                            override fun onItemSelected(p: AdapterView<*>?, v: View?, pos: Int, id: Long) {
+                                selectedCalendarId = calendars[pos].first
+                            }
+                            override fun onNothingSelected(p: AdapterView<*>?) {}
                         }
-                        override fun onNothingSelected(p: AdapterView<*>?) {}
+                        selectedCalendarId = calendars[0].first
                     }
                 }
             }
         }
         queryService.startQuery(0, null, CalendarContract.Calendars.CONTENT_URI,
             arrayOf(CalendarContract.Calendars._ID, CalendarContract.Calendars.CALENDAR_DISPLAY_NAME),
-            null, null, null)
+            "(${CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL} >= ${CalendarContract.Calendars.CAL_ACCESS_CONTRIBUTOR})",
+            null, null)
     }
 
-    private fun setupMonthGrid(paintModeSwitch: SwitchMaterial) {
+    private fun setupMonthGrid() {
         monthFragment = ShiftMonthGridFragment()
         monthFragment.onDayTappedCallback = { julianDay ->
-            val preset = presetsAdapter.getSelectedPreset()
-            if (preset != null) {
-                if (selectedDaysMap.containsKey(julianDay)) {
-                    selectedDaysMap.remove(julianDay)
-                } else {
-                    selectedDaysMap[julianDay] = preset
-                }
-                updateGridSelection()
-            } else {
-                Toast.makeText(requireContext(), R.string.shift_select_preset, Toast.LENGTH_SHORT).show()
+            if (paintModeEnabled) {
+                handlePaintTap(julianDay)
             }
         }
-
-        monthFragment.viewLifecycleOwnerLiveData.observe(viewLifecycleOwner) { owner ->
-            if (owner != null) {
-                monthFragment.getCalendarListView()?.setOnTouchListener { _, _ ->
-                    paintModeSwitch.isChecked
-                }
-            }
-        }
-
         childFragmentManager.beginTransaction()
             .replace(R.id.month_view_container, monthFragment)
             .commit()
     }
 
-    private fun updateGridSelection() {
-        monthFragment.updateSelection(selectedDaysMap)
+    private fun handlePaintTap(julianDay: Int) {
+        val preset = presetsAdapter.getSelectedPreset()
+        val dao = ShiftDatabase.getDatabase(requireContext()).shiftPresetDao()
+        lifecycleScope.launch {
+            if (preset == null) {
+                dao.insertOverride(ShiftOverride(julianDay, 0L)) // 0 for rest
+            } else {
+                dao.insertOverride(ShiftOverride(julianDay, preset.id))
+            }
+        }
     }
 
-    private fun pickStartDate() {
+    private fun updateGridSelection() {
+        if (!::monthFragment.isInitialized) return
+        val startJd = anchorJulianDay - 60
+        val endJd = anchorJulianDay + 400
+        val shifts = ShiftRotationEngine.generateShiftsForRange(startJd, endJd, activeRule, allPresets, allOverrides)
+        monthFragment.updateSelection(shifts)
+    }
+
+    private fun clearOverrides() {
+        lifecycleScope.launch {
+            ShiftDatabase.getDatabase(requireContext()).shiftPresetDao().clearAllOverrides()
+        }
+    }
+
+    private fun pickStartDate(btn: Button) {
         val datePicker = MaterialDatePicker.Builder.datePicker().build()
         datePicker.addOnPositiveButtonClickListener { selection ->
             anchorJulianDay = Time.getJulianDay(selection, 0)
+            val time = Time()
+            time.setJulianDay(anchorJulianDay)
+            btn.text = String.format("%04d-%02d-%02d", time.year, time.month + 1, time.day)
+            updateGridSelection()
         }
         datePicker.show(parentFragmentManager, "date_picker")
     }
 
-    private fun autoFillPattern() {
-        if (customPattern != null) {
-            val days = ShiftRotationEngine.generateFromPattern(anchorJulianDay, customPattern!!.size)
-            for (i in days.indices) {
-                val jd = days[i]
-                val preset = customPattern!![i % customPattern!!.size]
-                if (preset != null) {
-                    selectedDaysMap[jd] = preset
-                } else {
-                    selectedDaysMap.remove(jd)
-                }
-            }
-        } else {
-            val preset = presetsAdapter.getSelectedPreset()
-            if (preset == null) {
-                Toast.makeText(requireContext(), R.string.shift_select_preset, Toast.LENGTH_SHORT).show()
-                return
-            }
-            val daysOn = daysOnEdit.text.toString().toIntOrNull() ?: 4
-            val daysOff = daysOffEdit.text.toString().toIntOrNull() ?: 2
-            val pattern = ShiftRotationEngine.generatePattern(anchorJulianDay, daysOn, daysOff)
-            for (jd in pattern) {
-                selectedDaysMap[jd] = preset
-            }
-        }
-        updateGridSelection()
-    }
-
-    private fun saveShifts() {
-        if (selectedDaysMap.isEmpty()) {
-            Toast.makeText(requireContext(), R.string.shift_no_dates, Toast.LENGTH_SHORT).show()
+    private fun autoFillSimpleRule(view: View) {
+        val daysOn = view.findViewById<TextInputEditText>(R.id.days_on_edit).text.toString().toIntOrNull() ?: 4
+        val daysOff = view.findViewById<TextInputEditText>(R.id.days_off_edit).text.toString().toIntOrNull() ?: 2
+        val preset = presetsAdapter.getSelectedPreset()
+        if (preset == null) {
+            Toast.makeText(requireContext(), R.string.shift_select_preset, Toast.LENGTH_SHORT).show()
             return
         }
+
+        val pattern = mutableListOf<Long>()
+        repeat(daysOn) { pattern.add(preset.id) }
+        repeat(daysOff) { pattern.add(0L) }
+
+        val rule = ShiftRotationRule(anchorJulianDay = anchorJulianDay, patternPresetIds = pattern.joinToString(","))
+        lifecycleScope.launch {
+            ShiftDatabase.getDatabase(requireContext()).shiftPresetDao().updateActiveRule(rule)
+        }
+    }
+
+    private fun saveShiftsToCalendar() {
         if (selectedCalendarId == -1L) {
              Toast.makeText(requireContext(), R.string.shift_select_calendar, Toast.LENGTH_SHORT).show()
              return
         }
 
-        val groups = selectedDaysMap.entries.groupBy({ it.value }, { it.key })
+        val shifts = ShiftRotationEngine.generateShiftsForRange(anchorJulianDay, anchorJulianDay + 365, activeRule, allPresets, allOverrides)
+        val groups = shifts.entries.groupBy({ it.value }, { it.key })
+
         var pending = groups.size
+        if (pending == 0) {
+            Toast.makeText(requireContext(), "No shifts to save", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         groups.forEach { (preset, days) ->
             ShiftEventBuilder.saveShifts(requireContext(), selectedCalendarId, preset, days.toSet()) {
                 pending--
                 if (pending == 0) {
                     Toast.makeText(requireContext(), R.string.shift_save_success, Toast.LENGTH_SHORT).show()
-                    selectedDaysMap.clear()
-                    updateGridSelection()
                 }
             }
         }
@@ -233,7 +250,6 @@ class ShiftSchedulerFragment : Fragment() {
 
     class ShiftMonthGridFragment : MonthByWeekFragment() {
         var onDayTappedCallback: ((Int) -> Unit)? = null
-
         fun getCalendarListView() = mListView
 
         override fun setUpAdapter() {
@@ -246,7 +262,7 @@ class ShiftSchedulerFragment : Fragment() {
             weekParams[SimpleWeeksAdapter.WEEK_PARAMS_NUM_WEEKS] = mNumWeeks
 
             if (mAdapter == null) {
-                mAdapter = ShiftMonthByWeekAdapter(requireContext(), weekParams, mHandler).apply {
+                mAdapter = ShiftMonthByWeekAdapter(requireActivity(), weekParams, mHandler).apply {
                     onDayTappedListener = { julianDay -> onDayTappedCallback?.invoke(julianDay) }
                     registerDataSetObserver(mObserver)
                 }
@@ -256,8 +272,8 @@ class ShiftSchedulerFragment : Fragment() {
             mAdapter.notifyDataSetChanged()
         }
 
-        fun updateSelection(selectedDays: Map<Int, ShiftPreset>) {
-            val colors = selectedDays.mapValues { it.value.color }
+        fun updateSelection(shifts: Map<Int, ShiftPreset>) {
+            val colors = shifts.mapValues { it.value.color }
             (mAdapter as? ShiftMonthByWeekAdapter)?.setSelectedDays(colors)
         }
     }

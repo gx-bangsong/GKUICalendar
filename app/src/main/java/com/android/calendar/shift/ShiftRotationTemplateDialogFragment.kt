@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.lifecycleScope
@@ -13,6 +14,8 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.android.calendar.shift.db.ShiftDatabase
 import com.android.calendar.shift.db.ShiftPreset
+import com.android.calendar.shift.db.ShiftRotationRule
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -21,14 +24,37 @@ import ws.xsoh.etar.R
 class ShiftRotationTemplateDialogFragment : DialogFragment() {
 
     private val pattern = mutableListOf<ShiftPreset?>()
-    var onPatternConfirmed: ((List<ShiftPreset?>) -> Unit)? = null
     private lateinit var adapter: RotationGridAdapter
     private var allPresets: List<ShiftPreset> = emptyList()
+    private var anchorJulianDay: Int = 0
+
+    companion object {
+        fun newInstance(anchorJulianDay: Int): ShiftRotationTemplateDialogFragment {
+            val f = ShiftRotationTemplateDialogFragment()
+            f.anchorJulianDay = anchorJulianDay
+            return f
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (pattern.isEmpty()) {
+            repeat(7) { pattern.add(null) }
+        }
         lifecycleScope.launch {
-            allPresets = ShiftDatabase.getDatabase(requireContext()).shiftPresetDao().getAllPresets().first()
+            val db = ShiftDatabase.getDatabase(requireContext()).shiftPresetDao()
+            allPresets = db.getAllPresets().first()
+
+            // Try to load existing rule to pre-fill
+            val activeRule = db.getActiveRule().first()
+            if (activeRule != null && activeRule.patternPresetIds.isNotEmpty()) {
+                pattern.clear()
+                val ids = activeRule.patternPresetIds.split(",").map { it.toLong() }
+                for (id in ids) {
+                    pattern.add(if (id == 0L) null else allPresets.find { it.id == id })
+                }
+                adapter.notifyDataSetChanged()
+            }
         }
     }
 
@@ -44,26 +70,30 @@ class ShiftRotationTemplateDialogFragment : DialogFragment() {
         grid.layoutManager = GridLayoutManager(requireContext(), 7)
         grid.adapter = adapter
 
-        view.findViewById<android.widget.Button>(R.id.btn_add_day).setOnClickListener {
-            pattern.add(null) // Default to Rest
+        view.findViewById<MaterialButton>(R.id.btn_add_day).setOnClickListener {
+            pattern.add(null)
             adapter.notifyItemInserted(pattern.size - 1)
+            grid.smoothScrollToPosition(pattern.size - 1)
         }
 
-        view.findViewById<android.widget.Button>(R.id.btn_clear_rule).setOnClickListener {
+        view.findViewById<MaterialButton>(R.id.btn_clear_rule).setOnClickListener {
             pattern.clear()
+            repeat(7) { pattern.add(null) }
             adapter.notifyDataSetChanged()
         }
 
-        view.findViewById<android.widget.Button>(R.id.btn_save_rule).setOnClickListener {
-             onPatternConfirmed?.invoke(pattern)
-             dismiss()
+        view.findViewById<MaterialButton>(R.id.btn_save_rule).setOnClickListener {
+            saveRuleToDb()
         }
     }
 
-    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        val dialog = super.onCreateDialog(savedInstanceState)
-        dialog.setTitle(getString(R.string.shift_rotation_rule))
-        return dialog
+    private fun saveRuleToDb() {
+        val ids = pattern.map { it?.id ?: 0L }.joinToString(",")
+        val rule = ShiftRotationRule(anchorJulianDay = anchorJulianDay, patternPresetIds = ids)
+        lifecycleScope.launch {
+            ShiftDatabase.getDatabase(requireContext()).shiftPresetDao().updateActiveRule(rule)
+            dismiss()
+        }
     }
 
     inner class RotationGridAdapter : RecyclerView.Adapter<RotationGridAdapter.ViewHolder>() {
@@ -81,8 +111,8 @@ class ShiftRotationTemplateDialogFragment : DialogFragment() {
             val preset = pattern[position]
             if (preset == null) {
                 holder.label.text = getString(R.string.shift_rest)
-                holder.card.setCardBackgroundColor(0x339E9E9E.toInt())
-                holder.card.strokeColor = 0xFF9E9E9E.toInt()
+                holder.card.setCardBackgroundColor(0x11888888.toInt())
+                holder.card.strokeColor = 0x44888888.toInt()
             } else {
                 holder.label.text = preset.title
                 val color = preset.color

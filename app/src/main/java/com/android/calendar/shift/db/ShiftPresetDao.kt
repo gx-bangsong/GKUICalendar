@@ -8,12 +8,32 @@ interface ShiftPresetDao {
     @Query("SELECT * FROM shift_presets")
     fun getAllPresets(): Flow<List<ShiftPreset>>
 
-    @Insert
-    suspend fun insert(preset: ShiftPreset): Long
-
-    @Update
-    suspend fun update(preset: ShiftPreset)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertPreset(preset: ShiftPreset)
 
     @Delete
-    suspend fun delete(preset: ShiftPreset)
+    suspend fun deletePreset(preset: ShiftPreset)
+
+    @Query("SELECT * FROM shift_presets WHERE id = :id")
+    suspend fun getPresetById(id: Long): ShiftPreset?
+
+    // Rotation Rule
+    @Query("SELECT * FROM shift_rotation_rule WHERE id = 1")
+    fun getActiveRule(): Flow<ShiftRotationRule?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun updateActiveRule(rule: ShiftRotationRule)
+
+    // Overrides
+    @Query("SELECT * FROM shift_overrides")
+    fun getAllOverrides(): Flow<List<ShiftOverride>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertOverride(override: ShiftOverride)
+
+    @Query("DELETE FROM shift_overrides WHERE julianDay = :julianDay")
+    suspend fun removeOverride(julianDay: Int)
+
+    @Query("DELETE FROM shift_overrides")
+    suspend fun clearAllOverrides()
 }

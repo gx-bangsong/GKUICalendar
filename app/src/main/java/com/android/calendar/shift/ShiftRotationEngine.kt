@@ -1,37 +1,50 @@
 package com.android.calendar.shift
 
+import com.android.calendar.shift.db.ShiftOverride
+import com.android.calendar.shift.db.ShiftPreset
+import com.android.calendar.shift.db.ShiftRotationRule
+
 object ShiftRotationEngine {
 
-    fun generateFromPattern(
-        anchorJulianDay: Int,
-        numDays: Int = 365
-    ): List<Int> {
-        val days = mutableListOf<Int>()
-        for (i in 0 until numDays) {
-            days.add(anchorJulianDay + i)
+    fun getShiftForDay(
+        julianDay: Int,
+        activeRule: ShiftRotationRule?,
+        presets: Map<Long, ShiftPreset>,
+        overrides: Map<Int, Long>
+    ): ShiftPreset? {
+        // 1. Check Overrides first
+        if (overrides.containsKey(julianDay)) {
+            val presetId = overrides[julianDay]!!
+            return if (presetId == 0L) null else presets[presetId]
         }
-        return days
+
+        // 2. Check Active Rule
+        if (activeRule == null || activeRule.patternPresetIds.isEmpty()) return null
+
+        val ids = activeRule.patternPresetIds.split(",").map { it.toLong() }
+        val daysDiff = julianDay - activeRule.anchorJulianDay
+
+        // Handle negative days if needed, but usually we start from anchor
+        if (daysDiff < 0) return null
+
+        val presetId = ids[(daysDiff % ids.size).toInt()]
+        return if (presetId == 0L) null else presets[presetId]
     }
 
-    fun generatePattern(
-        anchorJulianDay: Int,
-        daysOn: Int,
-        daysOff: Int,
-        targetDurationDays: Int = 365
-    ): Set<Int> {
-        val pattern = mutableListOf<Boolean>()
-        repeat(daysOn) { pattern.add(true) }
-        repeat(daysOff) { pattern.add(false) }
-
-        val workDays = mutableSetOf<Int>()
-        if (pattern.isEmpty()) return workDays
-
-        for (i in 0 until targetDurationDays) {
-            val currentJulianDay = anchorJulianDay + i
-            if (pattern[i % pattern.size]) {
-                workDays.add(currentJulianDay)
+    // Helper for batch generation (e.g. for preview)
+    fun generateShiftsForRange(
+        startJulianDay: Int,
+        endJulianDay: Int,
+        activeRule: ShiftRotationRule?,
+        presets: Map<Long, ShiftPreset>,
+        overrides: Map<Int, Long>
+    ): Map<Int, ShiftPreset> {
+        val result = mutableMapOf<Int, ShiftPreset>()
+        for (jd in startJulianDay..endJulianDay) {
+            getShiftForDay(jd, activeRule, presets, overrides)?.let {
+                result[jd] = it
             }
         }
-        return workDays
+        return result
     }
 }

@@ -59,6 +59,11 @@
         android:orderInCategory="7"
         app:showAsAction="never"/>
     <item
+        android:id="@+id/shift_scheduler_menu_item"
+        android:title="@string/shift_scheduler_title"
+        android:orderInCategory="6"
+        app:showAsAction="never"/>
+    <item
         android:id="@+id/action_date_calculator"
         android:title="@string/date_calculator"
         android:orderInCategory="5"

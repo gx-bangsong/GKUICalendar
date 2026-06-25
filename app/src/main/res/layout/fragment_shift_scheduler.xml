@@ -3,162 +3,193 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp">
+    android:orientation="vertical">
 
-    <LinearLayout
+    <!-- Top Bar: Calendar Selection -->
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:layout_marginBottom="8dp">
-
-        <TextView
-            android:layout_width="wrap_content"
+        android:layout_margin="8dp"
+        app:cardElevation="2dp"
+        app:cardCornerRadius="8dp">
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/shift_select_calendar"
-            android:layout_marginEnd="8dp"/>
+            android:orientation="horizontal"
+            android:padding="12dp"
+            android:gravity="center_vertical">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/shift_select_calendar"
+                android:textStyle="bold"
+                android:layout_marginEnd="12dp"/>
+            <Spinner
+                android:id="@+id/calendar_spinner"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"/>
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 
-        <Spinner
-            android:id="@+id/calendar_spinner"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"/>
-    </LinearLayout>
-
+    <!-- Calendar Preview Area -->
     <FrameLayout
         android:id="@+id/month_view_container"
         android:layout_width="match_parent"
-        android:layout_height="300dp"
-        android:background="#F5F5F5"
-        android:layout_marginBottom="8dp"/>
+        android:layout_height="0dp"
+        android:layout_weight="1.2"
+        android:layout_marginHorizontal="8dp"
+        android:background="#11888888"/>
 
+    <!-- Paint Mode & Global Actions -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:layout_marginBottom="8dp">
-
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="4dp"
+        android:gravity="center_vertical">
         <com.google.android.material.switchmaterial.SwitchMaterial
             android:id="@+id/paint_mode_switch"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/shift_paint_mode"
             android:layout_weight="1"/>
-
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_clear"
             style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/shift_clear"/>
-
-        <Button
+            android:text="@string/shift_clear"
+            android:textColor="#FF5252"/>
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_save"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/shift_save"/>
+            android:text="@string/shift_save"
+            android:layout_marginStart="8dp"/>
     </LinearLayout>
 
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#33888888"/>
+
+    <!-- Bottom Controls: Rule & Presets -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:padding="8dp">
 
-        <!-- Left: Rule Generator -->
+        <!-- Rule Setup -->
         <ScrollView
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:layout_marginEnd="8dp">
+            android:layout_weight="1.2"
+            android:padding="4dp">
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
-
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/shift_rule_generator"
                     android:textStyle="bold"
                     android:layout_marginBottom="8dp"/>
-
-                <Button
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_pick_start_date"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/shift_start_date_label"
-                    android:layout_marginBottom="8dp"/>
+                    android:textSize="11sp"/>
 
-                <com.google.android.material.textfield.TextInputLayout
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="@string/shift_days_on">
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/days_on_edit"
-                        android:layout_width="match_parent"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="4dp">
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:inputType="number"
-                        android:text="4"/>
-                </com.google.android.material.textfield.TextInputLayout>
+                        android:layout_weight="1"
+                        android:hint="On"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/days_on_edit"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="number"
+                            android:text="4"/>
+                    </com.google.android.material.textfield.TextInputLayout>
+                    <View android:layout_width="4dp" android:layout_height="1dp"/>
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:hint="Off"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/days_off_edit"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="number"
+                            android:text="2"/>
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
 
-                <com.google.android.material.textfield.TextInputLayout
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_auto_fill"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="@string/shift_days_off">
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/days_off_edit"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="number"
-                        android:text="2"/>
-                </com.google.android.material.textfield.TextInputLayout>
+                    android:text="@string/shift_auto_fill"
+                    android:layout_marginTop="4dp"/>
 
-                <Button
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_custom_rule"
                     style="@style/Widget.MaterialComponents.Button.TextButton"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/shift_rotation_rule" />
-
-                <Button
-                    android:id="@+id/btn_auto_fill"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/shift_auto_fill" />
+                    android:text="@string/shift_rotation_rule"
+                    android:textAllCaps="false"/>
             </LinearLayout>
         </ScrollView>
 
-        <!-- Right: Presets -->
+        <View
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:background="#22888888"
+            android:layout_marginHorizontal="4dp"/>
+
+        <!-- Presets Management -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:padding="4dp">
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/shift_presets"
                 android:textStyle="bold"
                 android:layout_marginBottom="8dp"/>
-
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/presets_recycler"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
-                android:layout_weight="1"
-                android:paddingBottom="80dp"
-                android:clipToPadding="false"/>
-
-            <Button
+                android:layout_weight="1"/>
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_add_preset"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/shift_add_preset"/>
+                android:text="ADD PRESET"
+                android:textSize="9sp"
+                android:padding="0dp"/>
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

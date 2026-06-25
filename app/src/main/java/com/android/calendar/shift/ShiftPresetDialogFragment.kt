@@ -134,9 +134,9 @@ class ShiftPresetDialogFragment : DialogFragment() {
         lifecycleScope.launch {
             val dao = ShiftDatabase.getDatabase(requireContext()).shiftPresetDao()
             if (preset.id == 0L) {
-                dao.insert(preset)
+                dao.insertPreset(preset)
             } else {
-                dao.update(preset)
+                dao.insertPreset(preset)
             }
             listener?.onPresetSaved()
         }
@@ -149,7 +149,7 @@ class ShiftPresetDialogFragment : DialogFragment() {
             .setPositiveButton(android.R.string.ok) { _: DialogInterface, _: Int ->
                 lifecycleScope.launch {
                     val dao = ShiftDatabase.getDatabase(requireContext()).shiftPresetDao()
-                    dao.delete(ShiftPreset(presetId, "", 0, 0, 0, false, 0))
+                    dao.deletePreset(ShiftPreset(presetId, "", 0, 0, 0, false, 0))
                     listener?.onPresetSaved()
                 }
             }
