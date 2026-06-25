@@ -385,4 +385,13 @@
     <string name="delete_preset">删除预设</string>
     <string name="confirm_delete_preset">确定要删除这个预设吗？</string>
     <string name="shift_paint_mode">画笔模式</string>
+    <string name="shift_wizard_title">排班规则向导</string>
+    <string name="shift_wizard_step1">步骤 1: 周期</string>
+    <string name="shift_wizard_step2">步骤 2: 开始日期</string>
+    <string name="shift_wizard_step3">步骤 3: 主题</string>
+    <string name="shift_wizard_next">下一步</string>
+    <string name="shift_wizard_back">上一步</string>
+    <string name="shift_wizard_generate">生成</string>
+    <string name="shift_on_days">上班天数</string>
+    <string name="shift_off_days">休息天数</string>
 </resources>

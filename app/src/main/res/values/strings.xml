@@ -941,4 +941,13 @@
     <string name="shift_rest">Rest</string>
     <string name="shift_clear_rule">Clear Rule</string>
     <string name="shift_start_date_label">Start Date</string>
+    <string name="shift_wizard_title">Shift Rule Wizard</string>
+    <string name="shift_wizard_step1">Step 1: Pattern</string>
+    <string name="shift_wizard_step2">Step 2: Start Date</string>
+    <string name="shift_wizard_step3">Step 3: Theme</string>
+    <string name="shift_wizard_next">Next</string>
+    <string name="shift_wizard_back">Back</string>
+    <string name="shift_wizard_generate">Generate</string>
+    <string name="shift_on_days">Days ON</string>
+    <string name="shift_off_days">Days OFF</string>
 </resources>

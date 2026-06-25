@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.AbsListView
 import com.android.calendar.month.MonthByWeekAdapter
+import com.android.calendar.month.SimpleWeeksAdapter
 
 class ShiftMonthByWeekAdapter(context: Context, params: java.util.HashMap<String, Int>, handler: Handler)
     : MonthByWeekAdapter(context, params, handler) {
@@ -40,14 +41,12 @@ class ShiftMonthByWeekAdapter(context: Context, params: java.util.HashMap<String
         val drawingParams = java.util.HashMap<String, Int>()
         // SimpleWeekView constants
         drawingParams.put("height", parent.height / mNumWeeks)
-        drawingParams.put("week_start", mFirstDayOfWeek)
-        drawingParams.put("selected_day", mFirstJulianDay + position * mDaysPerWeek)
-        drawingParams.put("show_wk_num", if (mShowWeekNumber) 1 else 0)
-        drawingParams.put("num_days", mDaysPerWeek)
+        drawingParams.put(SimpleWeeksAdapter.WEEK_PARAMS_WEEK_START, mFirstDayOfWeek)
+        drawingParams.put(SimpleWeeksAdapter.WEEK_PARAMS_JULIAN_DAY, mFirstJulianDay + position * mDaysPerWeek)
+        drawingParams.put(SimpleWeeksAdapter.WEEK_PARAMS_SHOW_WEEK, if (mShowWeekNumber) 1 else 0)
+        drawingParams.put(SimpleWeeksAdapter.WEEK_PARAMS_DAYS_PER_WEEK, mDaysPerWeek)
         drawingParams.put("week", position)
-        drawingParams.put("focus_month", mFocusMonth)
-        // MonthWeekEventsView constants
-        drawingParams.put("orientation", mOrientation)
+        drawingParams.put(SimpleWeeksAdapter.WEEK_PARAMS_FOCUS_MONTH, mFocusMonth)
 
         v.setWeekParams(drawingParams, mSelectedDay.timezone)
         v.setSelection(selectedDaysMap)

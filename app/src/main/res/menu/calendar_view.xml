@@ -19,10 +19,6 @@
             android:id="@+id/agenda_menu_item"
             android:icon="@drawable/outline_view_agenda"
             android:title="@string/agenda_view" />
-        <item
-            android:id="@+id/shift_scheduler_menu_item"
-            android:icon="@drawable/outline_calendar_view_month"
-            android:title="@string/shift_scheduler_title" />
 
     </group>
     <group android:id="@+id/navigation_subheader" android:checkableBehavior="none">

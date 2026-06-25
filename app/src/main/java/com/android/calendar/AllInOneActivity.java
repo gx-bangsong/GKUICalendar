@@ -931,6 +931,11 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
             ImportActivity.pickImportFile(this);
         } else if (itemId == R.id.action_date_calculator) {
             startActivity(new Intent(this, com.android.calendar.date_calculator.DateCalculatorActivity.class));
+        } else if (itemId == R.id.shift_scheduler_menu_item) {
+            getSupportFragmentManager().beginTransaction()
+                .replace(R.id.main_pane, new ShiftSchedulerFragment())
+                .addToBackStack(null)
+                .commit();
         } else if (itemId == R.id.action_view_settings) {
             Intent intent = new Intent(this, SettingsActivity.class);
             intent.putExtra(SettingsActivityKt.EXTRA_SHOW_FRAGMENT, ViewDetailsPreferences.class.getName());
@@ -967,11 +972,6 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
             goToDate();
         } else if (itemId == R.id.action_settings) {
             mController.sendEvent(this, EventType.LAUNCH_SETTINGS, null, null, 0, 0);
-        } else if (itemId == R.id.shift_scheduler_menu_item) {
-            getSupportFragmentManager().beginTransaction()
-                .replace(R.id.main_pane, new ShiftSchedulerFragment())
-                .addToBackStack(null)
-                .commit();
         } else if (itemId == R.id.action_about) {
             Intent intent = new Intent(this, AboutActivity.class);
             startActivity(intent);
