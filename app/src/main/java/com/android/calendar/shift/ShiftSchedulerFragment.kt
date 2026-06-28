@@ -65,6 +65,7 @@ class ShiftSchedulerFragment : Fragment() {
         val paintModeSwitch = view.findViewById<SwitchMaterial>(R.id.paint_mode_switch)
         paintModeSwitch.setOnCheckedChangeListener { _, isChecked ->
             paintModeEnabled = isChecked
+            monthFragment.setPaintMode(isChecked)
         }
 
         view.findViewById<Button>(R.id.btn_add_preset).setOnClickListener { showPresetDialog(null) }
@@ -173,10 +174,8 @@ class ShiftSchedulerFragment : Fragment() {
 
     private fun setupMonthGrid() {
         monthFragment = ShiftMonthGridFragment()
-        monthFragment.onDayTappedCallback = { julianDay ->
-            if (paintModeEnabled) {
-                handlePaintTap(julianDay)
-            }
+        monthFragment.onDayPaintedCallback = { julianDay ->
+            handlePaintTap(julianDay)
         }
         childFragmentManager.beginTransaction()
             .replace(R.id.month_view_container, monthFragment)
@@ -247,7 +246,7 @@ class ShiftSchedulerFragment : Fragment() {
     }
 
     class ShiftMonthGridFragment : MonthByWeekFragment() {
-        var onDayTappedCallback: ((Int) -> Unit)? = null
+        var onDayPaintedCallback: ((Int) -> Unit)? = null
 
         private var lastShifts: Map<Int, ShiftPreset>? = null
 
@@ -262,17 +261,20 @@ class ShiftSchedulerFragment : Fragment() {
 
             if (mAdapter == null) {
                 mAdapter = ShiftMonthByWeekAdapter(requireActivity(), weekParams, mHandler).apply {
-                    onDayTappedListener = { julianDay -> onDayTappedCallback?.invoke(julianDay) }
+                    onDayPaintedListener = { julianDay -> onDayPaintedCallback?.invoke(julianDay) }
                     registerDataSetObserver(mObserver)
                 }
             } else {
                 mAdapter.updateParams(weekParams)
             }
 
-            // Re-apply shifts if we have them
             lastShifts?.let { updateSelection(it) }
-
             mAdapter.notifyDataSetChanged()
+        }
+
+        fun setPaintMode(enabled: Boolean) {
+            (mAdapter as? ShiftMonthByWeekAdapter)?.paintModeEnabled = enabled
+            mListView?.isEnabled = !enabled // Lock scrolling while painting
         }
 
         fun updateSelection(shifts: Map<Int, ShiftPreset>) {

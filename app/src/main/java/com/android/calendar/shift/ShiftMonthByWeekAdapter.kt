@@ -2,6 +2,7 @@ package com.android.calendar.shift
 
 import android.content.Context
 import android.os.Handler
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AbsListView
@@ -13,6 +14,10 @@ class ShiftMonthByWeekAdapter(context: Context, params: java.util.HashMap<String
 
     private val selectedDaysMap = mutableMapOf<Int, Int>() // JulianDay -> Color
     var onDayTappedListener: ((Int) -> Unit)? = null
+    var onDayPaintedListener: ((Int) -> Unit)? = null
+
+    var paintModeEnabled: Boolean = false
+    private var lastPaintedJd: Int = -1
 
     fun setSelectedDays(days: Map<Int, Int>) {
         selectedDaysMap.clear()
@@ -21,7 +26,30 @@ class ShiftMonthByWeekAdapter(context: Context, params: java.util.HashMap<String
     }
 
     override fun onDayTapped(day: com.android.calendar.calendarcommon2.Time) {
-        onDayTappedListener?.invoke(com.android.calendar.calendarcommon2.Time.getJulianDay(day.toMillis(), 0))
+        if (!paintModeEnabled) {
+            onDayTappedListener?.invoke(com.android.calendar.calendarcommon2.Time.getJulianDay(day.toMillis(), 0))
+        }
+    }
+
+    override fun onTouch(v: View, event: MotionEvent): Boolean {
+        if (paintModeEnabled && v is ShiftMonthWeekView) {
+            val action = event.action
+            if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_MOVE) {
+                val time = v.getDayFromLocation(event.x)
+                if (time != null) {
+                    val jd = com.android.calendar.calendarcommon2.Time.getJulianDay(time.toMillis(), 0)
+                    if (jd != lastPaintedJd) {
+                        lastPaintedJd = jd
+                        onDayPaintedListener?.invoke(jd)
+                    }
+                }
+                return true // Consume touch when painting
+            }
+            if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+                lastPaintedJd = -1
+            }
+        }
+        return super.onTouch(v, event)
     }
 
     override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
@@ -39,7 +67,6 @@ class ShiftMonthByWeekAdapter(context: Context, params: java.util.HashMap<String
         v.setOnTouchListener(this)
 
         val drawingParams = java.util.HashMap<String, Int>()
-        // SimpleWeekView constants
         drawingParams.put("height", parent.height / mNumWeeks)
         drawingParams.put(SimpleWeeksAdapter.WEEK_PARAMS_WEEK_START, mFirstDayOfWeek)
         drawingParams.put(SimpleWeeksAdapter.WEEK_PARAMS_JULIAN_DAY, mFirstJulianDay + position * mDaysPerWeek)
