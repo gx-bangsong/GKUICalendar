@@ -42,7 +42,7 @@ class ShiftSchedulerFragment : Fragment() {
 
     private var allPresets: Map<Long, ShiftPreset> = emptyMap()
     private var activeRule: ShiftRotationRule? = null
-    private var allOverrides: Map<Int, Long> = emptyMap()
+    private var allOverrides: MutableMap<Int, Long> = mutableMapOf()
 
     private var paintModeEnabled = false
 
@@ -70,7 +70,8 @@ class ShiftSchedulerFragment : Fragment() {
 
         val paintModeSwitch = view.findViewById<SwitchMaterial>(R.id.paint_mode_switch)
         paintModeSwitch.setOnCheckedChangeListener { _, isChecked ->
-            Log.d("ShiftDebug", "Paint Mode Toggled: $isChecked")
+            Log.e("ShiftDebug", "FRAGMENT: Paint Mode Toggled to $isChecked")
+            Toast.makeText(context, "Paint Mode: " + if (isChecked) "ON" else "OFF", Toast.LENGTH_SHORT).show()
             paintModeEnabled = isChecked
             monthFragment.setPaintMode(isChecked)
         }
@@ -114,10 +115,10 @@ class ShiftSchedulerFragment : Fragment() {
             ) { presets, rule, overrides ->
                 Triple(presets, rule, overrides)
             }.collect { (presets, rule, overrides) ->
-                Log.d("ShiftDebug", "observeData collected: presets=${presets.size}, rule=${rule != null}, overrides=${overrides.size}")
+                Log.e("ShiftDebug", "FRAGMENT: Data Collected, overrides count=${overrides.size}")
                 allPresets = presets.associateBy { it.id }
                 activeRule = rule
-                allOverrides = overrides.associateBy({ it.julianDay }, { it.presetId })
+                allOverrides = overrides.associateBy({ it.julianDay }, { it.presetId }).toMutableMap()
                 presetsAdapter.updatePresets(presets)
 
                 if (rule != null) {
@@ -192,14 +193,15 @@ class ShiftSchedulerFragment : Fragment() {
 
     private fun handlePaintTap(julianDay: Int) {
         val preset = presetsAdapter.getSelectedPreset()
-        Log.d("ShiftDebug", "handlePaintTap: JD=$julianDay, selectedPreset=${preset?.title ?: "REST"}")
+        val presetId = preset?.id ?: 0L
+        Log.e("ShiftDebug", "FRAGMENT: handlePaintTap JD=$julianDay, preset=${preset?.title ?: "REST"}")
+
+        allOverrides[julianDay] = presetId
+        updateGridSelection()
+
         val dao = ShiftDatabase.getDatabase(requireContext()).shiftPresetDao()
         lifecycleScope.launch {
-            if (preset == null) {
-                dao.insertOverride(ShiftOverride(julianDay, 0L)) // 0 for rest
-            } else {
-                dao.insertOverride(ShiftOverride(julianDay, preset.id))
-            }
+            dao.insertOverride(ShiftOverride(julianDay, presetId))
         }
     }
 
@@ -208,7 +210,6 @@ class ShiftSchedulerFragment : Fragment() {
         val startJd = anchorJulianDay - 60
         val endJd = anchorJulianDay + 400
         val shifts = ShiftRotationEngine.generateShiftsForRange(startJd, endJd, activeRule, allPresets, allOverrides)
-        Log.d("ShiftDebug", "updateGridSelection: generated ${shifts.size} shifts")
         monthFragment.updateSelection(shifts)
     }
 
@@ -221,10 +222,17 @@ class ShiftSchedulerFragment : Fragment() {
     private fun pickStartDate(btn: Button) {
         val datePicker = MaterialDatePicker.Builder.datePicker().build()
         datePicker.addOnPositiveButtonClickListener { selection ->
-            val t = Time()
-            t.set(selection)
-            anchorJulianDay = Time.getJulianDay(selection, t.getGmtOffset())
-            btn.text = String.format("%04d-%02d-%02d", t.year, t.month + 1, t.day)
+            val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+            calendar.timeInMillis = selection
+            val y = calendar.get(Calendar.YEAR)
+            val m = calendar.get(Calendar.MONTH)
+            val d = calendar.get(Calendar.DAY_OF_MONTH)
+
+            val localT = Time()
+            localT.set(d, m, y)
+            anchorJulianDay = Time.getJulianDay(localT.toMillis(), localT.getGmtOffset())
+
+            btn.text = String.format("%04d-%02d-%02d", y, m + 1, d)
             updateGridSelection()
         }
         datePicker.show(parentFragmentManager, "date_picker")
@@ -257,7 +265,7 @@ class ShiftSchedulerFragment : Fragment() {
 
     class ShiftMonthGridFragment : MonthByWeekFragment() {
         var onDayPaintedCallback: ((Int) -> Unit)? = null
-
+        private var paintModeEnabledInternal = false
         private var lastShifts: Map<Int, ShiftPreset>? = null
 
         override fun setUpAdapter() {
@@ -266,7 +274,6 @@ class ShiftSchedulerFragment : Fragment() {
             weekParams[SimpleWeeksAdapter.WEEK_PARAMS_SHOW_WEEK] = if (mShowWeekNumber) 1 else 0
             weekParams[SimpleWeeksAdapter.WEEK_PARAMS_WEEK_START] = mFirstDayOfWeek
 
-            // Etar MonthView expects local Julian Day of the selected day
             val localJd = Time.getJulianDay(mSelectedDay.toMillis(), mSelectedDay.getGmtOffset())
             weekParams[SimpleWeeksAdapter.WEEK_PARAMS_JULIAN_DAY] = localJd
 
@@ -280,13 +287,18 @@ class ShiftSchedulerFragment : Fragment() {
                 }
             } else {
                 mAdapter.updateParams(weekParams)
+                (mAdapter as? ShiftMonthByWeekAdapter)?.onDayPaintedListener = onDayPaintedCallback
             }
+
+            (mAdapter as? ShiftMonthByWeekAdapter)?.paintModeEnabled = paintModeEnabledInternal
 
             lastShifts?.let { updateSelection(it) }
             mAdapter.notifyDataSetChanged()
         }
 
         fun setPaintMode(enabled: Boolean) {
+            Log.e("ShiftDebug", "GRID_FRAGMENT: Setting paint mode to $enabled")
+            paintModeEnabledInternal = enabled
             (mAdapter as? ShiftMonthByWeekAdapter)?.paintModeEnabled = enabled
         }
 

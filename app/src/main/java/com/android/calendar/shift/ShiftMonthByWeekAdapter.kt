@@ -3,10 +3,12 @@ package com.android.calendar.shift
 import android.content.Context
 import android.os.Handler
 import android.util.Log
+import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AbsListView
+import android.widget.ListView
 import com.android.calendar.month.MonthByWeekAdapter
 import com.android.calendar.month.SimpleWeeksAdapter
 import com.android.calendar.month.SimpleWeekView
@@ -15,14 +17,14 @@ import com.android.calendar.month.MonthWeekEventsView
 class ShiftMonthByWeekAdapter(context: Context, params: java.util.HashMap<String, Int>, handler: Handler)
     : MonthByWeekAdapter(context, params, handler) {
 
-    private val selectedDaysMap = mutableMapOf<Int, Int>() // Local JulianDay -> Color
+    private val selectedDaysMap = mutableMapOf<Int, Int>()
     var onDayPaintedListener: ((Int) -> Unit)? = null
 
     var paintModeEnabled: Boolean = false
     private var lastPaintedJd: Int = -1
 
     fun setSelectedDays(days: Map<Int, Int>) {
-        Log.d("ShiftDebug", "setSelectedDays: adapter received ${days.size} days")
+        Log.e("ShiftDebug", "ADAPTER: Updating selection map with ${days.size} items")
         selectedDaysMap.clear()
         selectedDaysMap.putAll(days)
         notifyDataSetChanged()
@@ -32,9 +34,18 @@ class ShiftMonthByWeekAdapter(context: Context, params: java.util.HashMap<String
         return com.android.calendar.calendarcommon2.Time.getJulianDay(time.toMillis(), time.getGmtOffset())
     }
 
+    private fun getListView(v: View): ListView? {
+        var p = v.parent
+        while (p != null) {
+            if (p is ListView) return p
+            p = p.parent
+        }
+        return null
+    }
+
     override fun onDayTapped(day: com.android.calendar.calendarcommon2.Time) {
         val jd = getLocalJd(day)
-        Log.d("ShiftDebug", "onDayTapped: JD=$jd, paintMode=$paintModeEnabled")
+        Log.e("ShiftDebug", "ADAPTER: onDayTapped JD=$jd, paintMode=$paintModeEnabled")
         if (!paintModeEnabled) {
             super.onDayTapped(day)
         } else {
@@ -43,26 +54,53 @@ class ShiftMonthByWeekAdapter(context: Context, params: java.util.HashMap<String
     }
 
     override fun onTouch(v: View, event: MotionEvent): Boolean {
-        if (paintModeEnabled && v is ShiftMonthWeekView) {
+        if (paintModeEnabled) {
             val action = event.action
+            val listView = getListView(v)
+
             if (action == MotionEvent.ACTION_DOWN) {
-                v.parent.requestDisallowInterceptTouchEvent(true)
+                Log.e("ShiftDebug", "TOUCH: DOWN detected on ${v.hashCode()}")
+                v.parent?.requestDisallowInterceptTouchEvent(true)
+                listView?.requestDisallowInterceptTouchEvent(true)
             }
 
-            if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_MOVE) {
-                val time = v.getDayFromLocation(event.x)
-                if (time != null) {
-                    val jd = getLocalJd(time)
-                    if (jd != lastPaintedJd) {
-                        Log.d("ShiftDebug", "onDayPainted (Touch): JD=$jd")
-                        lastPaintedJd = jd
-                        onDayPaintedListener?.invoke(jd)
+            if (listView != null) {
+                val x = event.rawX
+                val y = event.rawY
+
+                val listLoc = IntArray(2)
+                listView.getLocationOnScreen(listLoc)
+                val relativeX = x - listLoc[0]
+                val relativeY = y - listLoc[1]
+
+                val position = listView.pointToPosition(relativeX.toInt(), relativeY.toInt())
+                if (position != ListView.INVALID_POSITION) {
+                    val child = listView.getChildAt(position - listView.firstVisiblePosition)
+                    if (child is SimpleWeekView) {
+                        val childLoc = IntArray(2)
+                        child.getLocationOnScreen(childLoc)
+                        val touchXInChild = x - childLoc[0]
+
+                        val time = child.getDayFromLocation(touchXInChild)
+                        if (time != null) {
+                            val jd = getLocalJd(time)
+                            if (jd != lastPaintedJd) {
+                                Log.e("ShiftDebug", "TOUCH: Found JD=$jd, signaling listener")
+                                lastPaintedJd = jd
+                                try {
+                                    child.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                                } catch (e: Exception) {}
+                                onDayPaintedListener?.invoke(jd)
+                                listView.invalidateViews()
+                            }
+                        }
                     }
                 }
-                return true
-            }
-            if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
-                lastPaintedJd = -1
+
+                if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+                    Log.e("ShiftDebug", "TOUCH: UP/CANCEL detected")
+                    lastPaintedJd = -1
+                }
                 return true
             }
         }
@@ -76,10 +114,7 @@ class ShiftMonthByWeekAdapter(context: Context, params: java.util.HashMap<String
             ShiftMonthWeekView(mContext)
         }
 
-        val params = AbsListView.LayoutParams(
-            AbsListView.LayoutParams.MATCH_PARENT, AbsListView.LayoutParams.MATCH_PARENT
-        )
-        v.layoutParams = params
+        v.layoutParams = AbsListView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
         v.setClickable(true)
         v.setOnTouchListener(this)
 
@@ -95,7 +130,6 @@ class ShiftMonthByWeekAdapter(context: Context, params: java.util.HashMap<String
 
         v.setWeekParams(drawingParams, mSelectedDay.timezone)
         v.setSelection(selectedDaysMap)
-
         return v
     }
 }

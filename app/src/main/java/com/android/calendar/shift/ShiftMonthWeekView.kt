@@ -3,6 +3,7 @@ package com.android.calendar.shift
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.Color
 import com.android.calendar.month.MonthWeekEventsView
 import android.util.Log
 
@@ -27,27 +28,31 @@ class ShiftMonthWeekView(context: Context) : MonthWeekEventsView(context) {
 
     private fun drawSelection(canvas: Canvas) {
         val days = selectedDays ?: return
-        Log.d("ShiftDebug", "drawSelection: view ${this.hashCode()} week $mWeek, range $mFirstJulianDay to ${mFirstJulianDay + mNumDays}")
+        if (days.isEmpty()) return
 
-        for (i in 0 until mNumDays) {
-            val julianDay = mFirstJulianDay + i
+        val divisor = 2 * mNumCells
+        val startCell = if (mShowWeekNum) 1 else 0
+
+        for (dayOffset in 0 until mNumDays) {
+            val julianDay = mFirstJulianDay + dayOffset
             val color = days[julianDay] ?: continue
 
-            Log.d("ShiftDebug", "drawSelection: view ${this.hashCode()} MATCH JD=$julianDay color=$color")
+            Log.e("ShiftDebug", "DRAW: Match found! JD=$julianDay Color=$color Week=$mWeek View=${this.hashCode()}")
 
-            // Draw a semi-transparent circular background
-            selectionPaint.color = (color and 0x00FFFFFF) or 0x66000000
-
-            val r = (mWidth - mPadding * 2) / mNumDays
-            val x = (2 * i + 1) * r / 2 + mPadding
+            val cellIndex = startCell + dayOffset
+            val x = (2 * cellIndex + 1) * mWidth / divisor
             val y = mHeight / 2
 
-            val radius = Math.min(r, mHeight) / 2 - 4
+            // High visibility opacity (0xCC = 80%)
+            selectionPaint.color = Color.argb(200, Color.red(color), Color.green(color), Color.blue(color))
+
+            val cellWidth = mWidth / mNumCells
+            val radius = Math.min(cellWidth, mHeight) / 2 - 4
             canvas.drawCircle(x.toFloat(), y.toFloat(), radius.toFloat(), selectionPaint)
 
-            // Draw a solid dot at the bottom
+            // Draw a large solid dot at the bottom
             selectionPaint.color = color or 0xFF000000.toInt()
-            canvas.drawCircle(x.toFloat(), (mHeight - 12).toFloat(), 8f, selectionPaint)
+            canvas.drawCircle(x.toFloat(), (mHeight - 15).toFloat(), 12f, selectionPaint)
         }
     }
 }

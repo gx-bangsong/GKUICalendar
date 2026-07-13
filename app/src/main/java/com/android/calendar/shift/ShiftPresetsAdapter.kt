@@ -1,5 +1,6 @@
 package com.android.calendar.shift
 
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -44,7 +45,7 @@ class ShiftPresetsAdapter(
             selectedPosition = holder.adapterPosition
             notifyItemChanged(oldPos)
             notifyItemChanged(selectedPosition)
-            onPresetSelected(preset)
+            Log.e("ShiftDebug", "PRESETS_ADAPTER: Selected ${preset.title}"); onPresetSelected(preset)
         }
 
         holder.editButton.setOnClickListener {
