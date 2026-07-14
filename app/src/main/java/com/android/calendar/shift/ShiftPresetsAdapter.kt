@@ -1,6 +1,5 @@
 package com.android.calendar.shift
 
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -8,6 +7,7 @@ import android.widget.ImageButton
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.android.calendar.shift.db.ShiftPreset
+import com.google.android.material.card.MaterialCardView
 import ws.xsoh.etar.R
 
 class ShiftPresetsAdapter(
@@ -19,6 +19,7 @@ class ShiftPresetsAdapter(
     private var selectedPosition = -1
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val card: MaterialCardView = view.findViewById(R.id.preset_card)
         val colorBar: View = view.findViewById(R.id.preset_color_bar)
         val title: TextView = view.findViewById(R.id.preset_title)
         val time: TextView = view.findViewById(R.id.preset_time)
@@ -37,15 +38,26 @@ class ShiftPresetsAdapter(
         holder.time.text = String.format("%02d:%02d - %02d:%02d",
             preset.startTime / 60, preset.startTime % 60,
             preset.endTime / 60, preset.endTime % 60)
+
         holder.colorBar.setBackgroundColor(preset.color)
 
-        holder.itemView.isSelected = position == selectedPosition
+        // Material 3 Selection State
+        if (position == selectedPosition) {
+            holder.card.setCardBackgroundColor(holder.itemView.context.getColor(androidx.appcompat.R.color.material_grey_300))
+            holder.card.strokeWidth = 4
+            holder.card.strokeColor = holder.itemView.context.getColor(androidx.appcompat.R.color.highlighted_text_material_light)
+        } else {
+            holder.card.setCardBackgroundColor(holder.itemView.context.getColor(android.R.color.transparent))
+            holder.card.strokeWidth = 1
+            holder.card.strokeColor = holder.itemView.context.getColor(androidx.appcompat.R.color.material_grey_100)
+        }
+
         holder.itemView.setOnClickListener {
             val oldPos = selectedPosition
             selectedPosition = holder.adapterPosition
             notifyItemChanged(oldPos)
             notifyItemChanged(selectedPosition)
-            Log.e("ShiftDebug", "PRESETS_ADAPTER: Selected ${preset.title}"); onPresetSelected(preset)
+            onPresetSelected(preset)
         }
 
         holder.editButton.setOnClickListener {

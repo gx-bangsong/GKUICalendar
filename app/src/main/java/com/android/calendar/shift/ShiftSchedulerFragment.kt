@@ -21,10 +21,10 @@ import com.android.calendar.shift.db.ShiftDatabase
 import com.android.calendar.shift.db.ShiftOverride
 import com.android.calendar.shift.db.ShiftPreset
 import com.android.calendar.shift.db.ShiftRotationRule
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.datepicker.MaterialDatePicker
+import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.google.android.material.switchmaterial.SwitchMaterial
-import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import ws.xsoh.etar.R
@@ -36,6 +36,7 @@ class ShiftSchedulerFragment : Fragment() {
     private lateinit var presetsRecycler: RecyclerView
     private lateinit var presetsAdapter: ShiftPresetsAdapter
     private lateinit var monthFragment: ShiftMonthGridFragment
+    private lateinit var paintFab: ExtendedFloatingActionButton
 
     private var selectedCalendarId: Long = -1
     private var anchorJulianDay: Int = 0
@@ -67,24 +68,18 @@ class ShiftSchedulerFragment : Fragment() {
 
         calendarSpinner = view.findViewById(R.id.calendar_spinner)
         presetsRecycler = view.findViewById(R.id.presets_recycler)
+        paintFab = view.findViewById(R.id.paint_mode_fab)
 
-        val paintModeSwitch = view.findViewById<SwitchMaterial>(R.id.paint_mode_switch)
-        paintModeSwitch.setOnCheckedChangeListener { _, isChecked ->
-            Log.e("ShiftDebug", "FRAGMENT: Paint Mode Toggled to $isChecked")
-            paintModeEnabled = isChecked
-            monthFragment.setPaintMode(isChecked)
+        paintFab.setOnClickListener {
+            val newState = !paintModeEnabled
+            togglePaintMode(newState)
         }
 
         view.findViewById<Button>(R.id.btn_add_preset).setOnClickListener { showPresetDialog(null) }
         view.findViewById<Button>(R.id.btn_clear).setOnClickListener { clearOverrides() }
         view.findViewById<Button>(R.id.btn_save).setOnClickListener { saveShiftsToCalendar() }
 
-        val btnPickStartDate = view.findViewById<Button>(R.id.btn_pick_start_date)
-        val time = Time(); time.setJulianDay(anchorJulianDay); btnPickStartDate.text = String.format("%04d-%02d-%02d", time.year, time.month + 1, time.day)
-        btnPickStartDate.setOnClickListener { pickStartDate(btnPickStartDate) }
-
         view.findViewById<Button>(R.id.btn_auto_fill).setOnClickListener { showWizardDialog() }
-        view.findViewById<Button>(R.id.btn_custom_rule).setOnClickListener { showRotationTemplateDialog() }
 
         setupPresets()
         setupCalendarSpinner()
@@ -92,6 +87,25 @@ class ShiftSchedulerFragment : Fragment() {
         observeData()
 
         return view
+    }
+
+    private fun togglePaintMode(enabled: Boolean) {
+        paintModeEnabled = enabled
+        if (enabled) {
+            paintFab.extend()
+            paintFab.setIconResource(R.drawable.ic_brush)
+            paintFab.setBackgroundColor(requireContext().getColor(androidx.appcompat.R.color.material_blue_grey_800))
+            paintFab.setTextColor(requireContext().getColor(android.R.color.white))
+            paintFab.iconTint = requireContext().getColorStateList(android.R.color.white)
+            Toast.makeText(context, "Paint Mode ON", Toast.LENGTH_SHORT).show()
+        } else {
+            paintFab.shrink()
+            paintFab.setBackgroundColor(requireContext().getColor(androidx.appcompat.R.color.material_grey_100))
+            paintFab.setTextColor(requireContext().getColor(android.R.color.black))
+            paintFab.iconTint = requireContext().getColorStateList(android.R.color.black)
+            Toast.makeText(context, "Paint Mode OFF", Toast.LENGTH_SHORT).show()
+        }
+        monthFragment.setPaintMode(enabled)
     }
 
     override fun onResume() {
@@ -114,7 +128,6 @@ class ShiftSchedulerFragment : Fragment() {
             ) { presets, rule, overrides ->
                 Triple(presets, rule, overrides)
             }.collect { (presets, rule, overrides) ->
-                Log.e("ShiftDebug", "FRAGMENT: Flow collected. Presets=${presets.size}, Overrides=${overrides.size}")
                 allPresets = presets.associateBy { it.id }
                 activeRule = rule
                 allOverrides = overrides.associateBy({ it.julianDay }, { it.presetId }).toMutableMap()
@@ -130,7 +143,7 @@ class ShiftSchedulerFragment : Fragment() {
 
     private fun setupPresets() {
         presetsAdapter = ShiftPresetsAdapter(emptyList(), { _ -> }, { preset -> showPresetDialog(preset) })
-        presetsRecycler.layoutManager = LinearLayoutManager(requireContext())
+        presetsRecycler.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         presetsRecycler.adapter = presetsAdapter
     }
 
@@ -194,15 +207,11 @@ class ShiftSchedulerFragment : Fragment() {
         val preset = presetsAdapter.getSelectedPreset()
 
         if (preset == null) {
-             Log.e("ShiftDebug", "FRAGMENT: handlePaintTap rejected - NO PRESET SELECTED")
-             Toast.makeText(context, "ERROR: Please select a Preset from the list first!", Toast.LENGTH_SHORT).show()
+             Toast.makeText(context, "Select a Shift from the list!", Toast.LENGTH_SHORT).show()
              return
         }
 
         val presetId = preset.id
-        Log.e("ShiftDebug", "FRAGMENT: handlePaintTap JD=$julianDay, preset=${preset.title}")
-
-        // Memory-first update
         allOverrides[julianDay] = presetId
         updateGridSelection()
 
@@ -224,25 +233,6 @@ class ShiftSchedulerFragment : Fragment() {
         lifecycleScope.launch {
             ShiftDatabase.getDatabase(requireContext()).shiftPresetDao().clearAllOverrides()
         }
-    }
-
-    private fun pickStartDate(btn: Button) {
-        val datePicker = MaterialDatePicker.Builder.datePicker().build()
-        datePicker.addOnPositiveButtonClickListener { selection ->
-            val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
-            calendar.timeInMillis = selection
-            val y = calendar.get(Calendar.YEAR)
-            val m = calendar.get(Calendar.MONTH)
-            val d = calendar.get(Calendar.DAY_OF_MONTH)
-
-            val localT = Time()
-            localT.set(d, m, y)
-            anchorJulianDay = Time.getJulianDay(localT.toMillis(), localT.getGmtOffset())
-
-            btn.text = String.format("%04d-%02d-%02d", y, m + 1, d)
-            updateGridSelection()
-        }
-        datePicker.show(parentFragmentManager, "date_picker")
     }
 
     private fun saveShiftsToCalendar() {
@@ -304,7 +294,6 @@ class ShiftSchedulerFragment : Fragment() {
         }
 
         fun setPaintMode(enabled: Boolean) {
-            Log.e("ShiftDebug", "GRID_FRAGMENT: Setting paint mode internal to $enabled")
             paintModeEnabledInternal = enabled
             (mAdapter as? ShiftMonthByWeekAdapter)?.paintModeEnabled = enabled
         }
