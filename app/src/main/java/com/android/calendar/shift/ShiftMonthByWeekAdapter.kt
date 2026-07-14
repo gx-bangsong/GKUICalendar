@@ -1,6 +1,7 @@
 package com.android.calendar.shift
 
 import android.content.Context
+import android.graphics.Rect
 import android.os.Handler
 import android.util.Log
 import android.view.HapticFeedbackConstants
@@ -24,7 +25,7 @@ class ShiftMonthByWeekAdapter(context: Context, params: java.util.HashMap<String
     private var lastPaintedJd: Int = -1
 
     fun setSelectedDays(days: Map<Int, Int>) {
-        Log.e("ShiftDebug", "ADAPTER: Updating selection map with ${days.size} items")
+        Log.e("ShiftDebug", "ADAPTER: Updating UI with ${days.size} shifts")
         selectedDaysMap.clear()
         selectedDaysMap.putAll(days)
         notifyDataSetChanged()
@@ -44,11 +45,11 @@ class ShiftMonthByWeekAdapter(context: Context, params: java.util.HashMap<String
     }
 
     override fun onDayTapped(day: com.android.calendar.calendarcommon2.Time) {
-        val jd = getLocalJd(day)
-        Log.e("ShiftDebug", "ADAPTER: onDayTapped JD=$jd, paintMode=$paintModeEnabled")
         if (!paintModeEnabled) {
             super.onDayTapped(day)
         } else {
+            val jd = getLocalJd(day)
+            Log.e("ShiftDebug", "ADAPTER: Tap detected JD=$jd")
             onDayPaintedListener?.invoke(jd)
         }
     }
@@ -56,53 +57,43 @@ class ShiftMonthByWeekAdapter(context: Context, params: java.util.HashMap<String
     override fun onTouch(v: View, event: MotionEvent): Boolean {
         if (paintModeEnabled) {
             val action = event.action
-            val listView = getListView(v)
+            val listView = getListView(v) ?: return true
 
-            if (action == MotionEvent.ACTION_DOWN) {
-                Log.e("ShiftDebug", "TOUCH: DOWN detected on ${v.hashCode()}")
-                v.parent?.requestDisallowInterceptTouchEvent(true)
-                listView?.requestDisallowInterceptTouchEvent(true)
+            // Strictly prevent ListView from scrolling
+            listView.requestDisallowInterceptTouchEvent(true)
+
+            if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+                lastPaintedJd = -1
+                return true
             }
 
-            if (listView != null) {
-                val x = event.rawX
-                val y = event.rawY
+            val x = event.rawX
+            val y = event.rawY
 
-                val listLoc = IntArray(2)
-                listView.getLocationOnScreen(listLoc)
-                val relativeX = x - listLoc[0]
-                val relativeY = y - listLoc[1]
-
-                val position = listView.pointToPosition(relativeX.toInt(), relativeY.toInt())
-                if (position != ListView.INVALID_POSITION) {
-                    val child = listView.getChildAt(position - listView.firstVisiblePosition)
+            // Precision scan: which row and which day is exactly under the finger?
+            for (i in 0 until listView.childCount) {
+                val child = listView.getChildAt(i)
+                val rect = Rect()
+                child.getGlobalVisibleRect(rect)
+                if (rect.contains(x.toInt(), y.toInt())) {
                     if (child is SimpleWeekView) {
-                        val childLoc = IntArray(2)
-                        child.getLocationOnScreen(childLoc)
-                        val touchXInChild = x - childLoc[0]
-
+                        val touchXInChild = x - rect.left
                         val time = child.getDayFromLocation(touchXInChild)
                         if (time != null) {
                             val jd = getLocalJd(time)
                             if (jd != lastPaintedJd) {
-                                Log.e("ShiftDebug", "TOUCH: Found JD=$jd, signaling listener")
+                                Log.e("ShiftDebug", "PAINT HIT! JD=$jd in row $i")
                                 lastPaintedJd = jd
-                                try {
-                                    child.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                                } catch (e: Exception) {}
+                                // Trigger vibration
+                                child.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                                 onDayPaintedListener?.invoke(jd)
-                                listView.invalidateViews()
                             }
                         }
                     }
+                    break
                 }
-
-                if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
-                    Log.e("ShiftDebug", "TOUCH: UP/CANCEL detected")
-                    lastPaintedJd = -1
-                }
-                return true
             }
+            return true
         }
         return super.onTouch(v, event)
     }
@@ -130,6 +121,9 @@ class ShiftMonthByWeekAdapter(context: Context, params: java.util.HashMap<String
 
         v.setWeekParams(drawingParams, mSelectedDay.timezone)
         v.setSelection(selectedDaysMap)
+        // Pass paint mode to view for background tinting
+        v.paintModeEnabled = paintModeEnabled
+
         return v
     }
 }
