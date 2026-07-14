@@ -71,7 +71,6 @@ class ShiftSchedulerFragment : Fragment() {
         val paintModeSwitch = view.findViewById<SwitchMaterial>(R.id.paint_mode_switch)
         paintModeSwitch.setOnCheckedChangeListener { _, isChecked ->
             Log.e("ShiftDebug", "FRAGMENT: Paint Mode Toggled to $isChecked")
-            Toast.makeText(context, "Paint Mode: " + if (isChecked) "ON" else "OFF", Toast.LENGTH_SHORT).show()
             paintModeEnabled = isChecked
             monthFragment.setPaintMode(isChecked)
         }
@@ -115,18 +114,11 @@ class ShiftSchedulerFragment : Fragment() {
             ) { presets, rule, overrides ->
                 Triple(presets, rule, overrides)
             }.collect { (presets, rule, overrides) ->
-                Log.e("ShiftDebug", "FRAGMENT: Data Collected, total overrides=${overrides.size}")
+                Log.e("ShiftDebug", "FRAGMENT: Flow collected. Presets=${presets.size}, Overrides=${overrides.size}")
                 allPresets = presets.associateBy { it.id }
                 activeRule = rule
                 allOverrides = overrides.associateBy({ it.julianDay }, { it.presetId }).toMutableMap()
-
-                // Auto-select first preset if none selected
-                if (presets.isNotEmpty() && presetsAdapter.getSelectedPreset() == null) {
-                    presetsAdapter.updatePresets(presets)
-                    // We can't force selection in adapter without reflection, so just update UI
-                } else {
-                    presetsAdapter.updatePresets(presets)
-                }
+                presetsAdapter.updatePresets(presets)
 
                 if (rule != null) {
                     anchorJulianDay = rule.anchorJulianDay
@@ -200,15 +192,17 @@ class ShiftSchedulerFragment : Fragment() {
 
     private fun handlePaintTap(julianDay: Int) {
         val preset = presetsAdapter.getSelectedPreset()
-        val presetId = preset?.id ?: 0L
-        Log.e("ShiftDebug", "FRAGMENT: handlePaintTap JD=$julianDay, preset=${preset?.title ?: "REST"}")
 
-        if (preset == null && !allOverrides.containsKey(julianDay)) {
-             Toast.makeText(context, "Please select a Preset from the list first!", Toast.LENGTH_SHORT).show()
+        if (preset == null) {
+             Log.e("ShiftDebug", "FRAGMENT: handlePaintTap rejected - NO PRESET SELECTED")
+             Toast.makeText(context, "ERROR: Please select a Preset from the list first!", Toast.LENGTH_SHORT).show()
              return
         }
 
-        // Instant UI update
+        val presetId = preset.id
+        Log.e("ShiftDebug", "FRAGMENT: handlePaintTap JD=$julianDay, preset=${preset.title}")
+
+        // Memory-first update
         allOverrides[julianDay] = presetId
         updateGridSelection()
 
@@ -310,11 +304,9 @@ class ShiftSchedulerFragment : Fragment() {
         }
 
         fun setPaintMode(enabled: Boolean) {
-            Log.e("ShiftDebug", "GRID_FRAGMENT: Set paint mode $enabled")
+            Log.e("ShiftDebug", "GRID_FRAGMENT: Setting paint mode internal to $enabled")
             paintModeEnabledInternal = enabled
             (mAdapter as? ShiftMonthByWeekAdapter)?.paintModeEnabled = enabled
-            // Redraw everything immediately
-            mAdapter?.notifyDataSetChanged()
         }
 
         fun updateSelection(shifts: Map<Int, ShiftPreset>) {

@@ -25,14 +25,15 @@ class ShiftMonthByWeekAdapter(context: Context, params: java.util.HashMap<String
     private var lastPaintedJd: Int = -1
 
     fun setSelectedDays(days: Map<Int, Int>) {
-        Log.e("ShiftDebug", "ADAPTER: Updating UI with ${days.size} shifts")
+        Log.e("ShiftDebug", "ADAPTER: Setting selection map. Size=${days.size}")
         selectedDaysMap.clear()
         selectedDaysMap.putAll(days)
         notifyDataSetChanged()
     }
 
     private fun getLocalJd(time: com.android.calendar.calendarcommon2.Time): Int {
-        return com.android.calendar.calendarcommon2.Time.getJulianDay(time.toMillis(), time.getGmtOffset())
+        val jd = com.android.calendar.calendarcommon2.Time.getJulianDay(time.toMillis(), time.getGmtOffset())
+        return jd
     }
 
     private fun getListView(v: View): ListView? {
@@ -45,11 +46,11 @@ class ShiftMonthByWeekAdapter(context: Context, params: java.util.HashMap<String
     }
 
     override fun onDayTapped(day: com.android.calendar.calendarcommon2.Time) {
+        val jd = getLocalJd(day)
+        Log.e("ShiftDebug", "ADAPTER: onDayTapped JD=$jd, paintMode=$paintModeEnabled")
         if (!paintModeEnabled) {
             super.onDayTapped(day)
         } else {
-            val jd = getLocalJd(day)
-            Log.e("ShiftDebug", "ADAPTER: Tap detected JD=$jd")
             onDayPaintedListener?.invoke(jd)
         }
     }
@@ -59,22 +60,27 @@ class ShiftMonthByWeekAdapter(context: Context, params: java.util.HashMap<String
             val action = event.action
             val listView = getListView(v) ?: return true
 
-            // Strictly prevent ListView from scrolling
             listView.requestDisallowInterceptTouchEvent(true)
-
-            if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
-                lastPaintedJd = -1
-                return true
-            }
 
             val x = event.rawX
             val y = event.rawY
 
-            // Precision scan: which row and which day is exactly under the finger?
+            if (action == MotionEvent.ACTION_DOWN) {
+                Log.e("ShiftDebug", "TOUCH: DOWN at ($x, $y)")
+            }
+
+            if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+                Log.e("ShiftDebug", "TOUCH: UP/CANCEL")
+                lastPaintedJd = -1
+                return true
+            }
+
+            // Precision scanning of the ListView children
             for (i in 0 until listView.childCount) {
                 val child = listView.getChildAt(i)
                 val rect = Rect()
                 child.getGlobalVisibleRect(rect)
+
                 if (rect.contains(x.toInt(), y.toInt())) {
                     if (child is SimpleWeekView) {
                         val touchXInChild = x - rect.left
@@ -82,13 +88,17 @@ class ShiftMonthByWeekAdapter(context: Context, params: java.util.HashMap<String
                         if (time != null) {
                             val jd = getLocalJd(time)
                             if (jd != lastPaintedJd) {
-                                Log.e("ShiftDebug", "PAINT HIT! JD=$jd in row $i")
+                                Log.e("ShiftDebug", "PAINT DETECTED: JD=$jd in Row=$i View=${child.hashCode()}")
                                 lastPaintedJd = jd
-                                // Trigger vibration
+                                // Haptic feedback to confirm detection
                                 child.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                                 onDayPaintedListener?.invoke(jd)
+                                // Trigger immediate redraw of this specific child
+                                child.invalidate()
                             }
                         }
+                    } else {
+                        Log.e("ShiftDebug", "TOUCH: Found child but it is not SimpleWeekView: ${child.javaClass.simpleName}")
                     }
                     break
                 }
@@ -102,7 +112,9 @@ class ShiftMonthByWeekAdapter(context: Context, params: java.util.HashMap<String
         val v = if (convertView is ShiftMonthWeekView) {
             convertView
         } else {
-            ShiftMonthWeekView(mContext)
+            val newV = ShiftMonthWeekView(mContext)
+            Log.e("ShiftDebug", "ADAPTER: Created new view ${newV.hashCode()} for pos $position")
+            newV
         }
 
         v.layoutParams = AbsListView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
@@ -121,9 +133,6 @@ class ShiftMonthByWeekAdapter(context: Context, params: java.util.HashMap<String
 
         v.setWeekParams(drawingParams, mSelectedDay.timezone)
         v.setSelection(selectedDaysMap)
-        // Pass paint mode to view for background tinting
-        v.paintModeEnabled = paintModeEnabled
-
         return v
     }
 }
