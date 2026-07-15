@@ -1,5 +1,6 @@
 package com.android.calendar.shift
 
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -41,23 +42,18 @@ class ShiftPresetsAdapter(
 
         holder.colorBar.setBackgroundColor(preset.color)
 
-        // Material 3 Selection State
         if (position == selectedPosition) {
-            holder.card.setCardBackgroundColor(holder.itemView.context.getColor(androidx.appcompat.R.color.material_grey_300))
-            holder.card.strokeWidth = 4
-            holder.card.strokeColor = holder.itemView.context.getColor(androidx.appcompat.R.color.highlighted_text_material_light)
+            holder.card.setCardBackgroundColor(0xFFE0E0E0.toInt()) // Light Grey
+            holder.card.strokeWidth = 6
+            holder.card.strokeColor = 0xFF3F51B5.toInt() // Indigo
         } else {
-            holder.card.setCardBackgroundColor(holder.itemView.context.getColor(android.R.color.transparent))
-            holder.card.strokeWidth = 1
-            holder.card.strokeColor = holder.itemView.context.getColor(androidx.appcompat.R.color.material_grey_100)
+            holder.card.setCardBackgroundColor(0x00000000) // Transparent
+            holder.card.strokeWidth = 2
+            holder.card.strokeColor = 0xFFCCCCCC.toInt() // Light Grey
         }
 
         holder.itemView.setOnClickListener {
-            val oldPos = selectedPosition
-            selectedPosition = holder.adapterPosition
-            notifyItemChanged(oldPos)
-            notifyItemChanged(selectedPosition)
-            onPresetSelected(preset)
+            selectPosition(holder.adapterPosition)
         }
 
         holder.editButton.setOnClickListener {
@@ -65,10 +61,26 @@ class ShiftPresetsAdapter(
         }
     }
 
+    private fun selectPosition(position: Int) {
+        if (position !in presets.indices) return
+        val oldPos = selectedPosition
+        selectedPosition = position
+        notifyItemChanged(oldPos)
+        notifyItemChanged(selectedPosition)
+        onPresetSelected(presets[selectedPosition])
+        Log.e("ShiftDebug", "ADAPTER: Preset selected: ${presets[selectedPosition].title}")
+    }
+
     override fun getItemCount() = presets.size
 
     fun updatePresets(newPresets: List<ShiftPreset>) {
         presets = newPresets
+        if (selectedPosition == -1 && presets.isNotEmpty()) {
+            selectedPosition = 0
+            // Don't call onPresetSelected here to avoid loop, let fragment handle it if needed
+        } else if (selectedPosition >= presets.size) {
+            selectedPosition = if (presets.isNotEmpty()) 0 else -1
+        }
         notifyDataSetChanged()
     }
 

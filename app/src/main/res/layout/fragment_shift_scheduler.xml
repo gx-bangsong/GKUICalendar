@@ -10,7 +10,18 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <!-- Top Bar: Calendar Selection -->
+        <!-- Debug HUD -->
+        <TextView
+            android:id="@+id/shift_debug_hud"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#DD000000"
+            android:textColor="#00FF00"
+            android:textSize="10sp"
+            android:padding="4dp"
+            android:text="DEBUG: Waiting for touch..."/>
+
+        <!-- Top Bar -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -40,13 +51,26 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Calendar Preview Area -->
+        <!-- Calendar Container -->
         <FrameLayout
-            android:id="@+id/month_view_container"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1.2"
-            android:layout_marginHorizontal="8dp"/>
+            android:layout_marginHorizontal="8dp">
+
+            <FrameLayout
+                android:id="@+id/month_view_container"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+            <com.android.calendar.shift.ShiftTouchOverlay
+                android:id="@+id/paint_touch_overlay"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="gone"
+                android:clickable="true"
+                android:focusable="true"/>
+        </FrameLayout>
 
         <!-- Bottom Panel -->
         <com.google.android.material.card.MaterialCardView
@@ -54,8 +78,7 @@
             android:layout_height="wrap_content"
             app:cardElevation="4dp"
             app:cardCornerRadius="28dp"
-            android:layout_marginBottom="-28dp"
-            app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.LargeComponent">
+            android:layout_marginBottom="-28dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -69,8 +92,7 @@
                     android:layout_height="4dp"
                     android:layout_gravity="center_horizontal"
                     android:layout_marginBottom="16dp"
-                    android:background="?attr/colorControlNormal"
-                    app:cornerRadius="2dp"/>
+                    android:background="?attr/colorControlNormal"/>
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -103,12 +125,6 @@
                     app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
                     android:layout_marginBottom="16dp"/>
 
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="?attr/colorControlNormal"
-                    android:layout_marginBottom="16dp"/>
-
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -138,7 +154,6 @@
 
     </LinearLayout>
 
-    <!-- Brush Mode FAB -->
     <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
         android:id="@+id/paint_mode_fab"
         android:layout_width="wrap_content"
@@ -149,8 +164,6 @@
         android:text="Paint Mode"
         app:icon="@drawable/ic_brush"
         app:backgroundTint="?attr/android:colorBackground"
-        android:textColor="?attr/colorOnSurface"
-        app:iconTint="?attr/colorOnSurface"
         app:elevation="6dp"/>
 
     <com.google.android.material.button.MaterialButton
