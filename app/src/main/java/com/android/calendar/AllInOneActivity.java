@@ -932,7 +932,6 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
         } else if (itemId == R.id.action_date_calculator) {
             startActivity(new Intent(this, com.android.calendar.date_calculator.DateCalculatorActivity.class));
         } else if (itemId == R.id.shift_scheduler_menu_item) {
-            Log.e("ShiftDebug", "MAIN_MENU: Shift Assistant Entry Clicked");
             getSupportFragmentManager().beginTransaction()
                 .replace(R.id.main_pane, new ShiftSchedulerFragment())
                 .addToBackStack(null)

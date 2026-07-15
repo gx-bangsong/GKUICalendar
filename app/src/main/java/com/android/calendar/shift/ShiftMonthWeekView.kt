@@ -31,17 +31,15 @@ class ShiftMonthWeekView(context: Context) : MonthWeekEventsView(context) {
         val days = selectedDays ?: return
         if (days.isEmpty()) return
 
-        val divisor = 2 * mNumCells
         val startCell = if (mShowWeekNum) 1 else 0
 
         for (dayOffset in 0 until mNumDays) {
             val julianDay = mFirstJulianDay + dayOffset
             val color = days[julianDay] ?: continue
 
-            Log.e("ShiftDebug", "DRAWING: MATCH found for JD=$julianDay at Week=$mWeek View=${this.hashCode()}")
 
             val cellIndex = startCell + dayOffset
-            val x = (2 * cellIndex + 1) * mWidth / divisor
+            val x = (2 * cellIndex + 1) * (mWidth - mPadding * 2) / (2 * mNumCells) + mPadding
             val y = mHeight / 2
 
             // Ultra-bright opacity (0xEE = 93%)
@@ -50,7 +48,7 @@ class ShiftMonthWeekView(context: Context) : MonthWeekEventsView(context) {
             val cellWidth = mWidth / mNumCells
             val radius = Math.min(cellWidth, mHeight) / 2 - 4
 
-            // Draw a big neon circle
+            // Draw the shift highlight circle
             canvas.drawCircle(x.toFloat(), y.toFloat(), radius.toFloat(), selectionPaint)
 
             // Draw a thick black border for contrast

@@ -39,7 +39,6 @@ class ShiftSchedulerFragment : Fragment() {
     private lateinit var monthFragment: ShiftMonthGridFragment
     private lateinit var paintFab: ExtendedFloatingActionButton
     private lateinit var touchOverlay: ShiftTouchOverlay
-    private lateinit var debugHud: TextView
 
     private var selectedCalendarId: Long = -1
     private var anchorJulianDay: Int = 0
@@ -70,7 +69,6 @@ class ShiftSchedulerFragment : Fragment() {
     ): View? {
         val view = inflater.inflate(R.layout.fragment_shift_scheduler, container, false)
 
-        debugHud = view.findViewById(R.id.shift_debug_hud)
         calendarSpinner = view.findViewById(R.id.calendar_spinner)
         presetsRecycler = view.findViewById(R.id.presets_recycler)
         paintFab = view.findViewById(R.id.paint_mode_fab)
@@ -85,7 +83,7 @@ class ShiftSchedulerFragment : Fragment() {
         }
         touchOverlay.onTouchStopped = {
             lastPaintedJd = -1
-            updateHud("Touch Released")
+
         }
 
         view.findViewById<Button>(R.id.btn_add_preset).setOnClickListener { showPresetDialog(null) }
@@ -101,10 +99,6 @@ class ShiftSchedulerFragment : Fragment() {
         return view
     }
 
-    private fun updateHud(msg: String) {
-        debugHud.text = "DEBUG: $msg"
-        Log.e("ShiftDebug", "HUD: $msg")
-    }
 
     private fun processPaintAt(rawX: Float, rawY: Float) {
         val listView = monthFragment.getCalendarListView() ?: return
@@ -120,7 +114,7 @@ class ShiftSchedulerFragment : Fragment() {
                         val jd = Time.getJulianDay(time.toMillis(), time.getGmtOffset())
                         if (jd != lastPaintedJd) {
                             lastPaintedJd = jd
-                            updateHud("PAINT DETECTED JD=$jd Row=$i")
+
                             try {
                                 child.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                             } catch (e: Exception) {}
@@ -136,7 +130,7 @@ class ShiftSchedulerFragment : Fragment() {
     private fun togglePaintMode(enabled: Boolean) {
         paintModeEnabled = enabled
         touchOverlay.visibility = if (enabled) View.VISIBLE else View.GONE
-        updateHud("Paint Mode Toggled: $enabled")
+
 
         if (enabled) {
             paintFab.extend()
@@ -145,7 +139,7 @@ class ShiftSchedulerFragment : Fragment() {
             paintFab.iconTint = android.content.res.ColorStateList.valueOf(0xFFFFFFFF.toInt())
 
             if (presetsAdapter.getSelectedPreset() == null && allPresets.isNotEmpty()) {
-                updateHud("Auto-selecting first preset")
+
                 presetsAdapter.updatePresets(allPresets.values.toList())
             }
         } else {
@@ -253,7 +247,7 @@ class ShiftSchedulerFragment : Fragment() {
     private fun handlePaintTap(julianDay: Int) {
         val preset = presetsAdapter.getSelectedPreset()
         if (preset == null) {
-            updateHud("REJECTED: No preset selected")
+
             return
         }
 
