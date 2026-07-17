@@ -36,15 +36,14 @@
                 android:layout_height="wrap_content"
                 android:textSize="14sp"
                 android:textStyle="bold"
-                android:textColor="?attr/colorOnSurface" />
+                android:textColor="?android:attr/textColorPrimary" />
 
             <TextView
                 android:id="@+id/preset_time"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="10sp"
-                android:alpha="0.7"
-                android:textColor="?attr/colorOnSurface" />
+                android:textColor="?android:attr/textColorSecondary" />
         </LinearLayout>
 
         <ImageButton

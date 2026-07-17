@@ -153,7 +153,11 @@ public class DynamicTheme {
         // application, but not for the resources. This is to find the package name of a known
         // resource to know what package to lookup the colors in.
         String packageName = res.getResourcePackageName(R.string.app_label);
-        return res.getColor(res.getIdentifier(id + suffix, "color", packageName));
+        int resId = res.getIdentifier(id + suffix, "color", packageName);
+        if (resId == 0 && suffix != null && !suffix.isEmpty()) {
+            resId = res.getIdentifier(id, "color", packageName);
+        }
+        return res.getColor(resId);
     }
 
     public static int getDrawableId(Context context, String id) {
@@ -163,7 +167,11 @@ public class DynamicTheme {
         // application, but not for the resources. This is to find the package name of a known
         // resource to know what package to lookup the drawables in.
         String packageName = res.getResourcePackageName(R.string.app_label);
-        return res.getIdentifier(id + suffix, "drawable", packageName);
+        int resId = res.getIdentifier(id + suffix, "drawable", packageName);
+        if (resId == 0 && suffix != null && !suffix.isEmpty()) {
+            resId = res.getIdentifier(id, "drawable", packageName);
+        }
+        return resId;
     }
 
     public static int getDialogStyle(Context context) {
