@@ -5,7 +5,6 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Color
 import com.android.calendar.month.MonthWeekEventsView
-import android.util.Log
 
 class ShiftMonthWeekView(context: Context) : MonthWeekEventsView(context) {
 
@@ -23,8 +22,10 @@ class ShiftMonthWeekView(context: Context) : MonthWeekEventsView(context) {
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        // Ensure our drawing is the absolute LAST thing done
         drawSelection(canvas)
+        // Redraw week numbers and separators on top of selection backgrounds for maximum readability
+        drawWeekNums(canvas)
+        drawDaySeparators(canvas)
     }
 
     private fun drawSelection(canvas: Canvas) {
@@ -37,32 +38,18 @@ class ShiftMonthWeekView(context: Context) : MonthWeekEventsView(context) {
             val julianDay = mFirstJulianDay + dayOffset
             val color = days[julianDay] ?: continue
 
-
             val cellIndex = startCell + dayOffset
             val x = (2 * cellIndex + 1) * (mWidth - mPadding * 2) / (2 * mNumCells) + mPadding
             val y = mHeight / 2
 
-            // Ultra-bright opacity (0xEE = 93%)
-            selectionPaint.color = Color.argb(238, Color.red(color), Color.green(color), Color.blue(color))
+            // Soft translucent background (opacity = 140 / 255 ≈ 55%)
+            selectionPaint.color = Color.argb(140, Color.red(color), Color.green(color), Color.blue(color))
 
-            val cellWidth = mWidth / mNumCells
-            val radius = Math.min(cellWidth, mHeight) / 2 - 4
+            val cellWidth = (mWidth - mPadding * 2).toFloat() / mNumCells
+            val radius = Math.min(cellWidth, mHeight.toFloat()) * 0.35f
 
             // Draw the shift highlight circle
-            canvas.drawCircle(x.toFloat(), y.toFloat(), radius.toFloat(), selectionPaint)
-
-            // Draw a thick black border for contrast
-            selectionPaint.style = Paint.Style.STROKE
-            selectionPaint.strokeWidth = 4f
-            selectionPaint.color = Color.BLACK
-            canvas.drawCircle(x.toFloat(), y.toFloat(), radius.toFloat(), selectionPaint)
-            selectionPaint.style = Paint.Style.FILL
-
-            // Draw a large solid white dot at the bottom to ensure visibility on dark backgrounds
-            selectionPaint.color = Color.WHITE
-            canvas.drawCircle(x.toFloat(), (mHeight - 15).toFloat(), 12f, selectionPaint)
-            selectionPaint.color = color or 0xFF000000.toInt()
-            canvas.drawCircle(x.toFloat(), (mHeight - 15).toFloat(), 8f, selectionPaint)
+            canvas.drawCircle(x.toFloat(), y.toFloat(), radius, selectionPaint)
         }
     }
 }

@@ -43,16 +43,13 @@ class ShiftPresetsAdapter(
         holder.colorBar.setBackgroundColor(preset.color)
 
         if (position == selectedPosition) {
-            val r = android.graphics.Color.red(preset.color)
-            val g = android.graphics.Color.green(preset.color)
-            val b = android.graphics.Color.blue(preset.color)
-            holder.card.setCardBackgroundColor(android.graphics.Color.argb(40, r, g, b)) // ~15% opacity of preset color
+            holder.card.setCardBackgroundColor(0xFFE0E0E0.toInt()) // Light Grey
             holder.card.strokeWidth = 6
-            holder.card.strokeColor = preset.color
+            holder.card.strokeColor = 0xFF3F51B5.toInt() // Indigo
         } else {
-            holder.card.setCardBackgroundColor(android.graphics.Color.TRANSPARENT)
+            holder.card.setCardBackgroundColor(0x00000000) // Transparent
             holder.card.strokeWidth = 2
-            holder.card.strokeColor = 0x40808080.toInt() // Subtle grey with alpha, theme-agnostic!
+            holder.card.strokeColor = 0xFFCCCCCC.toInt() // Light Grey
         }
 
         holder.itemView.setOnClickListener {

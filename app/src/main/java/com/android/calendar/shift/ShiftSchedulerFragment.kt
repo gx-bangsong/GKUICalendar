@@ -24,7 +24,7 @@ import com.android.calendar.shift.db.ShiftDatabase
 import com.android.calendar.shift.db.ShiftOverride
 import com.android.calendar.shift.db.ShiftPreset
 import com.android.calendar.shift.db.ShiftRotationRule
-import com.google.android.material.button.MaterialButton
+import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
@@ -33,17 +33,11 @@ import java.util.*
 
 class ShiftSchedulerFragment : Fragment() {
 
-    private fun getThemeColor(attr: Int): Int {
-        val typedValue = android.util.TypedValue()
-        requireContext().theme.resolveAttribute(attr, typedValue, true)
-        return typedValue.data
-    }
-
     private lateinit var calendarSpinner: Spinner
     private lateinit var presetsRecycler: RecyclerView
     private lateinit var presetsAdapter: ShiftPresetsAdapter
     private lateinit var monthFragment: ShiftMonthGridFragment
-    private lateinit var paintFab: MaterialButton
+    private lateinit var paintFab: ExtendedFloatingActionButton
     private lateinit var touchOverlay: ShiftTouchOverlay
 
     private var selectedCalendarId: Long = -1
@@ -137,22 +131,22 @@ class ShiftSchedulerFragment : Fragment() {
         paintModeEnabled = enabled
         touchOverlay.visibility = if (enabled) View.VISIBLE else View.GONE
 
-        val primaryColor = getThemeColor(androidx.appcompat.R.attr.colorPrimary)
 
         if (enabled) {
-            paintFab.setBackgroundColor(primaryColor)
-            paintFab.setTextColor(android.graphics.Color.WHITE)
-            paintFab.iconTint = android.content.res.ColorStateList.valueOf(android.graphics.Color.WHITE)
-            paintFab.strokeColor = android.content.res.ColorStateList.valueOf(primaryColor)
+            paintFab.extend()
+            paintFab.setBackgroundColor(0xFF3F51B5.toInt())
+            paintFab.setTextColor(0xFFFFFFFF.toInt())
+            paintFab.iconTint = android.content.res.ColorStateList.valueOf(0xFFFFFFFF.toInt())
 
             if (presetsAdapter.getSelectedPreset() == null && allPresets.isNotEmpty()) {
+
                 presetsAdapter.updatePresets(allPresets.values.toList())
             }
         } else {
-            paintFab.setBackgroundColor(android.graphics.Color.TRANSPARENT)
-            paintFab.setTextColor(primaryColor)
-            paintFab.iconTint = android.content.res.ColorStateList.valueOf(primaryColor)
-            paintFab.strokeColor = android.content.res.ColorStateList.valueOf(primaryColor)
+            paintFab.shrink()
+            paintFab.setBackgroundColor(0xFFEEEEEE.toInt())
+            paintFab.setTextColor(0xFF000000.toInt())
+            paintFab.iconTint = android.content.res.ColorStateList.valueOf(0xFF000000.toInt())
         }
         monthFragment.setPaintMode(enabled)
     }
