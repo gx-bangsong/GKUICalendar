@@ -1,34 +1,33 @@
 package com.android.calendar.shift
 
 import android.database.Cursor
-import android.graphics.Rect
+import android.graphics.Color
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.provider.CalendarContract
-import android.util.Log
-import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
-import androidx.activity.OnBackPressedCallback
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.android.calendar.AsyncQueryService
 import com.android.calendar.calendarcommon2.Time
-import com.android.calendar.month.MonthByWeekFragment
-import com.android.calendar.month.SimpleWeeksAdapter
-import com.android.calendar.month.SimpleWeekView
 import com.android.calendar.shift.db.ShiftDatabase
 import com.android.calendar.shift.db.ShiftOverride
 import com.android.calendar.shift.db.ShiftPreset
 import com.android.calendar.shift.db.ShiftRotationRule
-import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import ws.xsoh.etar.R
+import java.text.DateFormatSymbols
+import java.text.SimpleDateFormat
 import java.util.*
 
 class ShiftSchedulerFragment : Fragment() {
@@ -36,12 +35,24 @@ class ShiftSchedulerFragment : Fragment() {
     private lateinit var calendarSpinner: Spinner
     private lateinit var presetsRecycler: RecyclerView
     private lateinit var presetsAdapter: ShiftPresetsAdapter
-    private lateinit var monthFragment: ShiftMonthGridFragment
-    private lateinit var paintFab: ExtendedFloatingActionButton
-    private lateinit var touchOverlay: ShiftTouchOverlay
+
+    // MD3 Calendar Views
+    private lateinit var btnPrevMonth: ImageButton
+    private lateinit var btnNextMonth: ImageButton
+    private lateinit var txtCurrentMonth: TextView
+    private lateinit var weekdayHeadersContainer: LinearLayout
+    private lateinit var calendarGridRecycler: RecyclerView
+    private lateinit var calendarAdapter: ShiftCalendarAdapter
+
+    // Action Buttons inside Bottom Panel
+    private lateinit var btnPaintMode: MaterialButton
+    private lateinit var btnClearOverrides: MaterialButton
+    private lateinit var btnAutoFill: MaterialButton
+    private lateinit var btnSave: MaterialButton
 
     private var selectedCalendarId: Long = -1
     private var anchorJulianDay: Int = 0
+    private var selectedJulianDay: Int = -1
 
     private var allPresets: Map<Long, ShiftPreset> = emptyMap()
     private var activeRule: ShiftRotationRule? = null
@@ -50,18 +61,15 @@ class ShiftSchedulerFragment : Fragment() {
     private var paintModeEnabled = false
     private var lastPaintedJd = -1
     private var lastToastTime = 0L
+    private val currentDisplayedMonth = Calendar.getInstance()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val t = Time()
         t.set(System.currentTimeMillis())
         anchorJulianDay = Time.getJulianDay(t.toMillis(), t.getGmtOffset())
-
-        requireActivity().onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                parentFragmentManager.popBackStack()
-            }
-        })
+        selectedJulianDay = anchorJulianDay
+        currentDisplayedMonth.timeInMillis = System.currentTimeMillis()
     }
 
     override fun onCreateView(
@@ -71,91 +79,187 @@ class ShiftSchedulerFragment : Fragment() {
 
         calendarSpinner = view.findViewById(R.id.calendar_spinner)
         presetsRecycler = view.findViewById(R.id.presets_recycler)
-        paintFab = view.findViewById(R.id.paint_mode_fab)
-        touchOverlay = view.findViewById(R.id.paint_touch_overlay)
 
-        paintFab.setOnClickListener { togglePaintMode(!paintModeEnabled) }
+        // Bind MD3 Calendar views
+        btnPrevMonth = view.findViewById(R.id.btn_prev_month)
+        btnNextMonth = view.findViewById(R.id.btn_next_month)
+        txtCurrentMonth = view.findViewById(R.id.txt_current_month)
+        weekdayHeadersContainer = view.findViewById(R.id.weekday_headers_container)
+        calendarGridRecycler = view.findViewById(R.id.calendar_grid_recycler)
 
-        touchOverlay.onTouchMoving = { rawX, rawY ->
-            if (paintModeEnabled) {
-                processPaintAt(rawX, rawY)
-            }
+        // Bind Action Buttons
+        btnPaintMode = view.findViewById(R.id.btn_paint_mode)
+        btnClearOverrides = view.findViewById(R.id.btn_clear_overrides)
+        btnAutoFill = view.findViewById(R.id.btn_auto_fill)
+        btnSave = view.findViewById(R.id.btn_save)
+
+        // Month switching click handlers
+        btnPrevMonth.setOnClickListener {
+            currentDisplayedMonth.add(Calendar.MONTH, -1)
+            updateMonthLabel()
+            updateGridSelection()
         }
-        touchOverlay.onTouchStopped = {
-            lastPaintedJd = -1
-
+        btnNextMonth.setOnClickListener {
+            currentDisplayedMonth.add(Calendar.MONTH, 1)
+            updateMonthLabel()
+            updateGridSelection()
         }
+
+        btnPaintMode.setOnClickListener { togglePaintMode(!paintModeEnabled) }
+        btnClearOverrides.setOnClickListener { clearOverrides() }
+        btnSave.setOnClickListener { saveShiftsToCalendar() }
+        btnAutoFill.setOnClickListener { showWizardDialog() }
 
         view.findViewById<Button>(R.id.btn_add_preset).setOnClickListener { showPresetDialog(null) }
-        view.findViewById<Button>(R.id.btn_clear).setOnClickListener { clearOverrides() }
-        view.findViewById<Button>(R.id.btn_save).setOnClickListener { saveShiftsToCalendar() }
-        view.findViewById<Button>(R.id.btn_auto_fill).setOnClickListener { showWizardDialog() }
 
+        setupWeekdayHeaders()
+        setupCalendarGrid()
         setupPresets()
         setupCalendarSpinner()
-        setupMonthGrid()
         observeData()
+        updateMonthLabel()
 
         return view
     }
 
+    private fun setupWeekdayHeaders() {
+        weekdayHeadersContainer.removeAllViews()
+        val firstDayOfWeek = com.android.calendar.Utils.getFirstDayOfWeekAsCalendar(requireContext())
+        val symbols = DateFormatSymbols.getInstance().shortWeekdays
 
-    private fun processPaintAt(rawX: Float, rawY: Float) {
-        val listView = monthFragment.getCalendarListView() ?: return
-        for (i in 0 until listView.childCount) {
-            val child = listView.getChildAt(i)
-            val rect = Rect()
-            child.getGlobalVisibleRect(rect)
-            if (rect.contains(rawX.toInt(), rawY.toInt())) {
-                if (child is SimpleWeekView) {
-                    val touchXInChild = rawX - rect.left
-                    val time = child.getDayFromLocation(touchXInChild)
-                    if (time != null) {
-                        val jd = Time.getJulianDay(time.toMillis(), time.getGmtOffset())
-                        if (jd != lastPaintedJd) {
-                            lastPaintedJd = jd
+        for (i in 0 until 7) {
+            val dayIndex = ((firstDayOfWeek + i - 1) % 7) + 1
+            val weekdayName = symbols[dayIndex]
 
-                            try {
-                                child.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                            } catch (e: Exception) {}
-                            handlePaintTap(jd)
+            val shortName = if (Locale.getDefault().language == "zh") {
+                weekdayName.replace("星期", "").replace("周", "")
+            } else {
+                weekdayName.firstOrNull()?.toString() ?: ""
+            }
+
+            val textView = TextView(context).apply {
+                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                gravity = android.view.Gravity.CENTER
+                text = shortName
+                textSize = 12f
+                setTextColor(getThemeColor(android.R.attr.textColorSecondary))
+                setTypeface(null, android.graphics.Typeface.BOLD)
+            }
+            weekdayHeadersContainer.addView(textView)
+        }
+    }
+
+    private fun setupCalendarGrid() {
+        calendarAdapter = ShiftCalendarAdapter(
+            requireContext(),
+            onDayClicked = { cell ->
+                selectedJulianDay = cell.julianDay
+                updateGridSelection()
+            },
+            onDayPainted = { cell ->
+                handlePaintTap(cell.julianDay)
+            }
+        )
+        calendarGridRecycler.adapter = calendarAdapter
+
+        // Register Touch Listener to capture dragging over grid items for seamless painting
+        calendarGridRecycler.addOnItemTouchListener(object : RecyclerView.OnItemTouchListener {
+            override fun onInterceptTouchEvent(rv: RecyclerView, e: MotionEvent): Boolean {
+                if (!paintModeEnabled) return false
+                val action = e.action
+                if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_MOVE) {
+                    val child = rv.findChildViewUnder(e.x, e.y)
+                    if (child != null) {
+                        val position = rv.getChildAdapterPosition(child)
+                        if (position != RecyclerView.NO_POSITION) {
+                            val cell = calendarAdapter.getDays().getOrNull(position)
+                            if (cell != null) {
+                                handlePaintTap(cell.julianDay)
+                            }
                         }
                     }
+                    return true // Intercept touch to prevent calendar/scroll list scrolling during drag-painting
                 }
-                break
+                if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+                    lastPaintedJd = -1
+                }
+                return false
             }
+
+            override fun onTouchEvent(rv: RecyclerView, e: MotionEvent) {
+                if (!paintModeEnabled) return
+                val action = e.action
+                if (action == MotionEvent.ACTION_MOVE) {
+                    val child = rv.findChildViewUnder(e.x, e.y)
+                    if (child != null) {
+                        val position = rv.getChildAdapterPosition(child)
+                        if (position != RecyclerView.NO_POSITION) {
+                            val cell = calendarAdapter.getDays().getOrNull(position)
+                            if (cell != null) {
+                                handlePaintTap(cell.julianDay)
+                            }
+                        }
+                    }
+                } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+                    lastPaintedJd = -1
+                }
+            }
+
+            override fun onRequestDisallowInterceptTouchEvent(disallowIntercept: Boolean) {}
+        })
+    }
+
+    private fun updateMonthLabel() {
+        val locale = Locale.getDefault()
+        val sdf = SimpleDateFormat("LLLL yyyy", locale)
+        val textStr = sdf.format(currentDisplayedMonth.time)
+        txtCurrentMonth.text = textStr.replaceFirstChar { if (it.isLowerCase()) it.titlecase(locale) else it.toString() }
+    }
+
+    private fun getDaysForMonth(year: Int, month: Int, firstDayOfWeek: Int): List<Calendar> {
+        val days = ArrayList<Calendar>()
+        val cal = Calendar.getInstance()
+        cal.clear()
+        cal.set(Calendar.YEAR, year)
+        cal.set(Calendar.MONTH, month)
+        cal.set(Calendar.DAY_OF_MONTH, 1)
+
+        val firstDayOfMonthOfWeek = cal.get(Calendar.DAY_OF_WEEK)
+        var offset = firstDayOfMonthOfWeek - firstDayOfWeek
+        if (offset < 0) {
+            offset += 7
         }
+
+        cal.add(Calendar.DAY_OF_MONTH, -offset)
+
+        // Generate exactly 42 cells (6 rows * 7 columns)
+        for (i in 0 until 42) {
+            days.add(cal.clone() as Calendar)
+            cal.add(Calendar.DAY_OF_MONTH, 1)
+        }
+        return days
     }
 
     private fun togglePaintMode(enabled: Boolean) {
         paintModeEnabled = enabled
-        touchOverlay.visibility = if (enabled) View.VISIBLE else View.GONE
+        calendarAdapter.setPaintMode(enabled)
 
+        val primaryColor = getThemeColor(androidx.appcompat.R.attr.colorPrimary)
 
         if (enabled) {
-            paintFab.extend()
-            paintFab.setBackgroundColor(0xFF3F51B5.toInt())
-            paintFab.setTextColor(0xFFFFFFFF.toInt())
-            paintFab.iconTint = android.content.res.ColorStateList.valueOf(0xFFFFFFFF.toInt())
+            btnPaintMode.setBackgroundColor(primaryColor)
+            btnPaintMode.setTextColor(Color.WHITE)
+            btnPaintMode.iconTint = ColorStateList.valueOf(Color.WHITE)
+            btnPaintMode.strokeColor = ColorStateList.valueOf(primaryColor)
 
             if (presetsAdapter.getSelectedPreset() == null && allPresets.isNotEmpty()) {
-
                 presetsAdapter.updatePresets(allPresets.values.toList())
             }
         } else {
-            paintFab.shrink()
-            paintFab.setBackgroundColor(0xFFEEEEEE.toInt())
-            paintFab.setTextColor(0xFF000000.toInt())
-            paintFab.iconTint = android.content.res.ColorStateList.valueOf(0xFF000000.toInt())
-        }
-        monthFragment.setPaintMode(enabled)
-    }
-
-    private fun showThrottledToast(msg: String) {
-        val now = System.currentTimeMillis()
-        if (now - lastToastTime > 2000) {
-            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-            lastToastTime = now
+            btnPaintMode.setBackgroundColor(Color.TRANSPARENT)
+            btnPaintMode.setTextColor(primaryColor)
+            btnPaintMode.iconTint = ColorStateList.valueOf(primaryColor)
+            btnPaintMode.strokeColor = ColorStateList.valueOf(primaryColor)
         }
     }
 
@@ -237,17 +341,9 @@ class ShiftSchedulerFragment : Fragment() {
             null, null)
     }
 
-    private fun setupMonthGrid() {
-        monthFragment = ShiftMonthGridFragment()
-        childFragmentManager.beginTransaction()
-            .replace(R.id.month_view_container, monthFragment)
-            .commit()
-    }
-
     private fun handlePaintTap(julianDay: Int) {
         val preset = presetsAdapter.getSelectedPreset()
         if (preset == null) {
-
             return
         }
 
@@ -263,11 +359,42 @@ class ShiftSchedulerFragment : Fragment() {
     }
 
     private fun updateGridSelection() {
-        if (!::monthFragment.isInitialized) return
-        val startJd = anchorJulianDay - 60
-        val endJd = anchorJulianDay + 400
-        val shifts = ShiftRotationEngine.generateShiftsForRange(startJd, endJd, activeRule, allPresets, allOverrides)
-        monthFragment.updateSelection(shifts)
+        val firstDayOfWeek = com.android.calendar.Utils.getFirstDayOfWeekAsCalendar(requireContext())
+        val days = getDaysForMonth(
+            currentDisplayedMonth.get(Calendar.YEAR),
+            currentDisplayedMonth.get(Calendar.MONTH),
+            firstDayOfWeek
+        )
+
+        val startJd = getJulianDayForCalendar(days.first())
+        val endJd = getJulianDayForCalendar(days.last())
+
+        val shifts = ShiftRotationEngine.generateShiftsForRange(startJd - 10, endJd + 10, activeRule, allPresets, allOverrides)
+
+        val todayTime = Time()
+        todayTime.set(System.currentTimeMillis())
+        val todayJd = Time.getJulianDay(todayTime.toMillis(), todayTime.getGmtOffset())
+
+        val cells = days.map { cal ->
+            val jd = getJulianDayForCalendar(cal)
+            DayCell(
+                dayOfMonth = cal.get(Calendar.DAY_OF_MONTH),
+                julianDay = jd,
+                isCurrentMonth = cal.get(Calendar.MONTH) == currentDisplayedMonth.get(Calendar.MONTH),
+                isToday = jd == todayJd,
+                isSelected = jd == selectedJulianDay,
+                preset = shifts[jd],
+                calendar = cal
+            )
+        }
+
+        calendarAdapter.setDays(cells)
+    }
+
+    private fun getJulianDayForCalendar(cal: Calendar): Int {
+        val time = Time()
+        time.set(cal.timeInMillis)
+        return Time.getJulianDay(time.toMillis(), time.getGmtOffset())
     }
 
     private fun clearOverrides() {
@@ -290,44 +417,9 @@ class ShiftSchedulerFragment : Fragment() {
         }
     }
 
-    class ShiftMonthGridFragment : MonthByWeekFragment() {
-        private var paintModeEnabledInternal = false
-        private var lastShifts: Map<Int, ShiftPreset>? = null
-
-        fun getCalendarListView(): ListView? = mListView
-
-        override fun setUpAdapter() {
-            val weekParams = HashMap<String, Int>()
-            weekParams[SimpleWeeksAdapter.WEEK_PARAMS_FOCUS_MONTH] = mCurrentMonthDisplayed
-            weekParams[SimpleWeeksAdapter.WEEK_PARAMS_SHOW_WEEK] = if (mShowWeekNumber) 1 else 0
-            weekParams[SimpleWeeksAdapter.WEEK_PARAMS_WEEK_START] = mFirstDayOfWeek
-            val localJd = Time.getJulianDay(mSelectedDay.toMillis(), mSelectedDay.getGmtOffset())
-            weekParams[SimpleWeeksAdapter.WEEK_PARAMS_JULIAN_DAY] = localJd
-            weekParams[SimpleWeeksAdapter.WEEK_PARAMS_DAYS_PER_WEEK] = mDaysPerWeek
-            weekParams[SimpleWeeksAdapter.WEEK_PARAMS_NUM_WEEKS] = mNumWeeks
-
-            if (mAdapter == null) {
-                mAdapter = ShiftMonthByWeekAdapter(requireActivity(), weekParams, mHandler).apply {
-                    registerDataSetObserver(mObserver)
-                }
-            } else {
-                mAdapter.updateParams(weekParams)
-            }
-            (mAdapter as? ShiftMonthByWeekAdapter)?.paintModeEnabled = paintModeEnabledInternal
-            lastShifts?.let { updateSelection(it) }
-            mAdapter.notifyDataSetChanged()
-        }
-
-        fun setPaintMode(enabled: Boolean) {
-            paintModeEnabledInternal = enabled
-            (mAdapter as? ShiftMonthByWeekAdapter)?.paintModeEnabled = enabled
-        }
-
-        fun updateSelection(shifts: Map<Int, ShiftPreset>) {
-            lastShifts = shifts
-            if (mAdapter == null) return
-            val colors = shifts.mapValues { it.value.color }
-            (mAdapter as? ShiftMonthByWeekAdapter)?.setSelectedDays(colors)
-        }
+    private fun getThemeColor(attr: Int): Int {
+        val typedValue = android.util.TypedValue()
+        requireContext().theme.resolveAttribute(attr, typedValue, true)
+        return typedValue.data
     }
 }
