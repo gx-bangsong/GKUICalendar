@@ -2,12 +2,10 @@ package com.android.calendar.shift
 
 import android.content.Context
 import android.content.res.ColorStateList
-import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import androidx.core.graphics.ColorUtils
 import androidx.recyclerview.widget.RecyclerView
 import com.android.calendar.shift.db.ShiftPreset
 import com.google.android.material.card.MaterialCardView
@@ -84,9 +82,8 @@ class ShiftCalendarAdapter(
         cell.preset?.let { preset ->
             holder.shiftDot.visibility = View.VISIBLE
             holder.shiftDot.backgroundTintList = ColorStateList.valueOf(preset.color)
-            if (!cell.isSelected) {
-                holder.cardRoot.setCardBackgroundColor(ColorUtils.setAlphaComponent(preset.color, 40))
-            }
+            // Keep the day number unobstructed. The dot is the shift marker;
+            // the card remains a semantic surface even when a shift is assigned.
         }
 
         holder.itemView.setOnClickListener {
