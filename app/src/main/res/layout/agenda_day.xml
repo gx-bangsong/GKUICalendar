@@ -43,14 +43,14 @@
             android:layout_height="wrap_content"
             android:layout_width="match_parent"
             android:singleLine="true"
-            android:textColor="?android:attr/textColorSecondary"
+            android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="14sp" />
         <TextView
             android:id="@+id/date"
             android:layout_height="wrap_content"
             android:layout_width="match_parent"
             android:singleLine="true"
-            android:textColor="?android:attr/textColorPrimary"
+            android:textColor="?attr/colorOnSurface"
             android:textStyle="bold"
             android:textSize="24sp" />
     </LinearLayout>

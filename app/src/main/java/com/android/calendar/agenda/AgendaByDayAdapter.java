@@ -28,6 +28,7 @@ import android.widget.BaseAdapter;
 import android.widget.TextView;
 
 import com.android.calendar.DynamicTheme;
+import com.google.android.material.color.MaterialColors;
 import com.android.calendar.Utils;
 import com.android.calendar.agenda.AgendaWindowAdapter.DayAdapterInfo;
 import com.android.calendar.calendarcommon2.Time;
@@ -234,6 +235,8 @@ public class AgendaByDayAdapter extends BaseAdapter {
             }
             holder.dayView.setText(dayViewText);
             holder.dateView.setText(dateViewText);
+            holder.dayView.setTextColor(MaterialColors.getColor(mContext, com.google.android.material.R.attr.colorOnSurfaceVariant));
+            holder.dateView.setTextColor(MaterialColors.getColor(mContext, com.google.android.material.R.attr.colorOnSurface));
 
             // Set the background of the view, it is grayed for day that are in the past and today
             if (row.mDay > mTodayJulianDay) {

@@ -41,6 +41,7 @@ import android.widget.GridLayout;
 import android.widget.TextView;
 
 import com.android.calendar.CalendarController;
+import com.android.calendar.DynamicTheme;
 import com.android.calendar.CalendarController.EventType;
 import com.android.calendar.CalendarController.ViewType;
 import com.android.calendar.StickyHeaderListView;
@@ -217,9 +218,8 @@ public class AgendaWindowAdapter extends BaseAdapter
             AgendaListView agendaListView, boolean showEventOnStart) {
         mContext = context;
         mResources = context.getResources();
-        mSelectedItemBackgroundColor = mResources
-                .getColor(R.color.agenda_selected_background_color);
-        mSelectedItemTextColor = mResources.getColor(R.color.agenda_selected_text_color);
+        mSelectedItemBackgroundColor = DynamicTheme.getColor(context, "agenda_selected_background_color");
+        mSelectedItemTextColor = DynamicTheme.getColor(context, "agenda_selected_text_color");
         mItemRightMargin = mResources.getDimension(R.dimen.agenda_item_right_margin);
         mIsTabletConfig = Utils.getConfigBool(mContext, R.bool.tablet_config);
 

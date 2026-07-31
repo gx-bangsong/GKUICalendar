@@ -1,15 +1,17 @@
 package com.android.calendar.shift
 
 import android.content.Context
-import android.graphics.Color
 import android.content.res.ColorStateList
+import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.core.graphics.ColorUtils
 import androidx.recyclerview.widget.RecyclerView
 import com.android.calendar.shift.db.ShiftPreset
 import com.google.android.material.card.MaterialCardView
+import com.google.android.material.color.MaterialColors
 import ws.xsoh.etar.R
 import java.util.*
 
@@ -28,19 +30,11 @@ class ShiftCalendarAdapter(
     private val onDayClicked: (DayCell) -> Unit,
     private val onDayPainted: (DayCell) -> Unit
 ) : RecyclerView.Adapter<ShiftCalendarAdapter.DayViewHolder>() {
-
     private var daysList = emptyList<DayCell>()
     private var isPaintMode = false
 
-    fun setDays(newDays: List<DayCell>) {
-        daysList = newDays
-        notifyDataSetChanged()
-    }
-
-    fun setPaintMode(enabled: Boolean) {
-        isPaintMode = enabled
-    }
-
+    fun setDays(newDays: List<DayCell>) { daysList = newDays; notifyDataSetChanged() }
+    fun setPaintMode(enabled: Boolean) { isPaintMode = enabled }
     fun getDays(): List<DayCell> = daysList
 
     class DayViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -49,78 +43,56 @@ class ShiftCalendarAdapter(
         val shiftDot: View = view.findViewById(R.id.view_shift_dot)
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DayViewHolder {
-        val view = LayoutInflater.from(parent.context).inflate(R.layout.shift_day_grid_item, parent, false)
-        return DayViewHolder(view)
-    }
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DayViewHolder =
+        DayViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.shift_day_grid_item, parent, false))
 
     override fun onBindViewHolder(holder: DayViewHolder, position: Int) {
         val cell = daysList[position]
-        holder.dayText.text = cell.dayOfMonth.toString()
+        val surface = MaterialColors.getColor(context, com.google.android.material.R.attr.colorSurface)
+        val onSurface = MaterialColors.getColor(context, com.google.android.material.R.attr.colorOnSurface)
+        val onSurfaceVariant = MaterialColors.getColor(context, com.google.android.material.R.attr.colorOnSurfaceVariant)
+        val primary = MaterialColors.getColor(context, com.google.android.material.R.attr.colorPrimary)
+        val onPrimary = MaterialColors.getColor(context, com.google.android.material.R.attr.colorOnPrimary)
+        val outlineVariant = MaterialColors.getColor(context, com.google.android.material.R.attr.colorOutlineVariant)
 
-        // 1. Theme Color Utilities
-        val primaryColor = getThemeColor(context, androidx.appcompat.R.attr.colorPrimary)
-        val textColorPrimary = getThemeColor(context, android.R.attr.textColorPrimary)
-        val textColorSecondary = getThemeColor(context, android.R.attr.textColorSecondary)
-
-        // 2. Base text and alpha defaults
-        val baseAlpha = if (cell.isCurrentMonth) 1.0f else 0.35f
-        holder.dayText.alpha = baseAlpha
-        holder.shiftDot.alpha = baseAlpha
-
-        // Reset backgrounds and borders
-        holder.cardRoot.setCardBackgroundColor(Color.TRANSPARENT)
+        // RecyclerView items must not retain state from a previously bound cell.
+        holder.cardRoot.setCardBackgroundColor(surface)
         holder.cardRoot.strokeWidth = 0
+        holder.cardRoot.strokeColor = outlineVariant
         holder.dayText.setBackgroundResource(0)
+        holder.dayText.backgroundTintList = null
+        holder.dayText.setTextColor(onSurface)
+        holder.dayText.alpha = if (cell.isCurrentMonth) 1f else .55f
+        holder.shiftDot.visibility = View.INVISIBLE
+        holder.shiftDot.alpha = 1f
+        holder.shiftDot.backgroundTintList = null
 
-        // 3. Selection state has highest priority
+        holder.dayText.text = cell.dayOfMonth.toString()
         if (cell.isSelected) {
-            // MD3 Filled circular background on dayText
             holder.dayText.setBackgroundResource(R.drawable.circle)
-            holder.dayText.backgroundTintList = ColorStateList.valueOf(primaryColor)
-            holder.dayText.setTextColor(Color.WHITE)
-            holder.dayText.alpha = 1.0f
-        } else {
-            holder.dayText.setTextColor(if (cell.isCurrentMonth) textColorPrimary else textColorSecondary)
-            if (cell.isToday) {
-                // Today has a clean outline border on dayText or Card
-                holder.cardRoot.strokeColor = primaryColor
-                holder.cardRoot.strokeWidth = 3 // 1.5dp in standard pixels
-            }
+            holder.dayText.backgroundTintList = ColorStateList.valueOf(primary)
+            holder.dayText.setTextColor(onPrimary)
+            holder.dayText.alpha = 1f
+        } else if (cell.isToday) {
+            holder.cardRoot.strokeColor = primary
+            holder.cardRoot.strokeWidth = 2
+            holder.dayText.setTextColor(onSurface)
+        } else if (!cell.isCurrentMonth) {
+            holder.dayText.setTextColor(onSurfaceVariant)
         }
 
-        // 4. Shift custom preset coloring
-        if (cell.preset != null) {
+        cell.preset?.let { preset ->
             holder.shiftDot.visibility = View.VISIBLE
-            holder.shiftDot.backgroundTintList = ColorStateList.valueOf(cell.preset.color)
-
-            // If NOT selected, we also give the card a soft translucent 15% opacity background tint
+            holder.shiftDot.backgroundTintList = ColorStateList.valueOf(preset.color)
             if (!cell.isSelected) {
-                val color = cell.preset.color
-                val r = Color.red(color)
-                val g = Color.green(color)
-                val b = Color.blue(color)
-                val softBg = Color.argb(40, r, g, b) // 15% opacity
-                holder.cardRoot.setCardBackgroundColor(softBg)
+                holder.cardRoot.setCardBackgroundColor(ColorUtils.setAlphaComponent(preset.color, 40))
             }
-        } else {
-            holder.shiftDot.visibility = View.INVISIBLE
         }
 
         holder.itemView.setOnClickListener {
-            if (isPaintMode) {
-                onDayPainted(cell)
-            } else {
-                onDayClicked(cell)
-            }
+            if (isPaintMode) onDayPainted(cell) else onDayClicked(cell)
         }
     }
 
     override fun getItemCount(): Int = daysList.size
-
-    private fun getThemeColor(context: Context, attr: Int): Int {
-        val typedValue = android.util.TypedValue()
-        context.theme.resolveAttribute(attr, typedValue, true)
-        return typedValue.data
-    }
 }

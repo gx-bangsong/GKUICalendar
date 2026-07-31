@@ -15,7 +15,7 @@
 -->
 <GridLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:background="@color/agenda_day_bar_background_color"
+    android:background="?attr/colorSurfaceContainer"
     android:layout_height="wrap_content"
     android:layout_width="match_parent"
     android:columnCount="2"
@@ -23,7 +23,7 @@
     <View
         android:id="@+id/top_divider_simple"
         android:layout_height="1px"
-        android:background="@color/agenda_list_separator_color"
+        android:background="?attr/colorOutlineVariant"
         android:layout_column="0"
         android:layout_row="0"
         android:layout_rowSpan="1"
@@ -31,7 +31,7 @@
         android:layout_width="match_parent" />
     <View
         android:id="@+id/top_divider_past_present"
-        android:background="@color/agenda_past_present_separator_color"
+        android:background="?attr/colorPrimary"
         android:visibility="gone"
         android:layout_height="2dip"
         android:layout_column="0"
@@ -51,7 +51,7 @@
         android:textSize="24sp"
         android:singleLine="true"
         android:minHeight="42dip"
-        android:textColor="@color/agenda_day_item_text_color" />
+        android:textColor="?attr/colorOnSurface" />
     <TextView
         android:id="@+id/day"
         android:layout_height="wrap_content"
@@ -67,5 +67,5 @@
         android:textSize="14sp"
         android:singleLine="true"
         android:minHeight="42dip"
-        android:textColor="@color/agenda_day_item_text_color" />
+        android:textColor="?attr/colorOnSurface" />
 </GridLayout>

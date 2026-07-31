@@ -23,6 +23,7 @@ import com.android.calendar.shift.db.ShiftPreset
 import com.android.calendar.shift.db.ShiftRotationRule
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.android.material.color.MaterialColors
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import ws.xsoh.etar.R
@@ -137,12 +138,12 @@ class ShiftSchedulerFragment : Fragment() {
                 weekdayName.firstOrNull()?.toString() ?: ""
             }
 
-            val textView = TextView(context).apply {
+            val textView = TextView(requireContext()).apply {
                 layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
                 gravity = android.view.Gravity.CENTER
                 text = shortName
                 textSize = 12f
-                setTextColor(getThemeColor(android.R.attr.textColorSecondary))
+                setTextColor(MaterialColors.getColor(requireContext(), com.google.android.material.R.attr.colorOnSurfaceVariant))
                 setTypeface(null, android.graphics.Typeface.BOLD)
             }
             weekdayHeadersContainer.addView(textView)
@@ -244,19 +245,20 @@ class ShiftSchedulerFragment : Fragment() {
         paintModeEnabled = enabled
         calendarAdapter.setPaintMode(enabled)
 
-        val primaryColor = getThemeColor(androidx.appcompat.R.attr.colorPrimary)
+        val primaryColor = MaterialColors.getColor(requireContext(), com.google.android.material.R.attr.colorPrimary)
+        val onPrimaryColor = MaterialColors.getColor(requireContext(), com.google.android.material.R.attr.colorOnPrimary)
 
         if (enabled) {
-            btnPaintMode.setBackgroundColor(primaryColor)
-            btnPaintMode.setTextColor(Color.WHITE)
-            btnPaintMode.iconTint = ColorStateList.valueOf(Color.WHITE)
+            btnPaintMode.backgroundTintList = ColorStateList.valueOf(primaryColor)
+            btnPaintMode.setTextColor(onPrimaryColor)
+            btnPaintMode.iconTint = ColorStateList.valueOf(onPrimaryColor)
             btnPaintMode.strokeColor = ColorStateList.valueOf(primaryColor)
 
             if (presetsAdapter.getSelectedPreset() == null && allPresets.isNotEmpty()) {
                 presetsAdapter.updatePresets(allPresets.values.toList())
             }
         } else {
-            btnPaintMode.setBackgroundColor(Color.TRANSPARENT)
+            btnPaintMode.backgroundTintList = ColorStateList.valueOf(Color.TRANSPARENT)
             btnPaintMode.setTextColor(primaryColor)
             btnPaintMode.iconTint = ColorStateList.valueOf(primaryColor)
             btnPaintMode.strokeColor = ColorStateList.valueOf(primaryColor)
@@ -415,11 +417,5 @@ class ShiftSchedulerFragment : Fragment() {
                 if (pending == 0) Toast.makeText(requireContext(), R.string.shift_save_success, Toast.LENGTH_SHORT).show()
             }
         }
-    }
-
-    private fun getThemeColor(attr: Int): Int {
-        val typedValue = android.util.TypedValue()
-        requireContext().theme.resolveAttribute(attr, typedValue, true)
-        return typedValue.data
     }
 }

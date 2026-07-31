@@ -183,7 +183,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="Clear Shifts"
-                        android:textColor="#FF5252"/>
+                        android:textColor="?attr/colorError"/>
                 </LinearLayout>
 
                 <!-- Save & Auto-Fill Actions -->
