@@ -23,6 +23,7 @@ import android.content.ContentUris;
 import android.content.Context;
 import android.content.res.Resources;
 import android.database.Cursor;
+import android.database.StaleDataException;
 import android.net.Uri;
 import android.os.Handler;
 import android.provider.CalendarContract;
@@ -505,13 +506,23 @@ public class AgendaWindowAdapter extends BaseAdapter
             isDayHeader = true;
         }
 
-        if (cursorPosition < info.cursor.getCount()) {
-            AgendaItem item = buildAgendaItemFromCursor(info.cursor, cursorPosition, isDayHeader);
-            if (!returnEventStartDay && !isDayHeader) {
-                item.startDay = info.dayAdapter.findJulianDayFromPosition(positionInAdapter -
-                        info.offset);
+        // The adapter can be closed while FragmentManager is saving state (for example
+        // during rotation or when leaving Agenda). The query cursor may therefore become
+        // stale between getAdapterInfoByPosition() and this access.
+        if (info.cursor == null || info.cursor.isClosed()) {
+            return null;
+        }
+        try {
+            if (cursorPosition < info.cursor.getCount()) {
+                AgendaItem item = buildAgendaItemFromCursor(info.cursor, cursorPosition, isDayHeader);
+                if (!returnEventStartDay && !isDayHeader) {
+                    item.startDay = info.dayAdapter.findJulianDayFromPosition(positionInAdapter -
+                            info.offset);
+                }
+                return item;
             }
-            return item;
+        } catch (StaleDataException e) {
+            Log.w(TAG, "Agenda cursor was closed while saving/restoring state", e);
         }
         return null;
     }
