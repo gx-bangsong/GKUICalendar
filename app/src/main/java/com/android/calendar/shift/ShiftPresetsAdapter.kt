@@ -34,10 +34,10 @@ class ShiftPresetsAdapter(
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val preset = presets[position]
         val context = holder.itemView.context
-        val surface = MaterialColors.getColor(context, com.google.android.material.R.attr.colorSurface)
-        val onSurface = MaterialColors.getColor(context, com.google.android.material.R.attr.colorOnSurface)
-        val onSurfaceVariant = MaterialColors.getColor(context, com.google.android.material.R.attr.colorOnSurfaceVariant)
-        val outlineVariant = MaterialColors.getColor(context, com.google.android.material.R.attr.colorOutlineVariant)
+        val surface = MaterialColors.getColor(holder.itemView, com.google.android.material.R.attr.colorSurface)
+        val onSurface = MaterialColors.getColor(holder.itemView, com.google.android.material.R.attr.colorOnSurface)
+        val onSurfaceVariant = MaterialColors.getColor(holder.itemView, com.google.android.material.R.attr.colorOnSurfaceVariant)
+        val outlineVariant = MaterialColors.getColor(holder.itemView, com.google.android.material.R.attr.colorOutlineVariant)
 
         holder.title.text = preset.title
         holder.time.text = String.format("%02d:%02d - %02d:%02d",
@@ -54,7 +54,7 @@ class ShiftPresetsAdapter(
             holder.card.setCardBackgroundColor(surface)
             holder.card.strokeColor = outlineVariant
         }
-        holder.itemView.setOnClickListener { selectPosition(holder.bindingAdapterPosition) }
+        holder.itemView.setOnClickListener { selectPosition(holder.adapterPosition) }
         holder.editButton.setOnClickListener { onEditPreset(preset) }
     }
 

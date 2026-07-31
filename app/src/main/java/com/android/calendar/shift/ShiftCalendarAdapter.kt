@@ -48,12 +48,12 @@ class ShiftCalendarAdapter(
 
     override fun onBindViewHolder(holder: DayViewHolder, position: Int) {
         val cell = daysList[position]
-        val surface = MaterialColors.getColor(context, com.google.android.material.R.attr.colorSurface)
-        val onSurface = MaterialColors.getColor(context, com.google.android.material.R.attr.colorOnSurface)
-        val onSurfaceVariant = MaterialColors.getColor(context, com.google.android.material.R.attr.colorOnSurfaceVariant)
-        val primary = MaterialColors.getColor(context, com.google.android.material.R.attr.colorPrimary)
-        val onPrimary = MaterialColors.getColor(context, com.google.android.material.R.attr.colorOnPrimary)
-        val outlineVariant = MaterialColors.getColor(context, com.google.android.material.R.attr.colorOutlineVariant)
+        val surface = MaterialColors.getColor(holder.itemView, com.google.android.material.R.attr.colorSurface)
+        val onSurface = MaterialColors.getColor(holder.itemView, com.google.android.material.R.attr.colorOnSurface)
+        val onSurfaceVariant = MaterialColors.getColor(holder.itemView, com.google.android.material.R.attr.colorOnSurfaceVariant)
+        val primary = MaterialColors.getColor(holder.itemView, com.google.android.material.R.attr.colorPrimary)
+        val onPrimary = MaterialColors.getColor(holder.itemView, com.google.android.material.R.attr.colorOnPrimary)
+        val outlineVariant = MaterialColors.getColor(holder.itemView, com.google.android.material.R.attr.colorOutlineVariant)
 
         // RecyclerView items must not retain state from a previously bound cell.
         holder.cardRoot.setCardBackgroundColor(surface)

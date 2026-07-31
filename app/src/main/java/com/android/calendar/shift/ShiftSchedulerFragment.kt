@@ -143,7 +143,7 @@ class ShiftSchedulerFragment : Fragment() {
                 gravity = android.view.Gravity.CENTER
                 text = shortName
                 textSize = 12f
-                setTextColor(MaterialColors.getColor(requireContext(), com.google.android.material.R.attr.colorOnSurfaceVariant))
+                setTextColor(MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurfaceVariant))
                 setTypeface(null, android.graphics.Typeface.BOLD)
             }
             weekdayHeadersContainer.addView(textView)
@@ -245,8 +245,8 @@ class ShiftSchedulerFragment : Fragment() {
         paintModeEnabled = enabled
         calendarAdapter.setPaintMode(enabled)
 
-        val primaryColor = MaterialColors.getColor(requireContext(), com.google.android.material.R.attr.colorPrimary)
-        val onPrimaryColor = MaterialColors.getColor(requireContext(), com.google.android.material.R.attr.colorOnPrimary)
+        val primaryColor = MaterialColors.getColor(btnPaintMode, com.google.android.material.R.attr.colorPrimary)
+        val onPrimaryColor = MaterialColors.getColor(btnPaintMode, com.google.android.material.R.attr.colorOnPrimary)
 
         if (enabled) {
             btnPaintMode.backgroundTintList = ColorStateList.valueOf(primaryColor)
