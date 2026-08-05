@@ -107,7 +107,7 @@ class ShiftSchedulerFragment : Fragment() {
         }
 
         btnPaintMode.setOnClickListener { togglePaintMode(!paintModeEnabled) }
-        btnClearOverrides.setOnClickListener { clearOverrides() }
+        btnClearOverrides.setOnClickListener { clearSchedule() }
         btnSave.setOnClickListener { saveShiftsToCalendar() }
         btnAutoFill.setOnClickListener { showWizardDialog() }
 
@@ -399,23 +399,27 @@ class ShiftSchedulerFragment : Fragment() {
         return Time.getJulianDay(time.toMillis(), time.getGmtOffset())
     }
 
-    private fun clearOverrides() {
-        lifecycleScope.launch {
-            ShiftDatabase.getDatabase(requireContext()).shiftPresetDao().clearAllOverrides()
+    private fun clearSchedule() {
+        if (selectedCalendarId == -1L) return
+        ShiftEventBuilder.deleteSavedShifts(requireContext(), selectedCalendarId) {
+            lifecycleScope.launch {
+                val dao = ShiftDatabase.getDatabase(requireContext()).shiftPresetDao()
+                dao.clearAllOverrides()
+                dao.clearActiveRule()
+                activeRule = null
+                allOverrides.clear()
+                updateGridSelection()
+                Toast.makeText(requireContext(), "All shift events deleted", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
     private fun saveShiftsToCalendar() {
         if (selectedCalendarId == -1L) return
         val shifts = ShiftRotationEngine.generateShiftsForRange(anchorJulianDay, anchorJulianDay + 365, activeRule, allPresets, allOverrides)
-        val groups = shifts.entries.groupBy({ it.value }, { it.key })
-        var pending = groups.size
-        if (pending == 0) return
-        groups.forEach { (preset, days) ->
-            ShiftEventBuilder.saveShifts(requireContext(), selectedCalendarId, preset, days.toSet()) {
-                pending--
-                if (pending == 0) Toast.makeText(requireContext(), R.string.shift_save_success, Toast.LENGTH_SHORT).show()
-            }
+        if (shifts.isEmpty()) return
+        ShiftEventBuilder.saveSchedule(requireContext(), selectedCalendarId, shifts, activeRule, allOverrides) {
+            Toast.makeText(requireContext(), R.string.shift_save_success, Toast.LENGTH_SHORT).show()
         }
     }
 }

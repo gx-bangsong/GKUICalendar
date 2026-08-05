@@ -24,6 +24,9 @@ interface ShiftPresetDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun updateActiveRule(rule: ShiftRotationRule)
 
+    @Query("DELETE FROM shift_rotation_rule WHERE id = 1")
+    suspend fun clearActiveRule()
+
     // Overrides
     @Query("SELECT * FROM shift_overrides")
     fun getAllOverrides(): Flow<List<ShiftOverride>>
