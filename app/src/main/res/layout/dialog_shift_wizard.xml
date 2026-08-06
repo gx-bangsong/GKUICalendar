@@ -6,7 +6,6 @@
     android:orientation="vertical"
     android:padding="24dp"
     android:minWidth="320dp">
-
     <TextView
         android:id="@+id/wizard_title"
         android:layout_width="wrap_content"
@@ -15,7 +14,6 @@
         android:textSize="20sp"
         android:textStyle="bold"
         android:layout_marginBottom="8dp"/>
-
     <TextView
         android:id="@+id/wizard_step_label"
         android:layout_width="wrap_content"
@@ -24,13 +22,10 @@
         android:textColor="?attr/colorPrimary"
         android:textStyle="bold"
         android:layout_marginBottom="16dp"/>
-
     <ViewAnimator
         android:id="@+id/wizard_animator"
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
-
-        <!-- Step 1: Pattern -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -61,8 +56,6 @@
                     android:text="2"/>
             </com.google.android.material.textfield.TextInputLayout>
         </LinearLayout>
-
-        <!-- Step 2: Start Date -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -82,8 +75,6 @@
                 android:layout_marginTop="8dp"
                 android:text="2024-01-01"/>
         </LinearLayout>
-
-        <!-- Step 3: Theme/Preset -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -91,24 +82,41 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Apply presets to 'On' days:"/>
-            <LinearLayout
-                android:id="@+id/wizard_preset_choices"
+                android:text="第 1 天至第 X 天：点击每天选择班种或休息" />
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/wizard_rotation_grid"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:orientation="vertical" />
+                android:minHeight="112dp"
+                app:spanCount="7" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_wizard_add_day"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/shift_add_day" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_wizard_clear_pattern"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/shift_clear_rule" />
+            </LinearLayout>
         </LinearLayout>
-
     </ViewAnimator>
-
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:layout_marginTop="24dp"
         android:gravity="end">
-
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_wizard_back"
             style="@style/Widget.MaterialComponents.Button.TextButton"
@@ -116,7 +124,6 @@
             android:layout_height="wrap_content"
             android:text="@string/shift_wizard_back"
             android:visibility="gone"/>
-
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_wizard_next"
             android:layout_width="wrap_content"
@@ -124,5 +131,4 @@
             android:text="@string/shift_wizard_next"
             android:layout_marginStart="8dp"/>
     </LinearLayout>
-
 </LinearLayout>
