@@ -18,6 +18,7 @@
 
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/month"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     app:cardCornerRadius="20dp"
@@ -25,7 +26,6 @@
     app:cardBackgroundColor="?attr/colorSurface">
 
 <LinearLayout
-    android:id="@+id/month"
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
