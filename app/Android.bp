@@ -23,6 +23,7 @@ android_app {
     static_libs: [
         // DO NOT EDIT THIS SECTION MANUALLY
         "androidx.appcompat_appcompat",
+        "androidx.concurrent_concurrent-futures",
         "androidx-constraintlayout_constraintlayout",
         "androidx.core_core-ktx",
         "Etar-Calendar_androidx.databinding_viewbinding",
@@ -34,6 +35,7 @@ android_app {
         "androidx.room_room-ktx",
         "androidx.room_room-runtime",
         "androidx.savedstate_savedstate",
+        "androidx.work_work-runtime",
         "com.google.android.material_material",
         "Etar-Calendar_org.dmfs_lib-recur",
         "kotlin-stdlib",
