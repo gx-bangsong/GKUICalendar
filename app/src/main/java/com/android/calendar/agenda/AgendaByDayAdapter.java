@@ -17,6 +17,7 @@
 package com.android.calendar.agenda;
 
 import android.content.Context;
+import android.content.res.ColorStateList;
 import android.database.Cursor;
 import android.graphics.Typeface;
 import android.text.TextUtils;
@@ -236,7 +237,16 @@ public class AgendaByDayAdapter extends BaseAdapter {
             holder.dayView.setText(dayViewText);
             holder.dateView.setText(dateViewText);
             holder.dayView.setTextColor(MaterialColors.getColor(holder.dayView, com.google.android.material.R.attr.colorOnSurfaceVariant));
-            holder.dateView.setTextColor(MaterialColors.getColor(holder.dateView, com.google.android.material.R.attr.colorOnSurface));
+            if (row.mDay == mTodayJulianDay) {
+                holder.dateView.setBackgroundResource(R.drawable.circle);
+                holder.dateView.setBackgroundTintList(ColorStateList.valueOf(
+                        MaterialColors.getColor(holder.dateView, com.google.android.material.R.attr.colorPrimary)));
+                holder.dateView.setTextColor(MaterialColors.getColor(holder.dateView, com.google.android.material.R.attr.colorOnPrimary));
+            } else {
+                holder.dateView.setBackgroundResource(0);
+                holder.dateView.setBackgroundTintList(null);
+                holder.dateView.setTextColor(MaterialColors.getColor(holder.dateView, com.google.android.material.R.attr.colorOnSurface));
+            }
 
             // Set the background of the view, it is grayed for day that are in the past and today
             if (row.mDay > mTodayJulianDay) {

@@ -17,6 +17,7 @@
 package com.android.calendar.agenda;
 
 import android.content.Context;
+import android.content.res.ColorStateList;
 import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.Paint;
@@ -108,6 +109,7 @@ public class AgendaAdapter extends ResourceCursorAdapter {
                     view.findViewById(R.id.agenda_item_text_container);
             holder.selectedMarker = view.findViewById(R.id.selected_marker);
             holder.colorChip = (ColorChipView)view.findViewById(R.id.agenda_item_color);
+            holder.timelineLine = view.findViewById(R.id.agenda_timeline_line);
         }
 
         holder.startTimeMilli = cursor.getLong(AgendaWindowAdapter.INDEX_BEGIN);
@@ -168,6 +170,7 @@ public class AgendaAdapter extends ResourceCursorAdapter {
         /* Calendar Color */
         int color = Utils.getDisplayColorFromColor(context, cursor.getInt(AgendaWindowAdapter.INDEX_COLOR));
         holder.colorChip.setColor(color);
+        holder.timelineLine.setBackgroundTintList(ColorStateList.valueOf(color));
 
         // What
         String titleString = cursor.getString(AgendaWindowAdapter.INDEX_TITLE);
@@ -256,6 +259,7 @@ public class AgendaAdapter extends ResourceCursorAdapter {
         LinearLayout textContainer;
         long instanceId;
         ColorChipView colorChip;
+        View timelineLine;
         long startTimeMilli;
         boolean allDay;
         boolean grayed;
