@@ -21,6 +21,7 @@
     android:layout_height="wrap_content"
     android:layout_weight="1"
     android:orientation="vertical"
+    android:background="?attr/colorSurfaceContainer"
     android:paddingBottom="16dip"
     android:paddingLeft="16dip"
     android:paddingRight="16dip"
@@ -39,8 +40,8 @@
             android:layout_height="wrap_content"
             android:layout_weight=".8"
             android:autoLink="all"
-            android:textColor="@color/event_info_headline_color"
-            android:textColorLink="@color/event_info_headline_color"
+            android:textColor="?attr/colorOnSurface"
+            android:textColorLink="?attr/colorOnSurface"
             android:textIsSelectable="true"
             android:textSize="24sp"
             android:textStyle="bold" />
@@ -62,7 +63,7 @@
                 android:enabled="false"
                 android:visibility="gone"
                 android:text="@string/choose_event_color_label"
-                android:textColor="@color/event_info_headline_color" />
+                android:textColor="?attr/colorOnSurface" />
 
             <Button
                 android:id="@+id/edit"
@@ -72,7 +73,7 @@
                 android:layout_weight="1"
                 android:enabled="false"
                 android:text="@string/edit_event_label"
-                android:textColor="@color/event_info_headline_color" />
+                android:textColor="?attr/colorOnSurface" />
 
             <Button
                 android:id="@+id/delete"
@@ -81,7 +82,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="@string/delete_label"
-                android:textColor="@color/event_info_headline_color" />
+                android:textColor="?attr/colorOnSurface" />
         </LinearLayout>
     </LinearLayout>
 
@@ -93,7 +94,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dip"
-        android:textColor="@color/event_info_headline_color"
+        android:textColor="?attr/colorOnSurface"
         android:textIsSelectable="true"
         android:textSize="14sp" />
 
@@ -103,7 +104,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="-3dip"
-        android:textColor="@color/event_info_headline_transparent_color"
+        android:textColor="?attr/colorOnSurfaceVariant"
         android:textSize="14sp" />
 
     <!-- WHERE -->
@@ -116,8 +117,8 @@
         android:layout_marginTop="4dip"
         android:ellipsize="end"
         android:singleLine="false"
-        android:textColor="@color/event_info_headline_color"
-        android:textColorLink="@color/event_info_headline_link_color"
+        android:textColor="?attr/colorOnSurface"
+        android:textColorLink="?attr/colorPrimary"
         android:textIsSelectable="true"
         android:textSize="14sp" />
 

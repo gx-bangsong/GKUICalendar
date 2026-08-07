@@ -496,89 +496,31 @@ public class MonthWeekEventsView extends SimpleWeekView {
 
     @Override
     protected void drawDaySeparators(Canvas canvas) {
-        final int coordinatesPerLine = 4;
-        // There are mNumDays - 1 vertical lines and 1 horizontal, so the total is mNumDays
-        float[] lines = new float[mNumDays * coordinatesPerLine];
-        int i = 0;
-
-        // Horizontal line
-        lines[i++] = 0;
-        lines[i++] = 0;
-        lines[i++] = mWidth;
-        lines[i++] = 0;
-        int y0 = 0;
-        int y1 = mHeight;
-
-        // 6 vertical lines
-        while (i < lines.length) {
-            int x = computeDayLeftPosition(i / coordinatesPerLine);
-            lines[i++] = x;
-            lines[i++] = y0;
-            lines[i++] = x;
-            lines[i++] = y1;
-        }
-        p.setColor(mDaySeparatorInnerColor);
-        p.setStrokeWidth(mDaySeparatorInnerWidth);
-        canvas.drawLines(lines, 0, lines.length, p);
+        // Tile spacing and the outer month container provide the separation.
+        // Avoid the legacy full-height grid lines used by the old month view.
     }
 
     @Override
     protected void drawBackground(Canvas canvas) {
-        int i = 0;
-        int offset = 0;
-        r.top = mDaySeparatorInnerWidth;
-        r.bottom = mHeight;
-        if (mShowWeekNum) {
-            i++;
-            offset++;
-        }
-        if (mFocusDay[i]) {
-            while (++i < mOddMonth.length && mFocusDay[i])
-                ;
-            r.right = computeDayLeftPosition(i - offset);
-            r.left = 0;
-            p.setColor(mMonthBGFocusMonthColor);
-            canvas.drawRect(r, p);
-            // compute left edge for i, set up r, draw
-        } else if (mFocusDay[(i = mFocusDay.length - 1)]) {
-            while (--i >= offset && mFocusDay[i])
-                ;
-            i++;
-            // compute left edge for i, set up r, draw
-            r.right = mWidth;
-            r.left = computeDayLeftPosition(i - offset);
-            p.setColor(mMonthBGFocusMonthColor);
-            canvas.drawRect(r, p);
-        } else if (!mOddMonth[i]) {
-            while (++i < mOddMonth.length && !mOddMonth[i])
-                ;
-            r.right = computeDayLeftPosition(i - offset);
-            r.left = 0;
-            p.setColor(mMonthBGOtherColor);
-            canvas.drawRect(r, p);
-            // compute left edge for i, set up r, draw
-        } else if (!mOddMonth[(i = mOddMonth.length - 1)]) {
-            while (--i >= offset && !mOddMonth[i])
-                ;
-            i++;
-            // compute left edge for i, set up r, draw
-            r.right = mWidth;
-            r.left = computeDayLeftPosition(i - offset);
-            p.setColor(mMonthBGOtherColor);
-            canvas.drawRect(r, p);
+        // Draw each week as a row of compact, rounded MD3-like date tiles.
+        // The parent month layout clips these tiles to its outer rounded container.
+        int offset = mShowWeekNum ? 1 : 0;
+        float cellWidth = (float) mWidth / mNumDays;
+        for (int i = offset; i < mNumCells; i++) {
+            int day = i - offset;
+            mRectF.set(day * cellWidth + 2, 2, (day + 1) * cellWidth - 2, mHeight - 2);
+            p.setStyle(Style.FILL);
+            p.setAlpha(255);
+            p.setColor(mFocusDay[i] ? mMonthBGFocusMonthColor : mMonthBGOtherColor);
+            canvas.drawRoundRect(mRectF, 10, 10, p);
         }
         if (mHasToday) {
-            int selectedColor = ContextCompat.getColor(mContext, DynamicTheme.getColorId(DynamicTheme.getPrimaryColor(mContext)));
-
-            if (Utils.getSharedPreference(mContext, "pref_theme", "light").equals("light")) {
-                p.setColor(selectedColor);
-                p.setAlpha(72);
-            } else {
-                p.setColor(mMonthBGTodayColor);
-            }
-            r.left = computeDayLeftPosition(mTodayIndex);
-            r.right = computeDayLeftPosition(mTodayIndex + 1);
-            canvas.drawRect(r, p);
+            p.setColor(mMonthBGTodayColor);
+            p.setAlpha(80);
+            int day = mTodayIndex - offset;
+            mRectF.set(day * cellWidth + 2, 2, (day + 1) * cellWidth - 2, mHeight - 2);
+            canvas.drawRoundRect(mRectF, 10, 10, p);
+            p.setAlpha(255);
         }
     }
 
@@ -641,7 +583,7 @@ public class MonthWeekEventsView extends SimpleWeekView {
                 isFocusMonth = mFocusDay[i];
                 mMonthNumPaint.setColor(isFocusMonth ? mMonthNumColor : mMonthNumOtherColor);
             }
-            x = computeDayLeftPosition(i - offset) - (mSidePaddingMonthNumber);
+            x = computeDayLeftPosition(i - offset) + (computeDayLeftPosition(i - offset + 1) - computeDayLeftPosition(i - offset)) / 2;
             canvas.drawText(mDayNumbers[i], x, y, mMonthNumPaint);
             if (isBold) {
                 mMonthNumPaint.setFakeBoldText(isBold = false);
