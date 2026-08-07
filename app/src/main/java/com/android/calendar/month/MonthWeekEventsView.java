@@ -505,21 +505,23 @@ public class MonthWeekEventsView extends SimpleWeekView {
         // Draw each week as a row of compact, rounded MD3-like date tiles.
         // The parent month layout clips these tiles to its outer rounded container.
         int offset = mShowWeekNum ? 1 : 0;
+        int drawableDays = Math.min(mNumDays, mFocusDay.length);
         float cellWidth = (float) mWidth / mNumDays;
-        for (int i = offset; i < mNumCells; i++) {
-            int day = i - offset;
+        for (int day = 0; day < drawableDays; day++) {
             mRectF.set(day * cellWidth + 2, 2, (day + 1) * cellWidth - 2, mHeight - 2);
             p.setStyle(Style.FILL);
             p.setAlpha(255);
-            p.setColor(mFocusDay[i] ? mMonthBGFocusMonthColor : mMonthBGOtherColor);
+            p.setColor(mFocusDay[day] ? mMonthBGFocusMonthColor : mMonthBGOtherColor);
             canvas.drawRoundRect(mRectF, 10, 10, p);
         }
         if (mHasToday) {
             p.setColor(mMonthBGTodayColor);
             p.setAlpha(80);
             int day = mTodayIndex - offset;
-            mRectF.set(day * cellWidth + 2, 2, (day + 1) * cellWidth - 2, mHeight - 2);
-            canvas.drawRoundRect(mRectF, 10, 10, p);
+            if (day >= 0 && day < drawableDays) {
+                mRectF.set(day * cellWidth + 2, 2, (day + 1) * cellWidth - 2, mHeight - 2);
+                canvas.drawRoundRect(mRectF, 10, 10, p);
+            }
             p.setAlpha(255);
         }
     }
