@@ -32,6 +32,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
                 android:minHeight="?attr/actionBarSize"
+                android:background="?attr/colorSurfaceContainer"
                 app:menu="@menu/all_in_one_title_bar"
                 app:navigationIcon="@drawable/ic_menu_navigator" />
         </com.google.android.material.appbar.AppBarLayout>
