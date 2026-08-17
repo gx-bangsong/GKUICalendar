@@ -1,19 +1,24 @@
 package com.android.calendar.month
 
 import android.content.Context
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.view.Gravity
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.android.calendar.Event
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.color.MaterialColors
+import com.google.android.material.shape.CornerFamily
+import com.google.android.material.shape.MaterialShapeDrawable
+import com.google.android.material.shape.ShapeAppearanceModel
 
-/** A single, independently laid out month cell. No Canvas coordinate math. */
+/** A single independently laid out month cell; no Canvas coordinate math. */
 class MonthDayCellView(context: Context) : MaterialCardView(context) {
     private val column = LinearLayout(context).apply {
         orientation = LinearLayout.VERTICAL
         gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-        setPadding(4, 4, 4, 4)
+        setPadding(dp(4), dp(4), dp(4), dp(4))
     }
     private val dayLabel = TextView(context).apply {
         gravity = Gravity.CENTER
@@ -26,11 +31,11 @@ class MonthDayCellView(context: Context) : MaterialCardView(context) {
     }
 
     init {
-        radius = 8f
+        radius = dp(8).toFloat()
         cardElevation = 0f
         strokeWidth = 0
         addView(column, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
-        column.addView(dayLabel, LinearLayout.LayoutParams.MATCH_PARENT, 32)
+        column.addView(dayLabel, LinearLayout.LayoutParams.MATCH_PARENT, dp(32))
         column.addView(events, LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f)
     }
 
@@ -45,10 +50,7 @@ class MonthDayCellView(context: Context) : MaterialCardView(context) {
         dayLabel.text = day.toString()
         dayLabel.alpha = if (currentMonth) 1f else .55f
         dayLabel.setTextColor(if (today) onPrimary else if (currentMonth) onSurface else onSurfaceVariant)
-        dayLabel.background = if (today) android.graphics.drawable.GradientDrawable().apply {
-            cornerRadius = 16f
-            setColor(primary)
-        } else null
+        dayLabel.background = if (today) shapeDrawable(primary, dp(16)) else ColorDrawable(Color.TRANSPARENT)
 
         events.removeAllViews()
         assignedEvents.take(3).forEach { event ->
@@ -60,15 +62,22 @@ class MonthDayCellView(context: Context) : MaterialCardView(context) {
                 ellipsize = android.text.TextUtils.TruncateAt.END
                 setTextColor(onPrimary)
                 gravity = Gravity.CENTER_VERTICAL
-                setPadding(5, 1, 5, 1)
-                background = android.graphics.drawable.GradientDrawable().apply {
-                    cornerRadius = 8f
-                    setColor(color)
-                }
+                setPadding(dp(5), dp(1), dp(5), dp(1))
+                background = shapeDrawable(color, dp(8))
             }
-            val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 24)
-            lp.setMargins(0, 2, 0, 0)
+            val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(24))
+            lp.setMargins(0, dp(2), 0, 0)
             events.addView(chip, lp)
         }
     }
+
+    private fun shapeDrawable(color: Int, radius: Int): MaterialShapeDrawable =
+        MaterialShapeDrawable(
+            ShapeAppearanceModel.builder()
+                .setAllCorners(CornerFamily.ROUNDED, radius.toFloat())
+                .build()
+        ).apply { fillColor = android.content.res.ColorStateList.valueOf(color) }
+
+    private fun dp(value: Int): Int =
+        (value * resources.displayMetrics.density + .5f).toInt()
 }
