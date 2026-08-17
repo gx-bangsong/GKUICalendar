@@ -90,7 +90,7 @@
     <dimen name="event_info_dialog_height">600dip</dimen>
 
     <dimen name="event_corner_radius">12dp</dimen>
-    <dimen name="month_event_corner_radius">16dp</dimen>
+    <dimen name="month_event_corner_radius">6dp</dimen>
     <dimen name="agenda_item_corner_radius">16dp</dimen>
     <dimen name="action_bar_button_corner_radius">24dp</dimen>
 </resources>
