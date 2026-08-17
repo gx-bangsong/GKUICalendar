@@ -515,11 +515,6 @@ public class MonthWeekEventsView extends SimpleWeekView {
             p.setAlpha(255);
             p.setColor(mFocusDay[day] ? mMonthBGFocusMonthColor : mMonthBGOtherColor);
             canvas.drawRoundRect(mRectF, 6, 6, p);
-            p.setStyle(Style.STROKE);
-            p.setStrokeWidth(1);
-            p.setColor(mDaySeparatorColor);
-            canvas.drawRoundRect(mRectF, 6, 6, p);
-            p.setStyle(Style.FILL);
         }
     }
 
@@ -591,7 +586,7 @@ public class MonthWeekEventsView extends SimpleWeekView {
                 mRectF.set(x - halfWidth, y - halfHeight, x + halfWidth, y + halfHeight);
                 p.setStyle(Style.FILL);
                 p.setColor(MaterialColors.getColor(this, com.google.android.material.R.attr.colorPrimary));
-                canvas.drawRoundRect(mRectF, halfHeight, halfHeight, p);
+                canvas.drawRoundRect(mRectF, 12, 12, p);
                 mMonthNumPaint.setColor(MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnPrimary));
             }
             canvas.drawText(mDayNumbers[i], x, y, mMonthNumPaint);
