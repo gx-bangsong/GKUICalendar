@@ -508,7 +508,7 @@ public class MonthWeekEventsView extends SimpleWeekView {
         int drawableDays = Math.min(mNumDays, mFocusDay.length);
         float cellWidth = (float) mWidth / mNumDays;
         for (int day = 0; day < drawableDays; day++) {
-            mRectF.set(day * cellWidth + 2, 2, (day + 1) * cellWidth - 2, mHeight - 2);
+            mRectF.set(day * cellWidth + 4, 4, (day + 1) * cellWidth - 4, mHeight - 4);
             p.setStyle(Style.FILL);
             p.setAlpha(255);
             p.setColor(mFocusDay[day] ? mMonthBGFocusMonthColor : mMonthBGOtherColor);
@@ -524,7 +524,7 @@ public class MonthWeekEventsView extends SimpleWeekView {
             p.setAlpha(80);
             int day = mTodayIndex - offset;
             if (day >= 0 && day < drawableDays) {
-                mRectF.set(day * cellWidth + 2, 2, (day + 1) * cellWidth - 2, mHeight - 2);
+                mRectF.set(day * cellWidth + 4, 4, (day + 1) * cellWidth - 4, mHeight - 4);
                 canvas.drawRoundRect(mRectF, 10, 10, p);
             }
             p.setAlpha(255);
