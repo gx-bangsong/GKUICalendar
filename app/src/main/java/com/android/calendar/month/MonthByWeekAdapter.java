@@ -308,7 +308,9 @@ public class MonthByWeekAdapter extends SimpleWeeksAdapter {
         if (mIsMiniMonth) {
             mShowWeekNumber = false;
         } else {
-            mShowWeekNumber = Utils.getShowWeekNumber(mContext);
+            // The MD3 month grid always has seven date columns; a week-number
+            // cell would consume Sunday and misalign the weekday header.
+            mShowWeekNumber = false;
         }
         mHomeTimeZone = Utils.getTimeZone(mContext, null);
         mOrientation = mContext.getResources().getConfiguration().orientation;
