@@ -196,7 +196,6 @@ public class AgendaByDayAdapter extends BaseAdapter {
                 agendaDayView = mInflater.inflate(R.layout.agenda_day, parent, false);
                 holder.dayView = (TextView) agendaDayView.findViewById(R.id.day);
                 holder.dateView = (TextView) agendaDayView.findViewById(R.id.date);
-                holder.monthView = (TextView) agendaDayView.findViewById(R.id.month);
                 holder.julianDay = row.mDay;
                 holder.grayed = false;
                 agendaDayView.setTag(holder);
@@ -235,9 +234,8 @@ public class AgendaByDayAdapter extends BaseAdapter {
                 dayViewText += " P:" + position;
                 dateViewText += " P:" + position;
             }
-            holder.monthView.setText(String.format(Locale.getDefault(), "%d月", date.getMonth() + 1));
             holder.dayView.setText(dayViewText);
-            holder.dateView.setText(String.format(Locale.getDefault(), "%d日", date.getDay()));
+            holder.dateView.setText(String.format(Locale.getDefault(), "%d", date.getDay()));
             holder.dayView.setTextColor(MaterialColors.getColor(holder.dayView, com.google.android.material.R.attr.colorOnSurfaceVariant));
             if (row.mDay == mTodayJulianDay) {
                 holder.dateView.setBackgroundResource(R.drawable.circle);
@@ -641,7 +639,6 @@ public class AgendaByDayAdapter extends BaseAdapter {
     static class ViewHolder {
         TextView dayView;
         TextView dateView;
-        TextView monthView;
         int julianDay;
         boolean grayed;
     }

@@ -19,6 +19,7 @@ package com.android.calendar.agenda;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.content.res.Resources;
+import androidx.core.graphics.ColorUtils;
 import android.database.Cursor;
 import android.graphics.Paint;
 import android.provider.CalendarContract.Attendees;
@@ -37,6 +38,7 @@ import com.android.calendar.DynamicTheme;
 import com.android.calendar.Utils;
 import com.android.calendar.calendarcommon2.Time;
 import com.android.calendar.event.EventExtraUtils;
+import com.google.android.material.card.MaterialCardView;
 
 import java.util.Formatter;
 import java.util.Locale;
@@ -101,6 +103,7 @@ public class AgendaAdapter extends ResourceCursorAdapter {
 
         if (holder == null) {
             holder = new ViewHolder();
+            holder.card = (MaterialCardView) view;
             view.setTag(holder);
             holder.title = (TextView) view.findViewById(R.id.title);
             holder.when = (TextView) view.findViewById(R.id.when);
@@ -171,6 +174,12 @@ public class AgendaAdapter extends ResourceCursorAdapter {
         int color = Utils.getDisplayColorFromColor(context, cursor.getInt(AgendaWindowAdapter.INDEX_COLOR));
         holder.colorChip.setColor(color);
         holder.timelineLine.setBackgroundTintList(ColorStateList.valueOf(color));
+        holder.card.setCardBackgroundColor(ColorUtils.setAlphaComponent(color, 220));
+        int eventTextColor = com.google.android.material.color.MaterialColors.getColor(
+                holder.title, com.google.android.material.R.attr.colorOnPrimary);
+        holder.title.setTextColor(eventTextColor);
+        holder.when.setTextColor(eventTextColor);
+        holder.where.setTextColor(eventTextColor);
 
         // What
         String titleString = cursor.getString(AgendaWindowAdapter.INDEX_TITLE);
@@ -258,6 +267,7 @@ public class AgendaAdapter extends ResourceCursorAdapter {
         View selectedMarker;
         LinearLayout textContainer;
         long instanceId;
+        MaterialCardView card;
         ColorChipView colorChip;
         View timelineLine;
         long startTimeMilli;
