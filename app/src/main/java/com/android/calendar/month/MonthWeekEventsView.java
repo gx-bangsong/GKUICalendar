@@ -590,7 +590,8 @@ public class MonthWeekEventsView extends SimpleWeekView {
                 isFocusMonth = mFocusDay[i];
                 mMonthNumPaint.setColor(isFocusMonth ? mMonthNumColor : mMonthNumOtherColor);
             }
-            x = computeDayLeftPosition(i - offset) + (computeDayLeftPosition(i - offset + 1) - computeDayLeftPosition(i - offset)) / 2;
+            int cellIndex = i - (mShowWeekNum ? 1 : 0);
+            x = (int) ((cellIndex + 0.5f) * mWidth / mNumDays);
             canvas.drawText(mDayNumbers[i], x, y, mMonthNumPaint);
             if (isBold) {
                 mMonthNumPaint.setFakeBoldText(isBold = false);
