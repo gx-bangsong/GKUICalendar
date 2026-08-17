@@ -46,6 +46,8 @@ import android.view.accessibility.AccessibilityManager;
 
 import androidx.core.content.ContextCompat;
 
+import com.google.android.material.color.MaterialColors;
+
 import com.android.calendar.DynamicTheme;
 import com.android.calendar.Event;
 import com.android.calendar.LunarUtils;
@@ -592,6 +594,15 @@ public class MonthWeekEventsView extends SimpleWeekView {
             }
             int cellIndex = i - (mShowWeekNum ? 1 : 0);
             x = (int) ((cellIndex + 0.5f) * mWidth / mNumDays);
+            if (mHasToday && todayIndex == i) {
+                float halfWidth = Math.max(18, mMonthNumPaint.measureText(mDayNumbers[i]) / 2f + 8);
+                float halfHeight = mMonthNumHeight / 2f + 5;
+                mRectF.set(x - halfWidth, y - halfHeight, x + halfWidth, y + halfHeight);
+                p.setStyle(Style.FILL);
+                p.setColor(MaterialColors.getColor(this, com.google.android.material.R.attr.colorPrimary));
+                canvas.drawRoundRect(mRectF, halfHeight, halfHeight, p);
+                mMonthNumPaint.setColor(MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnPrimary));
+            }
             canvas.drawText(mDayNumbers[i], x, y, mMonthNumPaint);
             if (isBold) {
                 mMonthNumPaint.setFakeBoldText(isBold = false);

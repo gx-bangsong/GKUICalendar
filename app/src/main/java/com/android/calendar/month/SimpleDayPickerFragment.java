@@ -37,6 +37,7 @@ import android.widget.TextView;
 import androidx.fragment.app.ListFragment;
 
 import com.android.calendar.DynamicTheme;
+import com.google.android.material.color.MaterialColors;
 import com.android.calendar.Utils;
 import com.android.calendar.calendarcommon2.Time;
 
@@ -327,6 +328,9 @@ public class SimpleDayPickerFragment extends ListFragment implements OnScrollLis
                     label.setTextColor(mSaturdayColor);
                 } else if (position == Time.SUNDAY) {
                     label.setTextColor(mSundayColor);
+                } else if (position == Calendar.getInstance().get(Calendar.DAY_OF_WEEK) - 1) {
+                    label.setTextColor(MaterialColors.getColor(label,
+                            com.google.android.material.R.attr.colorPrimary));
                 } else {
                     label.setTextColor(mDayNameColor);
                 }
