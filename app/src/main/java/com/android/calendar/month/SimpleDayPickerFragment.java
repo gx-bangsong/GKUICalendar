@@ -242,8 +242,12 @@ public class SimpleDayPickerFragment extends ListFragment implements OnScrollLis
     protected void setUpHeader() {
         mDayLabels = new String[7];
         for (int i = Calendar.SUNDAY; i <= Calendar.SATURDAY; i++) {
-            mDayLabels[i - Calendar.SUNDAY] = DateUtils.getDayOfWeekString(i,
+            String label = DateUtils.getDayOfWeekString(i,
                     DateUtils.LENGTH_SHORTEST).toUpperCase();
+            if (Locale.getDefault().getLanguage().equals("zh")) {
+                label = label.replace("星期", "周");
+            }
+            mDayLabels[i - Calendar.SUNDAY] = label;
         }
     }
 

@@ -1478,6 +1478,9 @@ public class Utils {
             dayViewText = mTZUtils.formatDateRange(context, millis, millis, flags);
         }
         dayViewText = dayViewText.toUpperCase();
+        if (Locale.getDefault().getLanguage().equals("zh")) {
+            dayViewText = dayViewText.replace("星期", "周");
+        }
         return dayViewText;
     }
 
