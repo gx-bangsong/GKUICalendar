@@ -521,16 +521,6 @@ public class MonthWeekEventsView extends SimpleWeekView {
             canvas.drawRoundRect(mRectF, 10, 10, p);
             p.setStyle(Style.FILL);
         }
-        if (mHasToday) {
-            p.setColor(mMonthBGTodayColor);
-            p.setAlpha(80);
-            int day = mTodayIndex - offset;
-            if (day >= 0 && day < drawableDays) {
-                mRectF.set(day * cellWidth + 4, 4, (day + 1) * cellWidth - 4, mHeight - 4);
-                canvas.drawRoundRect(mRectF, 10, 10, p);
-            }
-            p.setAlpha(255);
-        }
     }
 
     // Draw the "clicked" color on the tapped day
@@ -569,6 +559,7 @@ public class MonthWeekEventsView extends SimpleWeekView {
         }
 
         y = mMonthNumAscentHeight + mTopPaddingMonthNumber;
+        mMonthNumPaint.setTextAlign(Align.CENTER);
 
         boolean isFocusMonth = mFocusDay[i];
         boolean isBold = false;
@@ -595,12 +586,11 @@ public class MonthWeekEventsView extends SimpleWeekView {
             int cellIndex = i - (mShowWeekNum ? 1 : 0);
             x = (int) ((cellIndex + 0.5f) * mWidth / mNumDays);
             if (mHasToday && todayIndex == i) {
-                float halfWidth = Math.max(18, mMonthNumPaint.measureText(mDayNumbers[i]) / 2f + 8);
-                float halfHeight = mMonthNumHeight / 2f + 5;
-                mRectF.set(x - halfWidth, y - halfHeight, x + halfWidth, y + halfHeight);
+                float radius = Math.max(20, mMonthNumHeight / 2f + 6);
+                mRectF.set(x - radius, y - radius, x + radius, y + radius);
                 p.setStyle(Style.FILL);
                 p.setColor(MaterialColors.getColor(this, com.google.android.material.R.attr.colorPrimary));
-                canvas.drawRoundRect(mRectF, halfHeight, halfHeight, p);
+                canvas.drawCircle(x, y, radius, p);
                 mMonthNumPaint.setColor(MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnPrimary));
             }
             canvas.drawText(mDayNumbers[i], x, y, mMonthNumPaint);
