@@ -513,6 +513,11 @@ public class MonthWeekEventsView extends SimpleWeekView {
             p.setAlpha(255);
             p.setColor(mFocusDay[day] ? mMonthBGFocusMonthColor : mMonthBGOtherColor);
             canvas.drawRoundRect(mRectF, 10, 10, p);
+            p.setStyle(Style.STROKE);
+            p.setStrokeWidth(1);
+            p.setColor(mDaySeparatorColor);
+            canvas.drawRoundRect(mRectF, 10, 10, p);
+            p.setStyle(Style.FILL);
         }
         if (mHasToday) {
             p.setColor(mMonthBGTodayColor);
