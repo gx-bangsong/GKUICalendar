@@ -514,11 +514,11 @@ public class MonthWeekEventsView extends SimpleWeekView {
             p.setStyle(Style.FILL);
             p.setAlpha(255);
             p.setColor(mFocusDay[day] ? mMonthBGFocusMonthColor : mMonthBGOtherColor);
-            canvas.drawRoundRect(mRectF, 10, 10, p);
+            canvas.drawRoundRect(mRectF, 6, 6, p);
             p.setStyle(Style.STROKE);
             p.setStrokeWidth(1);
             p.setColor(mDaySeparatorColor);
-            canvas.drawRoundRect(mRectF, 10, 10, p);
+            canvas.drawRoundRect(mRectF, 6, 6, p);
             p.setStyle(Style.FILL);
         }
     }
@@ -586,12 +586,12 @@ public class MonthWeekEventsView extends SimpleWeekView {
             int cellIndex = i - (mShowWeekNum ? 1 : 0);
             x = (int) ((cellIndex + 0.5f) * mWidth / mNumDays);
             if (mHasToday && todayIndex == i) {
-                float halfWidth = mMonthNumPaint.measureText(mDayNumbers[i]) / 2f + 9;
+                float halfWidth = mMonthNumPaint.measureText(mDayNumbers[i]) / 2f + 10;
                 float halfHeight = mMonthNumHeight / 2f + 6;
                 mRectF.set(x - halfWidth, y - halfHeight, x + halfWidth, y + halfHeight);
                 p.setStyle(Style.FILL);
                 p.setColor(MaterialColors.getColor(this, com.google.android.material.R.attr.colorPrimary));
-                canvas.drawRoundRect(mRectF, 8, 8, p);
+                canvas.drawRoundRect(mRectF, halfHeight, halfHeight, p);
                 mMonthNumPaint.setColor(MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnPrimary));
             }
             canvas.drawText(mDayNumbers[i], x, y, mMonthNumPaint);
