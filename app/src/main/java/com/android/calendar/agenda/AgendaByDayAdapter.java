@@ -266,6 +266,10 @@ public class AgendaByDayAdapter extends BaseAdapter {
         } else if (row.mType == TYPE_MEETING) {
             View itemView = mAgendaAdapter.getView(row.mPosition, convertView, parent);
             AgendaAdapter.ViewHolder holder = ((AgendaAdapter.ViewHolder) itemView.getTag());
+            boolean firstEventOfDay = position == 0
+                    || mRowInfo.get(position - 1).mType != TYPE_MEETING
+                    || mRowInfo.get(position - 1).mDay != row.mDay;
+            holder.agendaDateColumn.setVisibility(firstEventOfDay ? View.VISIBLE : View.INVISIBLE);
             Time eventDate = new Time(mTimeZone);
             eventDate.setJulianDay(row.mDay);
             holder.agendaDate.setText(String.format(Locale.getDefault(), "%d", eventDate.getDay()));
