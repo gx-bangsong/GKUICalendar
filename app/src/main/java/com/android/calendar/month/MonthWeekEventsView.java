@@ -1307,7 +1307,9 @@ public class MonthWeekEventsView extends SimpleWeekView {
         @Override
         public void setRectangle(int spanningDays, int numberOfLines) {
             r.left = mBoxBoundaries.getX();
-            r.right = mBoxBoundaries.getX() + mEventSquareWidth;
+            // MD3 month-view event chip: use the entire day span, not only the
+            // legacy three-pixel color marker.
+            r.right = mBoxBoundaries.getRightEdge(spanningDays) - mBorderThickness;
             r.top = mBoxBoundaries.getY() + mEventAscentHeight - mEventSquareHeight;
             r.bottom = mBoxBoundaries.getY() + mEventAscentHeight + (numberOfLines - 1) * mEventHeight;
         }
