@@ -174,9 +174,13 @@ public class AgendaAdapter extends ResourceCursorAdapter {
         int color = Utils.getDisplayColorFromColor(context, cursor.getInt(AgendaWindowAdapter.INDEX_COLOR));
         holder.colorChip.setColor(color);
         holder.timelineLine.setBackgroundTintList(ColorStateList.valueOf(color));
-        holder.card.setCardBackgroundColor(ColorUtils.setAlphaComponent(color, 220));
-        int eventTextColor = com.google.android.material.color.MaterialColors.getColor(
+        holder.card.setCardBackgroundColor(color);
+        int onSurface = com.google.android.material.color.MaterialColors.getColor(
+                holder.title, com.google.android.material.R.attr.colorOnSurface);
+        int onPrimary = com.google.android.material.color.MaterialColors.getColor(
                 holder.title, com.google.android.material.R.attr.colorOnPrimary);
+        int eventTextColor = ColorUtils.calculateContrast(onSurface, color)
+                >= ColorUtils.calculateContrast(onPrimary, color) ? onSurface : onPrimary;
         holder.title.setTextColor(eventTextColor);
         holder.when.setTextColor(eventTextColor);
         holder.where.setTextColor(eventTextColor);
