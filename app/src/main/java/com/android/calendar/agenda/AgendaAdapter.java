@@ -103,7 +103,9 @@ public class AgendaAdapter extends ResourceCursorAdapter {
 
         if (holder == null) {
             holder = new ViewHolder();
-            holder.card = (MaterialCardView) view;
+            holder.card = view.findViewById(R.id.agenda_event_card);
+            holder.agendaDate = view.findViewById(R.id.agenda_event_date);
+            holder.agendaDay = view.findViewById(R.id.agenda_event_day);
             view.setTag(holder);
             holder.title = (TextView) view.findViewById(R.id.title);
             holder.when = (TextView) view.findViewById(R.id.when);
@@ -272,6 +274,8 @@ public class AgendaAdapter extends ResourceCursorAdapter {
         LinearLayout textContainer;
         long instanceId;
         MaterialCardView card;
+        TextView agendaDate;
+        TextView agendaDay;
         ColorChipView colorChip;
         View timelineLine;
         long startTimeMilli;

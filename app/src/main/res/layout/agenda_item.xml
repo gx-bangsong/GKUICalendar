@@ -1,84 +1,111 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.google.android.material.card.MaterialCardView
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@android:id/content"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginStart="92dp"
-    android:layout_marginEnd="12dp"
-    android:layout_marginTop="3dp"
-    android:layout_marginBottom="3dp"
-    app:cardCornerRadius="12dp"
-    app:cardElevation="0dp"
-    app:strokeWidth="1dp"
-    app:strokeColor="?attr/colorOutlineVariant"
-    app:cardBackgroundColor="?attr/colorSurfaceContainer">
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:minHeight="56dp"
-        android:padding="12dp">
-        <com.android.calendar.ColorChipView
-            android:id="@+id/agenda_item_color"
-            android:layout_width="10dp"
-            android:layout_height="10dp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            android:layout_marginTop="7dp" />
-        <View
-            android:id="@+id/agenda_timeline_line"
-            android:layout_width="18dp"
-            android:layout_height="2dp"
-            android:background="?attr/colorPrimary"
-            app:layout_constraintStart_toEndOf="@id/agenda_item_color"
-            app:layout_constraintEnd_toStartOf="@id/agenda_item_text_container"
-            app:layout_constraintTop_toTopOf="@id/agenda_item_color"
-            android:layout_marginStart="2dp"
-            android:layout_marginEnd="6dp" />
-        <LinearLayout
-            android:id="@+id/agenda_item_text_container"
-            android:layout_width="0dp"
+    android:orientation="horizontal"
+    android:paddingHorizontal="12dp"
+    android:paddingVertical="4dp">
+    <LinearLayout
+        android:id="@+id/agenda_event_date_column"
+        android:layout_width="72dp"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center_horizontal">
+        <TextView
+            android:id="@+id/agenda_event_date"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:gravity="center"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+        <TextView
+            android:id="@+id/agenda_event_day"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            app:layout_constraintStart_toEndOf="@id/agenda_timeline_line"
-            app:layout_constraintEnd_toStartOf="@id/selected_marker"
-            app:layout_constraintTop_toTopOf="parent">
-            <TextView
-                android:id="@+id/title"
-                android:layout_width="match_parent"
+            android:gravity="center"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="12sp" />
+    </LinearLayout>
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/agenda_event_card"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:minHeight="56dp"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="0dp"
+        app:strokeWidth="1dp"
+        app:strokeColor="?attr/colorOutlineVariant"
+        app:cardBackgroundColor="?attr/colorSurfaceContainer">
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="56dp"
+            android:padding="12dp">
+            <com.android.calendar.ColorChipView
+                android:id="@+id/agenda_item_color"
+                android:layout_width="10dp"
+                android:layout_height="10dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                android:layout_marginTop="7dp" />
+            <View
+                android:id="@+id/agenda_timeline_line"
+                android:layout_width="18dp"
+                android:layout_height="2dp"
+                android:background="?attr/colorPrimary"
+                app:layout_constraintStart_toEndOf="@id/agenda_item_color"
+                app:layout_constraintEnd_toStartOf="@id/agenda_item_text_container"
+                app:layout_constraintTop_toTopOf="@id/agenda_item_color"
+                android:layout_marginStart="2dp"
+                android:layout_marginEnd="6dp" />
+            <LinearLayout
+                android:id="@+id/agenda_item_text_container"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:ellipsize="end"
-                android:singleLine="true"
-                android:textColor="?attr/colorOnSurface"
-                android:textSize="16sp"
-                android:textStyle="bold" />
-            <TextView
-                android:id="@+id/when"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:ellipsize="end"
-                android:singleLine="true"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:textSize="14sp" />
-            <TextView
-                android:id="@+id/where"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:ellipsize="end"
-                android:singleLine="true"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:textSize="14sp" />
-        </LinearLayout>
-        <ImageView
-            android:id="@+id/selected_marker"
-            android:layout_width="4dp"
-            android:layout_height="match_parent"
-            android:background="?attr/colorPrimary"
-            android:contentDescription="@string/acessibility_selected_marker_description"
-            android:visibility="gone"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-    </androidx.constraintlayout.widget.ConstraintLayout>
-</com.google.android.material.card.MaterialCardView>
+                android:orientation="vertical"
+                app:layout_constraintStart_toEndOf="@id/agenda_timeline_line"
+                app:layout_constraintEnd_toStartOf="@id/selected_marker"
+                app:layout_constraintTop_toTopOf="parent">
+                <TextView
+                    android:id="@+id/title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:singleLine="true"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/when"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:singleLine="true"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="14sp" />
+                <TextView
+                    android:id="@+id/where"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:singleLine="true"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="14sp" />
+            </LinearLayout>
+            <ImageView
+                android:id="@+id/selected_marker"
+                android:layout_width="4dp"
+                android:layout_height="match_parent"
+                android:background="?attr/colorPrimary"
+                android:contentDescription="@string/acessibility_selected_marker_description"
+                android:visibility="gone"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </com.google.android.material.card.MaterialCardView>
+</LinearLayout>
