@@ -586,11 +586,12 @@ public class MonthWeekEventsView extends SimpleWeekView {
             int cellIndex = i - (mShowWeekNum ? 1 : 0);
             x = (int) ((cellIndex + 0.5f) * mWidth / mNumDays);
             if (mHasToday && todayIndex == i) {
-                float radius = Math.max(20, mMonthNumHeight / 2f + 6);
-                mRectF.set(x - radius, y - radius, x + radius, y + radius);
+                float halfWidth = mMonthNumPaint.measureText(mDayNumbers[i]) / 2f + 9;
+                float halfHeight = mMonthNumHeight / 2f + 6;
+                mRectF.set(x - halfWidth, y - halfHeight, x + halfWidth, y + halfHeight);
                 p.setStyle(Style.FILL);
                 p.setColor(MaterialColors.getColor(this, com.google.android.material.R.attr.colorPrimary));
-                canvas.drawCircle(x, y, radius, p);
+                canvas.drawRoundRect(mRectF, 8, 8, p);
                 mMonthNumPaint.setColor(MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnPrimary));
             }
             canvas.drawText(mDayNumbers[i], x, y, mMonthNumPaint);
