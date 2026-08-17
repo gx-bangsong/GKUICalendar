@@ -179,6 +179,13 @@ public class AgendaByDayAdapter extends BaseAdapter {
             View spacer = new View(mContext);
             spacer.setLayoutParams(new ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, 4));
+            if (row.mFirstDayAfterYesterday) {
+                spacer.setBackgroundColor(MaterialColors.getColor(
+                        spacer, com.google.android.material.R.attr.colorPrimary));
+            } else {
+                spacer.setBackgroundColor(MaterialColors.getColor(
+                        spacer, com.google.android.material.R.attr.colorSurface));
+            }
             return spacer;
             /*
             ViewHolder holder = null;
