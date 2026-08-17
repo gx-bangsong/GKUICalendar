@@ -235,9 +235,9 @@ public class AgendaByDayAdapter extends BaseAdapter {
                 dayViewText += " P:" + position;
                 dateViewText += " P:" + position;
             }
-            holder.monthView.setText(String.format(Locale.getDefault(), "%d月", date.month + 1));
+            holder.monthView.setText(String.format(Locale.getDefault(), "%d月", date.getMonth() + 1));
             holder.dayView.setText(dayViewText);
-            holder.dateView.setText(String.format(Locale.getDefault(), "%d日", date.day));
+            holder.dateView.setText(String.format(Locale.getDefault(), "%d日", date.getDay()));
             holder.dayView.setTextColor(MaterialColors.getColor(holder.dayView, com.google.android.material.R.attr.colorOnSurfaceVariant));
             if (row.mDay == mTodayJulianDay) {
                 holder.dateView.setBackgroundResource(R.drawable.circle);
