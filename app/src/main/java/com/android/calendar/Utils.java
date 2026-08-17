@@ -1479,7 +1479,7 @@ public class Utils {
         }
         dayViewText = dayViewText.toUpperCase();
         if (Locale.getDefault().getLanguage().equals("zh")) {
-            dayViewText = dayViewText.replace("星期", "周");
+            dayViewText = dayViewText.replace("星期", "").replace("周", "");
         }
         return dayViewText;
     }
