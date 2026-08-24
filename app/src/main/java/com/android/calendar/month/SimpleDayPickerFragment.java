@@ -558,11 +558,18 @@ public class SimpleDayPickerFragment extends ListFragment implements OnScrollLis
      * @param updateHighlight TODO(epastern):
      */
     protected void setMonthDisplayed(Time time, boolean updateHighlight) {
-        CharSequence oldMonth = mMonthName.getText();
-        mMonthName.setText(Utils.formatMonthYear(mContext, time));
-        mMonthName.invalidate();
-        if (!TextUtils.equals(oldMonth, mMonthName.getText())) {
-            mMonthName.sendAccessibilityEvent(AccessibilityEvent.TYPE_VIEW_FOCUSED);
+        // mMonthName is wired up in onActivityCreated, but onCreate calls
+        // goTo() (which in turn calls this method) before that runs when
+        // restoring from savedInstanceState. Skip the title update until
+        // the TextView exists; the next goTo() after onActivityCreated
+        // will repaint it.
+        if (mMonthName != null) {
+            CharSequence oldMonth = mMonthName.getText();
+            mMonthName.setText(Utils.formatMonthYear(mContext, time));
+            mMonthName.invalidate();
+            if (!TextUtils.equals(oldMonth, mMonthName.getText())) {
+                mMonthName.sendAccessibilityEvent(AccessibilityEvent.TYPE_VIEW_FOCUSED);
+            }
         }
         mCurrentMonthDisplayed = time.getMonth();
         if (updateHighlight) {
