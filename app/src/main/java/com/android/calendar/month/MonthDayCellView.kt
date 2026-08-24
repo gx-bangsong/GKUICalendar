@@ -36,7 +36,12 @@ class MonthDayCellView(context: Context) : MaterialCardView(context) {
         strokeWidth = 0
         addView(column, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
         column.addView(dayLabel, LinearLayout.LayoutParams.MATCH_PARENT, dp(32))
-        column.addView(events, LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f)
+        // Events fill the remaining vertical space; weight is applied via
+        // LayoutParams because LinearLayout has no 4-arg addView overload.
+        column.addView(
+            events,
+            LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f)
+        )
     }
 
     fun bind(day: Int, currentMonth: Boolean, today: Boolean, assignedEvents: List<Event>) {
