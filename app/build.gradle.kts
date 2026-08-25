@@ -159,6 +159,11 @@ dependencies {
 	implementation(libs.androidx.room.runtime)
 	kapt(libs.androidx.room.compiler)
 	implementation(libs.androidx.room.ktx)
+
+	// AppSearch: contribute calendar events to the on-device search index,
+	// surfaced by Pixel Launcher / system-level QSB on Android 12+. Calls
+	// are runtime-gated — see com.android.calendar.search.CalendarAppSearchIndexer.
+	implementation(libs.androidx.appsearch)
 }
 
 kapt {

@@ -23,6 +23,7 @@ android_app {
     static_libs: [
         // DO NOT EDIT THIS SECTION MANUALLY
         "androidx.appcompat_appcompat",
+        "androidx.appsearch_appsearch",
         "androidx.concurrent_concurrent-futures",
         "androidx-constraintlayout_constraintlayout",
         "androidx.core_core-ktx",
