@@ -581,25 +581,12 @@ public class MonthWeekEventsView extends SimpleWeekView {
             int cellIndex = i - (mShowWeekNum ? 1 : 0);
             x = (int) ((cellIndex + 0.5f) * mWidth / mNumDays);
             if (mHasToday && todayIndex == i) {
-                // Snap the pill to the rendered glyph bounds instead of
-                // using a halfHeight centred on the baseline. Android's
-                // Paint.ascent is taller than descent for most typefaces,
-                // so a baseline-centred pill leaves the visible number
-                // riding near the top edge. Setting the pill rect to
-                // exactly (ascent, descent) makes the digit's visual
-                // centre line up with the pill's geometric centre.
                 float halfWidth = mMonthNumPaint.measureText(mDayNumbers[i]) / 2f + 10;
-                float pillTop = y - mMonthNumAscentHeight;
-                float pillBottom = y + (mMonthNumHeight - mMonthNumAscentHeight);
-                mRectF.set(x - halfWidth, pillTop, x + halfWidth, pillBottom);
+                float halfHeight = mMonthNumHeight / 2f + 6;
+                mRectF.set(x - halfWidth, y - halfHeight, x + halfWidth, y + halfHeight);
                 p.setStyle(Style.FILL);
                 p.setColor(MaterialColors.getColor(this, com.google.android.material.R.attr.colorPrimary));
-                // Use the same corner radius as the event chips drawn
-                // elsewhere on this view (month_event_corner_radius,
-                // 8dp) so the today pill and the events underneath it
-                // share one consistent curve instead of looking like
-                // two different design tokens.
-                canvas.drawRoundRect(mRectF, mMonthEventCornerRadius, mMonthEventCornerRadius, p);
+                canvas.drawRoundRect(mRectF, 16, 16, p);
                 mMonthNumPaint.setColor(MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnPrimary));
             }
             canvas.drawText(mDayNumbers[i], x, y, mMonthNumPaint);
