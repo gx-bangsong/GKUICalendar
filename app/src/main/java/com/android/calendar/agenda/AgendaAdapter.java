@@ -92,31 +92,27 @@ public class AgendaAdapter extends ResourceCursorAdapter {
 
     @Override
     public void bindView(View view, Context context, Cursor cursor) {
-        ViewHolder holder = null;
-
-        // Listview may get confused and pass in a different type of view since
-        // we keep shifting data around. Not a big problem.
-        Object tag = view.getTag();
-        if (tag instanceof ViewHolder) {
-            holder = (ViewHolder) view.getTag();
-        }
-
-        if (holder == null) {
-            holder = new ViewHolder();
-            holder.card = view.findViewById(R.id.agenda_event_card);
-            holder.agendaDateColumn = view.findViewById(R.id.agenda_event_date_column);
-            holder.agendaDate = view.findViewById(R.id.agenda_event_date);
-            holder.agendaDay = view.findViewById(R.id.agenda_event_day);
-            view.setTag(holder);
-            holder.title = (TextView) view.findViewById(R.id.title);
-            holder.when = (TextView) view.findViewById(R.id.when);
-            holder.where = (TextView) view.findViewById(R.id.where);
-            holder.textContainer = (LinearLayout)
-                    view.findViewById(R.id.agenda_item_text_container);
-            holder.selectedMarker = view.findViewById(R.id.selected_marker);
-            holder.colorChip = (ColorChipView)view.findViewById(R.id.agenda_item_color);
-            holder.timelineLine = view.findViewById(R.id.agenda_timeline_line);
-        }
+        // Resolve all view ids from the current view on every bind. The
+        // previous version cached the lookup in a tag-attached ViewHolder
+        // and re-used it across recycled views, but AgendaWindowAdapter
+        // hands this adapter recycled views from different layouts (the
+        // phone layout-sw600dp variant uses a GridLayout with a different
+        // id set). Cached lookups from one layout would silently point at
+        // null in the next, leading to the NPEs the original 7d993e7
+        // commit only patched one symptom of.
+        ViewHolder holder = new ViewHolder();
+        holder.card = view.findViewById(R.id.agenda_event_card);
+        holder.agendaDateColumn = view.findViewById(R.id.agenda_event_date_column);
+        holder.agendaDate = view.findViewById(R.id.agenda_event_date);
+        holder.agendaDay = view.findViewById(R.id.agenda_event_day);
+        holder.title = (TextView) view.findViewById(R.id.title);
+        holder.when = (TextView) view.findViewById(R.id.when);
+        holder.where = (TextView) view.findViewById(R.id.where);
+        holder.textContainer = (LinearLayout)
+                view.findViewById(R.id.agenda_item_text_container);
+        holder.selectedMarker = view.findViewById(R.id.selected_marker);
+        holder.colorChip = (ColorChipView) view.findViewById(R.id.agenda_item_color);
+        holder.timelineLine = view.findViewById(R.id.agenda_timeline_line);
 
         holder.startTimeMilli = cursor.getLong(AgendaWindowAdapter.INDEX_BEGIN);
         // Fade text if event was declined and set the color chip mode (response
@@ -124,30 +120,31 @@ public class AgendaAdapter extends ResourceCursorAdapter {
         holder.allDay = allDay;
         int selfAttendeeStatus = cursor.getInt(AgendaWindowAdapter.INDEX_SELF_ATTENDEE_STATUS);
         if (selfAttendeeStatus == Attendees.ATTENDEE_STATUS_DECLINED) {
-            holder.title.setTextColor(mDeclinedColor);
-            holder.when.setTextColor(mWhereDeclinedColor);
-            holder.where.setTextColor(mWhereDeclinedColor);
-            holder.colorChip.setDrawStyle(ColorChipView.DRAW_FADED);
+            if (holder.title != null) holder.title.setTextColor(mDeclinedColor);
+            if (holder.when != null) holder.when.setTextColor(mWhereDeclinedColor);
+            if (holder.where != null) holder.where.setTextColor(mWhereDeclinedColor);
+            if (holder.colorChip != null) holder.colorChip.setDrawStyle(ColorChipView.DRAW_FADED);
         } else {
-            holder.title.setTextColor(mStandardColor);
-            holder.when.setTextColor(mWhereColor);
-            holder.where.setTextColor(mWhereColor);
+            if (holder.title != null) holder.title.setTextColor(mStandardColor);
+            if (holder.when != null) holder.when.setTextColor(mWhereColor);
+            if (holder.where != null) holder.where.setTextColor(mWhereColor);
             if (selfAttendeeStatus == Attendees.ATTENDEE_STATUS_INVITED) {
-                holder.colorChip.setDrawStyle(ColorChipView.DRAW_BORDER);
+                if (holder.colorChip != null) holder.colorChip.setDrawStyle(ColorChipView.DRAW_BORDER);
             } else {
-                holder.colorChip.setDrawStyle(ColorChipView.DRAW_FULL);
+                if (holder.colorChip != null) holder.colorChip.setDrawStyle(ColorChipView.DRAW_FULL);
             }
         }
 
         // Set the size of the color chip
-        ViewGroup.LayoutParams params = holder.colorChip.getLayoutParams();
-        if (allDay) {
-            params.height = COLOR_CHIP_ALL_DAY_HEIGHT;
-        } else {
-            params.height = COLOR_CHIP_HEIGHT;
-
+        if (holder.colorChip != null) {
+            ViewGroup.LayoutParams params = holder.colorChip.getLayoutParams();
+            if (allDay) {
+                params.height = COLOR_CHIP_ALL_DAY_HEIGHT;
+            } else {
+                params.height = COLOR_CHIP_HEIGHT;
+            }
+            holder.colorChip.setLayoutParams(params);
         }
-        holder.colorChip.setLayoutParams(params);
 
         // Deal with exchange events that the owner cannot respond to
         int canRespond = cursor.getInt(AgendaWindowAdapter.INDEX_CAN_ORGANIZER_RESPOND);
@@ -155,16 +152,18 @@ public class AgendaAdapter extends ResourceCursorAdapter {
             String owner = cursor.getString(AgendaWindowAdapter.INDEX_OWNER_ACCOUNT);
             String organizer = cursor.getString(AgendaWindowAdapter.INDEX_ORGANIZER);
             if (owner.equals(organizer)) {
-                holder.colorChip.setDrawStyle(ColorChipView.DRAW_FULL);
-                holder.title.setTextColor(mStandardColor);
-                holder.when.setTextColor(mStandardColor);
-                holder.where.setTextColor(mStandardColor);
+                if (holder.colorChip != null) holder.colorChip.setDrawStyle(ColorChipView.DRAW_FULL);
+                if (holder.title != null) holder.title.setTextColor(mStandardColor);
+                if (holder.when != null) holder.when.setTextColor(mStandardColor);
+                if (holder.where != null) holder.where.setTextColor(mStandardColor);
             }
         }
 
         int status = cursor.getInt(AgendaWindowAdapter.INDEX_STATUS);
         if (status == Events.STATUS_CANCELED) {
-            holder.title.setPaintFlags(holder.title.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
+            if (holder.title != null) {
+                holder.title.setPaintFlags(holder.title.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
+            }
         }
 
         TextView title = holder.title;
@@ -175,20 +174,35 @@ public class AgendaAdapter extends ResourceCursorAdapter {
 
         /* Calendar Color */
         int color = Utils.getDisplayColorFromColor(context, cursor.getInt(AgendaWindowAdapter.INDEX_COLOR));
-        holder.colorChip.setColor(color);
+        if (holder.colorChip != null) holder.colorChip.setColor(color);
         if (holder.timelineLine != null) {
             holder.timelineLine.setBackgroundTintList(ColorStateList.valueOf(color));
         }
-        holder.card.setCardBackgroundColor(color);
-        int onSurface = com.google.android.material.color.MaterialColors.getColor(
-                holder.title, com.google.android.material.R.attr.colorOnSurface);
-        int onPrimary = com.google.android.material.color.MaterialColors.getColor(
-                holder.title, com.google.android.material.R.attr.colorOnPrimary);
-        int eventTextColor = ColorUtils.calculateContrast(onSurface, color)
-                >= ColorUtils.calculateContrast(onPrimary, color) ? onSurface : onPrimary;
-        holder.title.setTextColor(eventTextColor);
-        holder.when.setTextColor(eventTextColor);
-        holder.where.setTextColor(eventTextColor);
+        if (holder.card != null) holder.card.setCardBackgroundColor(color);
+        // Picking the contrasting text color used to pass holder.title as
+        // the View argument to MaterialColors.getColor, but that overload
+        // is declared @NonNull and reads view.getContext() on its first
+        // line. On the sw600dp layout agenda_item defines no @+id/title view,
+        // so holder.title is null and the call NPE'd on tablet. Use the
+        // Context-based overload (which is also @NonNull but we already
+        // have context as the bindView parameter) and only paint the
+        // computed event color onto text views that actually exist.
+        int eventTextColor;
+        if (holder.title != null) {
+            int onSurface = com.google.android.material.color.MaterialColors.getColor(
+                    context, com.google.android.material.R.attr.colorOnSurface,
+                    "AgendaAdapter");
+            int onPrimary = com.google.android.material.color.MaterialColors.getColor(
+                    context, com.google.android.material.R.attr.colorOnPrimary,
+                    "AgendaAdapter");
+            eventTextColor = ColorUtils.calculateContrast(onSurface, color)
+                    >= ColorUtils.calculateContrast(onPrimary, color) ? onSurface : onPrimary;
+            holder.title.setTextColor(eventTextColor);
+        } else {
+            eventTextColor = 0;
+        }
+        if (holder.when != null) holder.when.setTextColor(eventTextColor);
+        if (holder.where != null) holder.where.setTextColor(eventTextColor);
 
         // What
         String titleString = cursor.getString(AgendaWindowAdapter.INDEX_TITLE);
