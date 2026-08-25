@@ -581,12 +581,21 @@ public class MonthWeekEventsView extends SimpleWeekView {
             int cellIndex = i - (mShowWeekNum ? 1 : 0);
             x = (int) ((cellIndex + 0.5f) * mWidth / mNumDays);
             if (mHasToday && todayIndex == i) {
+                // Snap the pill to the rendered glyph bounds (ascent..descent),
+                // not the loose halfHeight + 6 rectangle that previously
+                // surrounded the digit with too much empty space at the
+                // bottom. Numbers live on the cap height inside the
+                // ascent band, so a baseline-centred pill rendered above
+                // ascent still left the digit hugging the top edge. The
+                // tighter rectangle + chip-matching 8dp radius keeps the
+                // pill the same shape as the event chips beneath the day.
                 float halfWidth = mMonthNumPaint.measureText(mDayNumbers[i]) / 2f + 10;
-                float halfHeight = mMonthNumHeight / 2f + 6;
-                mRectF.set(x - halfWidth, y - halfHeight, x + halfWidth, y + halfHeight);
+                float pillTop = y - mMonthNumAscentHeight;
+                float pillBottom = y + (mMonthNumHeight - mMonthNumAscentHeight);
+                mRectF.set(x - halfWidth, pillTop, x + halfWidth, pillBottom);
                 p.setStyle(Style.FILL);
                 p.setColor(MaterialColors.getColor(this, com.google.android.material.R.attr.colorPrimary));
-                canvas.drawRoundRect(mRectF, 16, 16, p);
+                canvas.drawRoundRect(mRectF, mMonthEventCornerRadius, mMonthEventCornerRadius, p);
                 mMonthNumPaint.setColor(MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnPrimary));
             }
             canvas.drawText(mDayNumbers[i], x, y, mMonthNumPaint);
