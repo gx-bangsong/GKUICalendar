@@ -39,6 +39,7 @@ androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref =
 androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
 androidx-appsearch = { module = "androidx.appsearch:appsearch", version.ref = "appsearch" }
 androidx-appsearch-platform-storage = { module = "androidx.appsearch:appsearch-platform-storage", version.ref = "appsearch" }
+androidx-appsearch-local-storage = { module = "androidx.appsearch:appsearch-local-storage", version.ref = "appsearch" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

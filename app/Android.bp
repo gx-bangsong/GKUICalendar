@@ -24,6 +24,7 @@ android_app {
         // DO NOT EDIT THIS SECTION MANUALLY
         "androidx.appcompat_appcompat",
         "androidx.appsearch_appsearch",
+        "androidx.appsearch_appsearch-local-storage",
         "androidx.appsearch_appsearch-platform-storage",
         "androidx.concurrent_concurrent-futures",
         "androidx-constraintlayout_constraintlayout",

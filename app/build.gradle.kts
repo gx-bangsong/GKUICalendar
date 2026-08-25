@@ -168,6 +168,10 @@ dependencies {
 	// PlatformStorage backend: Android 12+ central index. Code paths that
 	// touch this must additionally check Build.VERSION.SDK_INT >= 31.
 	implementation(libs.androidx.appsearch.platform.storage)
+
+	// LocalStorage backend: in-app private index, works on every Android
+	// version this module supports. Used as the fallback on pre-S devices.
+	implementation(libs.androidx.appsearch.local.storage)
 }
 
 kapt {
