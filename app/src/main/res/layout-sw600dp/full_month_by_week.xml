@@ -18,6 +18,7 @@
         android:clipToOutline="true"
         app:cardCornerRadius="20dp"
         app:cardElevation="0dp"
+        app:strokeWidth="0dp"
         app:cardBackgroundColor="?attr/colorSurface">
         <com.android.calendar.month.MonthListView
             android:id="@android:id/list"
