@@ -176,7 +176,9 @@ public class AgendaAdapter extends ResourceCursorAdapter {
         /* Calendar Color */
         int color = Utils.getDisplayColorFromColor(context, cursor.getInt(AgendaWindowAdapter.INDEX_COLOR));
         holder.colorChip.setColor(color);
-        holder.timelineLine.setBackgroundTintList(ColorStateList.valueOf(color));
+        if (holder.timelineLine != null) {
+            holder.timelineLine.setBackgroundTintList(ColorStateList.valueOf(color));
+        }
         holder.card.setCardBackgroundColor(color);
         int onSurface = com.google.android.material.color.MaterialColors.getColor(
                 holder.title, com.google.android.material.R.attr.colorOnSurface);
