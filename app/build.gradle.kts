@@ -212,6 +212,9 @@ if (System.getenv("CI") != null) {
 	// or moved to androidTest, CI runs the JVM-capable lunar tests only.
 	tasks.withType<Test>().configureEach {
 		filter.includeTestsMatching("com.android.calendar.lunar.*")
+		// List every passing lunar test in the Actions log so the runs are
+		// auditable there directly.
+		testLogging.events(TestLogEvent.PASSED)
 	}
 	tasks.configureEach {
 		if (name == "assembleDebug") {
