@@ -1,30 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/month"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     android:background="?attr/colorSurfaceContainer">
-    <include
-        android:id="@+id/day_names"
-        layout="@layout/full_month_header"
-        android:background="?attr/colorSurfaceContainer" />
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/month_calendar_container"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:clipToOutline="true"
-        app:cardCornerRadius="20dp"
-        app:cardElevation="0dp"
-        app:strokeWidth="0dp"
-        app:strokeColor="@android:color/transparent"
-        app:cardBackgroundColor="?attr/colorSurface">
-        <com.android.calendar.month.MonthListView
-            android:id="@android:id/list"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+        <include
+            android:id="@+id/day_names"
+            layout="@layout/full_month_header"
+            android:background="?attr/colorSurfaceContainer" />
+        <FrameLayout
+            android:id="@+id/month_calendar_container"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:drawSelectorOnTop="false" />
-    </com.google.android.material.card.MaterialCardView>
-</LinearLayout>
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="?attr/colorSurfaceContainer"
+            android:padding="2dp">
+            <com.android.calendar.month.MonthListView
+                android:id="@android:id/list"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:drawSelectorOnTop="false" />
+        </FrameLayout>
+    </LinearLayout>
+</FrameLayout>
