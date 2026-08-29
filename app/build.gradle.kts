@@ -206,6 +206,13 @@ configure<GenerateBpPluginExtension> {
 // branch. Running the JVM unit tests as part of every CI debug build is the
 // only hook that executes them on GitHub Actions; local builds are unaffected.
 if (System.getenv("CI") != null) {
+	// The legacy AOSP test suite (16 files, ~289 tests) was written for an
+	// instrumented runner and fails on the plain JVM (~194 of 289); it has
+	// never been executed by this repository's CI. Until it is either fixed
+	// or moved to androidTest, CI runs the JVM-capable lunar tests only.
+	tasks.withType<Test>().configureEach {
+		filter.includeTestsMatching("com.android.calendar.lunar.*")
+	}
 	tasks.configureEach {
 		if (name == "assembleDebug") {
 			dependsOn("testDebugUnitTest")
