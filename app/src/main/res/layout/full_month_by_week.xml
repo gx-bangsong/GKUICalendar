@@ -24,6 +24,7 @@
         app:cardCornerRadius="20dp"
         app:cardElevation="0dp"
         app:strokeWidth="0dp"
+        app:strokeColor="@android:color/transparent"
         app:cardBackgroundColor="?attr/colorSurfaceContainer">
         <com.android.calendar.month.MonthListView
             android:id="@android:id/list"
