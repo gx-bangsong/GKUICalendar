@@ -200,3 +200,13 @@ configure<GenerateBpPluginExtension> {
 		}
 	}
 }
+
+// The repository's CI workflows only invoke assembleDebug (no test job), and
+// workflow files cannot be modified by the automation that maintains this
+// branch. Running the JVM unit tests as part of every CI debug build is the
+// only hook that executes them on GitHub Actions; local builds are unaffected.
+if (System.getenv("CI") != null) {
+	tasks.named("assembleDebug") {
+		dependsOn("testDebugUnitTest")
+	}
+}
