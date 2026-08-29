@@ -17,9 +17,13 @@
 package com.android.calendar;
 
 import android.app.Application;
+import android.content.ComponentCallbacks2;
 import android.content.SharedPreferences;
 
+import com.android.calendar.lunar.LunarCache;
+import com.android.calendar.lunar.LunarWindow;
 import com.android.calendar.settings.GeneralPreferences;
+import com.android.calendar.settings.LunarPreferences;
 import com.android.calendar.settings.ViewDetailsPreferences;
 
 public class CalendarApplication extends Application {
@@ -33,12 +37,13 @@ public class CalendarApplication extends Application {
          * please increment SHARED_PREFS_VERSION each time the new default value appears
          * in a layout xml file in order to make sure it will be initialized
          */
-        final int SHARED_PREFS_VERSION = 1;
+        final int SHARED_PREFS_VERSION = 2;
         final String VERSION_KEY = "spv";
         SharedPreferences preferences = GeneralPreferences.Companion.getSharedPreferences(this);
         if (preferences.getInt(VERSION_KEY, 0) != SHARED_PREFS_VERSION) {
             GeneralPreferences.Companion.setDefaultValues(this);
             ViewDetailsPreferences.Companion.setDefaultValues(this);
+            LunarPreferences.Companion.setDefaultValues(this);
             preferences.edit().putInt(VERSION_KEY, SHARED_PREFS_VERSION).apply();
         }
 
@@ -49,5 +54,16 @@ public class CalendarApplication extends Application {
 
         // Initialize the registry mapping some custom behavior.
         ExtensionsFactory.init(getAssets());
+    }
+
+    @Override
+    public void onTrimMemory(int level) {
+        super.onTrimMemory(level);
+        if (level >= ComponentCallbacks2.TRIM_MEMORY_MODERATE) {
+            // The contextual lunar caches hold small render instructions only,
+            // they are cheap to rebuild on demand.
+            LunarCache.INSTANCE.evictAll();
+            LunarWindow.INSTANCE.invalidate();
+        }
     }
 }

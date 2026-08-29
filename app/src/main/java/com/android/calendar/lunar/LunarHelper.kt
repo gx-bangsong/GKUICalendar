@@ -117,6 +117,14 @@ object LunarHelper {
     fun daysBefore(festivalKey: String): Int =
         if (festivalKey == KEY_SPRING) 15 else 5
 
+    /** Parses a `pref_lunar_mode` value; anything unknown means OFF. */
+    @JvmStatic
+    fun parseMode(value: String?): LunarMode = when (value) {
+        "contextual" -> LunarMode.CONTEXTUAL
+        "always" -> LunarMode.ALWAYS
+        else -> LunarMode.OFF
+    }
+
     /** Days of reveal window after a festival: 春节 7, everything else 3. */
     @JvmStatic
     fun daysAfter(festivalKey: String): Int =

@@ -63,7 +63,10 @@ import androidx.core.graphics.ColorUtils;
 import com.android.calendar.CalendarController.ViewType;
 import com.android.calendar.CalendarEventModel.ReminderEntry;
 import com.android.calendar.CalendarUtils.TimeZoneUtils;
+import com.android.calendar.lunar.LunarHelper;
+import com.android.calendar.lunar.LunarMode;
 import com.android.calendar.settings.GeneralPreferences;
+import com.android.calendar.settings.LunarPreferences;
 import com.android.calendar.widget.CalendarAppWidgetProvider;
 import com.android.calendar.calendarcommon2.Time;
 
@@ -401,6 +404,26 @@ public class Utils {
     public static boolean getSharedPreference(Context context, String key, boolean defaultValue) {
         SharedPreferences prefs = GeneralPreferences.Companion.getSharedPreferences(context);
         return prefs.getBoolean(key, defaultValue);
+    }
+
+    // Contextual lunar calendar preferences.
+    public static LunarMode getLunarMode(Context context) {
+        return LunarHelper.parseMode(getSharedPreference(context, LunarPreferences.KEY_MODE,
+                context.getString(R.string.lunar_mode_default)));
+    }
+
+    public static Set<String> getEnabledLunarFestivals(Context context) {
+        Set<String> value = GeneralPreferences.Companion.getSharedPreferences(context)
+                .getStringSet(LunarPreferences.KEY_FESTIVALS, null);
+        return value == null ? LunarHelper.DEFAULT_FESTIVALS : value;
+    }
+
+    public static boolean getShowLunarJieqi(Context context) {
+        return getSharedPreference(context, LunarPreferences.KEY_SHOW_JIEQI, false);
+    }
+
+    public static boolean getLunarDetailAlways(Context context) {
+        return getSharedPreference(context, LunarPreferences.KEY_DETAIL_ALWAYS, false);
     }
 
     /**

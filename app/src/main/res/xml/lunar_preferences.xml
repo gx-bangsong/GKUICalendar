@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Lunar calendar (contextual reveal) preferences. -->
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <ListPreference
+        app:key="pref_lunar_mode"
+        app:title="@string/lunar_mode_title"
+        app:dialogTitle="@string/lunar_mode_title"
+        app:entries="@array/lunar_mode_entries"
+        app:entryValues="@array/lunar_mode_values"
+        app:defaultValue="@string/lunar_mode_default" />
+    <MultiSelectListPreference
+        app:key="pref_lunar_festivals"
+        app:title="@string/lunar_festivals_title"
+        app:dialogTitle="@string/lunar_festivals_title"
+        app:entries="@array/lunar_festival_entries"
+        app:entryValues="@array/lunar_festival_values"
+        app:defaultValue="@array/lunar_festival_defaults" />
+    <SwitchPreference
+        app:key="pref_lunar_show_jieqi"
+        app:defaultValue="false"
+        app:title="@string/lunar_show_jieqi_title" />
+    <SwitchPreference
+        app:key="pref_lunar_detail_always"
+        app:defaultValue="false"
+        app:title="@string/lunar_detail_always_title" />
+</PreferenceScreen>
