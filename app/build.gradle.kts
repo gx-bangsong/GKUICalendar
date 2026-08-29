@@ -206,7 +206,9 @@ configure<GenerateBpPluginExtension> {
 // branch. Running the JVM unit tests as part of every CI debug build is the
 // only hook that executes them on GitHub Actions; local builds are unaffected.
 if (System.getenv("CI") != null) {
-	tasks.named("assembleDebug") {
-		dependsOn("testDebugUnitTest")
+	tasks.configureEach {
+		if (name == "assembleDebug") {
+			dependsOn("testDebugUnitTest")
+		}
 	}
 }
