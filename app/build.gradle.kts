@@ -1,4 +1,5 @@
 import com.android.build.gradle.internal.tasks.factory.dependsOn
+import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.lineageos.generatebp.GenerateBpPluginExtension
 import org.lineageos.generatebp.models.Module
