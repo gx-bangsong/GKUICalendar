@@ -109,6 +109,15 @@ android {
 		abortOnError = false
 	}
 
+	testOptions {
+		unitTests {
+			// JVM unit tests run against android.jar stubs. LunarCache calls
+			// android.util.SparseArray; stubbed calls must return defaults
+			// instead of throwing.
+			isReturnDefaultValues = true
+		}
+	}
+
 	compileOptions {
 		isCoreLibraryDesugaringEnabled = true
 
