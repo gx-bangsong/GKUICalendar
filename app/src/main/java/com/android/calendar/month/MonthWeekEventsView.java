@@ -52,6 +52,10 @@ import com.android.calendar.DynamicTheme;
 import com.android.calendar.Event;
 import com.android.calendar.LunarUtils;
 import com.android.calendar.Utils;
+import com.android.calendar.lunar.LunarDayRenderer;
+import com.android.calendar.lunar.LunarHelper;
+import com.android.calendar.lunar.LunarInfo;
+import com.android.calendar.lunar.LunarMode;
 import com.android.calendar.settings.ViewDetailsPreferences;
 import com.android.calendar.calendarcommon2.Time;
 
@@ -118,6 +122,8 @@ public class MonthWeekEventsView extends SimpleWeekView {
     protected int mTodayIndex = -1;
     protected int mOrientation = Configuration.ORIENTATION_LANDSCAPE;
     protected List<ArrayList<Event>> mEvents = null;
+    /** Contextual lunar info per day of this week, or all-null when disabled. */
+    protected LunarInfo[] mLunarInfos;
     protected ArrayList<Event> mUnsortedEvents = null;
     // This is for drawing the outlines around event chips and supports up to 10
     // events being drawn on each day. The code will expand this if necessary.
@@ -267,6 +273,7 @@ public class MonthWeekEventsView extends SimpleWeekView {
     @Override
     protected void initView() {
         super.initView();
+        mLunarInfos = new LunarInfo[mNumDays];
 
         if (!mInitialized) {
             Resources resources = getContext().getResources();
@@ -416,6 +423,7 @@ public class MonthWeekEventsView extends SimpleWeekView {
 
         updateToday(tz);
         mNumCells = mNumDays + 1;
+        precomputeLunarInfos();
 
         if (params.containsKey(VIEW_PARAMS_ANIMATE_TODAY) && mHasToday) {
             synchronized (mAnimatorListener) {
@@ -432,6 +440,26 @@ public class MonthWeekEventsView extends SimpleWeekView {
                 mAnimateToday = true;
                 mTodayAnimator.start();
             }
+        }
+    }
+
+    /**
+     * Resolves the contextual lunar info for every day of this week once per
+     * bind, never per draw. Outside every reveal window this leaves the array
+     * all-null and drawing skips the lunar layer entirely.
+     */
+    private void precomputeLunarInfos() {
+        LunarMode mode = Utils.getLunarMode(getContext());
+        if (mode == LunarMode.OFF) {
+            java.util.Arrays.fill(mLunarInfos, null);
+            return;
+        }
+        java.util.Set<String> festivals = Utils.getEnabledLunarFestivals(getContext());
+        boolean jieqi = Utils.getShowLunarJieqi(getContext());
+        boolean fullLabel = Utils.getLunarDetailAlways(getContext());
+        for (int i = 0; i < mNumDays; i++) {
+            mLunarInfos[i] = LunarHelper.getLunarInfo(mFirstJulianDay + i, mode,
+                    festivals, jieqi, fullLabel);
         }
     }
 
@@ -598,9 +626,27 @@ public class MonthWeekEventsView extends SimpleWeekView {
                 canvas.drawRoundRect(mRectF, mMonthEventCornerRadius, mMonthEventCornerRadius, p);
                 mMonthNumPaint.setColor(MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnPrimary));
             }
+            if (mLunarInfos != null && mLunarInfos[cellIndex] != null
+                    && mLunarInfos[cellIndex].isFestival()
+                    && !(mHasToday && todayIndex == i)) {
+                // Festival chip behind the number (EMPHASIZED state); the today
+                // pill above wins when both apply.
+                LunarDayRenderer.drawFestivalChip(canvas, this, x, y, mMonthNumAscentHeight,
+                        mMonthNumHeight, mDayNumbers[i], mMonthNumPaint);
+                if (i + 1 < numCount) {
+                    // Force the number color to be reset on the next iteration,
+                    // same trick the today pill uses.
+                    isFocusMonth = !mFocusDay[i + 1];
+                }
+            }
             canvas.drawText(mDayNumbers[i], x, y, mMonthNumPaint);
             if (isBold) {
                 mMonthNumPaint.setFakeBoldText(isBold = false);
+            }
+            if (mLunarInfos != null && cellIndex < mLunarInfos.length
+                    && mLunarInfos[cellIndex] != null) {
+                LunarDayRenderer.drawLunarText(canvas, this, x, y, mMonthNumHeight,
+                        mLunarInfos[cellIndex], mHasToday && todayIndex == i);
             }
 
             if (LunarUtils.showLunar(getContext())) {

@@ -66,3 +66,8 @@
   public *** apply();
 }
 
+
+# Vendored lunar-java (third_party/lunar-java) - the calendar rules are table
+# driven; keep them intact (minification is currently disabled, this makes the
+# intent explicit if it is ever turned on).
+-keep class com.nlf.calendar.** { *; }
