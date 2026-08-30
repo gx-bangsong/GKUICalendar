@@ -26,7 +26,8 @@
         android:orientation="horizontal"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingStart="20dip" >
+        android:paddingStart="20dip"
+        android:visibility="gone" >
         <TextView
             android:id="@+id/date_bar"
             android:layout_width="wrap_content"
