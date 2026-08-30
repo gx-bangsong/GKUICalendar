@@ -114,6 +114,14 @@ public class AgendaAdapter extends ResourceCursorAdapter {
         holder.colorChip = (ColorChipView) view.findViewById(R.id.agenda_item_color);
         holder.timelineLine = view.findViewById(R.id.agenda_timeline_line);
 
+        // Re-attach the holder: AgendaByDayAdapter.getView reads the tag
+        // unguarded, and AgendaWindowAdapter/AgendaListView rely on it via
+        // instanceof checks (selection marker, day graying, goto time).
+        // Unlike the pre-53a0d9a cached holder, this one is resolved from the
+        // current view on every bind, so its lookups always match the layout
+        // of the view it is attached to.
+        view.setTag(holder);
+
         holder.startTimeMilli = cursor.getLong(AgendaWindowAdapter.INDEX_BEGIN);
         // Fade text if event was declined and set the color chip mode (response
         boolean allDay = cursor.getInt(AgendaWindowAdapter.INDEX_ALL_DAY) != 0;
