@@ -273,27 +273,32 @@ public class AgendaByDayAdapter extends BaseAdapter {
         } else if (row.mType == TYPE_MEETING) {
             View itemView = mAgendaAdapter.getView(row.mPosition, convertView, parent);
             AgendaAdapter.ViewHolder holder = ((AgendaAdapter.ViewHolder) itemView.getTag());
-            boolean firstEventOfDay = position == 0
-                    || mRowInfo.get(position - 1).mType != TYPE_MEETING
-                    || mRowInfo.get(position - 1).mDay != row.mDay;
-            holder.agendaDateColumn.setVisibility(firstEventOfDay ? View.VISIBLE : View.INVISIBLE);
-            Time eventDate = new Time(mTimeZone);
-            eventDate.setJulianDay(row.mDay);
-            holder.agendaDate.setText(String.format(Locale.getDefault(), "%d", eventDate.getDay()));
-            String dayLabel = Utils.getDayOfWeekString(row.mDay, mTodayJulianDay,
-                    eventDate.toMillis(), mContext)
-                    .replace("今天，", "").replace("今天, ", "")
-                    .replace("星期", "").replace("周", "");
-            holder.agendaDay.setText(dayLabel);
-            if (row.mDay == mTodayJulianDay) {
-                holder.agendaDate.setBackgroundResource(R.drawable.circle);
-                holder.agendaDate.setBackgroundTintList(ColorStateList.valueOf(
-                        MaterialColors.getColor(holder.agendaDate, com.google.android.material.R.attr.colorPrimary)));
-                holder.agendaDate.setTextColor(MaterialColors.getColor(holder.agendaDate, com.google.android.material.R.attr.colorOnPrimary));
-            } else {
-                holder.agendaDate.setBackgroundResource(0);
-                holder.agendaDate.setBackgroundTintList(null);
-                holder.agendaDate.setTextColor(MaterialColors.getColor(holder.agendaDate, com.google.android.material.R.attr.colorOnSurface));
+            // The per-event date column only exists in the phone layout
+            // (layout/agenda_item.xml); the layout-sw600dp agenda row omits
+            // it and the day-header rows carry the date there instead.
+            if (holder.agendaDateColumn != null) {
+                boolean firstEventOfDay = position == 0
+                        || mRowInfo.get(position - 1).mType != TYPE_MEETING
+                        || mRowInfo.get(position - 1).mDay != row.mDay;
+                holder.agendaDateColumn.setVisibility(firstEventOfDay ? View.VISIBLE : View.INVISIBLE);
+                Time eventDate = new Time(mTimeZone);
+                eventDate.setJulianDay(row.mDay);
+                holder.agendaDate.setText(String.format(Locale.getDefault(), "%d", eventDate.getDay()));
+                String dayLabel = Utils.getDayOfWeekString(row.mDay, mTodayJulianDay,
+                        eventDate.toMillis(), mContext)
+                        .replace("今天，", "").replace("今天, ", "")
+                        .replace("星期", "").replace("周", "");
+                holder.agendaDay.setText(dayLabel);
+                if (row.mDay == mTodayJulianDay) {
+                    holder.agendaDate.setBackgroundResource(R.drawable.circle);
+                    holder.agendaDate.setBackgroundTintList(ColorStateList.valueOf(
+                            MaterialColors.getColor(holder.agendaDate, com.google.android.material.R.attr.colorPrimary)));
+                    holder.agendaDate.setTextColor(MaterialColors.getColor(holder.agendaDate, com.google.android.material.R.attr.colorOnPrimary));
+                } else {
+                    holder.agendaDate.setBackgroundResource(0);
+                    holder.agendaDate.setBackgroundTintList(null);
+                    holder.agendaDate.setTextColor(MaterialColors.getColor(holder.agendaDate, com.google.android.material.R.attr.colorOnSurface));
+                }
             }
             TextView title = holder.title;
             // The holder in the view stores information from the cursor, but the cursor has no
