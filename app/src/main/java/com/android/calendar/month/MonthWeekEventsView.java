@@ -464,6 +464,24 @@ public class MonthWeekEventsView extends SimpleWeekView {
     }
 
     /**
+     * Returns true when at least one event of this week covers the given
+     * julian day, i.e. the day's cell draws event chips below the number.
+     */
+    private boolean dayHasEvents(int julianDay) {
+        if (mEvents == null) {
+            return false;
+        }
+        for (ArrayList<Event> dayEvents : mEvents) {
+            for (Event event : dayEvents) {
+                if (event.startDay <= julianDay && julianDay <= event.endDay) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
      * @param tz - time zone
      */
     public boolean updateToday(String tz) {
@@ -645,8 +663,17 @@ public class MonthWeekEventsView extends SimpleWeekView {
             }
             if (mLunarInfos != null && cellIndex < mLunarInfos.length
                     && mLunarInfos[cellIndex] != null) {
-                LunarDayRenderer.drawLunarText(canvas, this, x, y, mMonthNumHeight,
-                        mLunarInfos[cellIndex], mHasToday && todayIndex == i);
+                // Event chips are laid out directly below the day number, on
+                // the very line the lunar label occupies; the two cannot
+                // share the cell, so on days that carry events the chips win
+                // and the lunar label is skipped (a festival keeps its chip
+                // behind the day number). Reserving the line for the whole
+                // week instead is not an option: events spanning multiple
+                // days must keep the same line on every day they cover.
+                if (!dayHasEvents(mFirstJulianDay + cellIndex)) {
+                    LunarDayRenderer.drawLunarText(canvas, this, x, y, mMonthNumHeight,
+                            mLunarInfos[cellIndex], mHasToday && todayIndex == i);
+                }
             }
 
             if (LunarUtils.showLunar(getContext())) {
