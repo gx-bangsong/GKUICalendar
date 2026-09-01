@@ -75,7 +75,11 @@ private fun AppCompatActivity.setSystemBarConfiguration(light: Boolean, useColor
                 isAppearanceLightNavigationBars = light
             }
         }
-        window.statusBarColor = if (useColorPrimaryForStatusBar) getStyledAttributeColor(androidx.appcompat.R.attr.colorPrimary) else getStyledAttributeColor(android.R.attr.colorBackground)
+        window.statusBarColor = if (useColorPrimaryForStatusBar) {
+            getStyledAttributeColor(androidx.appcompat.R.attr.colorPrimary)
+        } else {
+            getStyledAttributeColor(com.google.android.material.R.attr.colorSurfaceContainer)
+        }
         window.navigationBarColor = getStyledAttributeColor(android.R.attr.colorBackground)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             window.isNavigationBarContrastEnforced = true

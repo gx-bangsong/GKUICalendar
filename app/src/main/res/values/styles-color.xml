@@ -3,6 +3,15 @@
 
     <style name="colorBackgroundBlack">
         <item name="android:colorBackground">@color/bg_black</item>
+        <item name="colorSurface">@color/bg_black</item>
+        <item name="colorSurfaceContainer">@color/bg_black</item>
+        <item name="colorOnSurface">#FFF1F1F1</item>
+        <item name="colorOnSurfaceVariant">#FFC5C6C8</item>
+        <item name="colorOnPrimary">#FF003731</item>
+        <item name="colorOutline">#FF8F9193</item>
+        <item name="colorOutlineVariant">#FF454749</item>
+        <item name="colorError">#FFFFB4AB</item>
+        <item name="colorOnError">#FF690005</item>
     </style>
 
     <style name="colorAccentPrimaryDefault">

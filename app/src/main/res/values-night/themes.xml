@@ -1,8 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <!-- Runtime dark mode is applied to Theme.Etar by ThemeUtils, so override the
+         semantic Material 3 tokens here rather than relying only on CalendarAppTheme*. -->
     <style name="Theme.Etar" parent="BaseTheme">
         <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowBackground">@color/bg_dark</item>
+        <item name="colorSurface">@color/bg_dark</item>
+        <item name="colorSurfaceContainer">#FF3A3A3A</item>
+        <item name="colorOnSurface">#FFE6E1E5</item>
+        <item name="colorOnSurfaceVariant">#FFC5C6C8</item>
+        <item name="colorOnPrimary">#FF003731</item>
+        <item name="colorOutline">#FF8F9193</item>
+        <item name="colorOutlineVariant">#FF454749</item>
+        <item name="colorError">#FFFFB4AB</item>
+        <item name="colorOnError">#FF690005</item>
     </style>
-
 </resources>

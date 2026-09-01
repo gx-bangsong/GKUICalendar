@@ -23,6 +23,7 @@ import android.content.ContentUris;
 import android.content.Context;
 import android.content.res.Resources;
 import android.database.Cursor;
+import android.database.StaleDataException;
 import android.net.Uri;
 import android.os.Handler;
 import android.provider.CalendarContract;
@@ -41,6 +42,7 @@ import android.widget.GridLayout;
 import android.widget.TextView;
 
 import com.android.calendar.CalendarController;
+import com.android.calendar.DynamicTheme;
 import com.android.calendar.CalendarController.EventType;
 import com.android.calendar.CalendarController.ViewType;
 import com.android.calendar.StickyHeaderListView;
@@ -217,9 +219,8 @@ public class AgendaWindowAdapter extends BaseAdapter
             AgendaListView agendaListView, boolean showEventOnStart) {
         mContext = context;
         mResources = context.getResources();
-        mSelectedItemBackgroundColor = mResources
-                .getColor(R.color.agenda_selected_background_color);
-        mSelectedItemTextColor = mResources.getColor(R.color.agenda_selected_text_color);
+        mSelectedItemBackgroundColor = DynamicTheme.getColor(context, "agenda_selected_background_color");
+        mSelectedItemTextColor = DynamicTheme.getColor(context, "agenda_selected_text_color");
         mItemRightMargin = mResources.getDimension(R.dimen.agenda_item_right_margin);
         mIsTabletConfig = Utils.getConfigBool(mContext, R.bool.tablet_config);
 
@@ -505,13 +506,23 @@ public class AgendaWindowAdapter extends BaseAdapter
             isDayHeader = true;
         }
 
-        if (cursorPosition < info.cursor.getCount()) {
-            AgendaItem item = buildAgendaItemFromCursor(info.cursor, cursorPosition, isDayHeader);
-            if (!returnEventStartDay && !isDayHeader) {
-                item.startDay = info.dayAdapter.findJulianDayFromPosition(positionInAdapter -
-                        info.offset);
+        // The adapter can be closed while FragmentManager is saving state (for example
+        // during rotation or when leaving Agenda). The query cursor may therefore become
+        // stale between getAdapterInfoByPosition() and this access.
+        if (info.cursor == null || info.cursor.isClosed()) {
+            return null;
+        }
+        try {
+            if (cursorPosition < info.cursor.getCount()) {
+                AgendaItem item = buildAgendaItemFromCursor(info.cursor, cursorPosition, isDayHeader);
+                if (!returnEventStartDay && !isDayHeader) {
+                    item.startDay = info.dayAdapter.findJulianDayFromPosition(positionInAdapter -
+                            info.offset);
+                }
+                return item;
             }
-            return item;
+        } catch (StaleDataException e) {
+            Log.w(TAG, "Agenda cursor was closed while saving/restoring state", e);
         }
         return null;
     }

@@ -1,67 +1,63 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <!-- Base application theme. -->
     <style name="BaseTheme" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="android:statusBarColor">?android:attr/colorBackground</item>
         <item name="colorAccent">@color/colorAccent</item>
-        <item name="colorPrimary">@color/colorAccent</item>
+        <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorSecondaryContainer">@color/colorSecondaryContainer</item>
+        <item name="colorSurface">@color/background_color</item>
+        <item name="colorSurfaceContainer">@color/background_color</item>
+        <item name="colorOnSurface">#FF1A1C1E</item>
+        <item name="colorOnSurfaceVariant">#FF44474E</item>
+        <item name="colorOnPrimary">#FFFFFFFF</item>
+        <item name="colorOutline">#FF73777F</item>
+        <item name="colorOutlineVariant">#FFC3C6CF</item>
+        <item name="colorError">#FFBA1A1A</item>
+        <item name="colorOnError">#FFFFFFFF</item>
+        <item name="android:statusBarColor">?android:colorBackground</item>
         <item name="android:navigationBarColor">?android:colorBackground</item>
     </style>
-
-    <!-- Inherit base theme to allow overriding Light Theme as per API levels -->
     <style name="Theme.Etar" parent="BaseTheme">
         <item name="android:windowLightStatusBar">true</item>
     </style>
 
-    <style name="CalendarAppThemeLight" parent="Theme.AppCompat.Light.NoActionBar">
-        <item name="android:statusBarColor">?android:attr/colorBackground</item>
-        <item name="colorPrimary">@color/colorPrimary</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
-        <item name="colorAccent">@color/colorAccent</item>
-        <item name="android:itemBackground">@android:color/white</item>
+    <style name="CalendarAppThemeLight" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/colorPrimary</item><item name="colorOnPrimary">#FFFFFFFF</item>
+        <item name="colorSurface">#FFFAFAFA</item><item name="colorSurfaceContainer">#FFF0F1F1</item>
+        <item name="colorOnSurface">#FF1A1C1E</item><item name="colorOnSurfaceVariant">#FF44474E</item>
+        <item name="colorOutline">#FF73777F</item><item name="colorOutlineVariant">#FFC3C6CF</item>
+        <item name="colorError">#FFBA1A1A</item><item name="colorOnError">#FFFFFFFF</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item><item name="colorAccent">@color/colorAccent</item>
+        <item name="android:windowBackground">@color/background_color</item>
+        <item name="android:itemBackground">@color/background_color</item>
         <item name="autoCompleteTextViewStyle">@style/actionbar_cursor</item>
         <item name="calendarSpinnerDisabledTextColor">@color/calendar_item_disabled</item>
     </style>
 
-    <style name="CalendarAppThemeDark" parent="Theme.AppCompat.NoActionBar">
-        <item name="android:statusBarColor">?android:attr/colorBackground</item>
-        <item name="colorPrimary">@color/colorPrimary</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
-        <item name="colorAccent">@color/colorAccent</item>
-        <item name="android:windowBackground">@color/bg_dark</item>
+    <style name="CalendarAppThemeDark" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/colorPrimary</item><item name="colorOnPrimary">#FF003731</item>
+        <item name="colorSurface">@color/bg_dark</item><item name="colorSurfaceContainer">#FF3A3A3A</item>
+        <item name="colorOnSurface">#FFE6E1E5</item><item name="colorOnSurfaceVariant">#FFC5C6C8</item>
+        <item name="colorOutline">#FF8F9193</item><item name="colorOutlineVariant">#FF454749</item>
+        <item name="colorError">#FFFFB4AB</item><item name="colorOnError">#FF690005</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item><item name="colorAccent">@color/colorAccent</item>
+        <item name="android:windowBackground">@color/bg_dark</item><item name="android:itemBackground">@color/bg_dark</item>
         <item name="actionBarPopupTheme">@style/ThemeOverlay.AppCompat.Dark</item>
-        <item name="android:itemBackground">@color/bg_dark</item>
         <item name="calendarSpinnerDisabledTextColor">@color/calendar_item_disabled_dark</item>
     </style>
 
-    <style name="CalendarAppThemeBlack" parent="Theme.AppCompat.NoActionBar">
-        <item name="android:statusBarColor">?android:attr/colorBackground</item>
-        <item name="colorPrimary">@color/colorPrimary</item>
-        <item name="colorPrimaryDark">@color/bg_black</item>
-        <item name="colorAccent">@color/colorAccent</item>
-        <item name="android:windowBackground">@color/bg_black</item>
-        <item name="android:itemBackground">@color/bg_black</item>
+    <style name="CalendarAppThemeBlack" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/colorPrimary</item><item name="colorOnPrimary">#FF003731</item>
+        <item name="colorSurface">@color/bg_black</item><item name="colorSurfaceContainer">@color/bg_black</item>
+        <item name="colorOnSurface">#FFF1F1F1</item><item name="colorOnSurfaceVariant">#FFC5C6C8</item>
+        <item name="colorOutline">#FF8F9193</item><item name="colorOutlineVariant">#FF454749</item>
+        <item name="colorError">#FFFFB4AB</item><item name="colorOnError">#FF690005</item>
+        <item name="colorPrimaryDark">@color/bg_black</item><item name="colorAccent">@color/colorAccent</item>
+        <item name="android:windowBackground">@color/bg_black</item><item name="android:itemBackground">@color/bg_black</item>
         <item name="calendarSpinnerDisabledTextColor">@color/calendar_item_disabled_black</item>
     </style>
 
-
-    <!--All color + theme (light/dark/black) combinations-->
-    <style name="CalendarAppThemeLightTeal" parent="CalendarAppThemeLight">
-        <item name="colorPrimary">@color/colorPrimary</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
-        <item name="colorAccent">@color/colorAccent</item>
-    </style>
-    <style name="CalendarAppThemeDarkTeal" parent="CalendarAppThemeDark">
-        <item name="colorPrimary">@color/colorPrimary</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
-        <item name="colorAccent">@color/colorAccent</item>
-    </style>
-    <style name="CalendarAppThemeBlackTeal" parent="CalendarAppThemeBlack">
-        <item name="colorPrimary">@color/colorPrimary</item>
-        <item name="colorPrimaryDark">@color/bg_black</item>
-        <item name="colorAccent">@color/colorAccent</item>
-    </style>
-
+    <style name="CalendarAppThemeLightTeal" parent="CalendarAppThemeLight"><item name="android:statusBarColor">@color/colorPrimary</item></style>
+    <style name="CalendarAppThemeDarkTeal" parent="CalendarAppThemeDark"><item name="android:statusBarColor">@color/colorPrimary</item></style>
+    <style name="CalendarAppThemeBlackTeal" parent="CalendarAppThemeBlack" />
 </resources>

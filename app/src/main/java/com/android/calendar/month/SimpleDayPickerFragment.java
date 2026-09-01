@@ -37,6 +37,7 @@ import android.widget.TextView;
 import androidx.fragment.app.ListFragment;
 
 import com.android.calendar.DynamicTheme;
+import com.google.android.material.color.MaterialColors;
 import com.android.calendar.Utils;
 import com.android.calendar.calendarcommon2.Time;
 
@@ -242,8 +243,12 @@ public class SimpleDayPickerFragment extends ListFragment implements OnScrollLis
     protected void setUpHeader() {
         mDayLabels = new String[7];
         for (int i = Calendar.SUNDAY; i <= Calendar.SATURDAY; i++) {
-            mDayLabels[i - Calendar.SUNDAY] = DateUtils.getDayOfWeekString(i,
+            String label = DateUtils.getDayOfWeekString(i,
                     DateUtils.LENGTH_SHORTEST).toUpperCase();
+            if (Locale.getDefault().getLanguage().equals("zh")) {
+                label = label.replace("星期", "").replace("周", "");
+            }
+            mDayLabels[i - Calendar.SUNDAY] = label;
         }
     }
 
@@ -323,6 +328,9 @@ public class SimpleDayPickerFragment extends ListFragment implements OnScrollLis
                     label.setTextColor(mSaturdayColor);
                 } else if (position == Time.SUNDAY) {
                     label.setTextColor(mSundayColor);
+                } else if (position == Calendar.getInstance().get(Calendar.DAY_OF_WEEK) - 1) {
+                    label.setTextColor(MaterialColors.getColor(label,
+                            com.google.android.material.R.attr.colorPrimary));
                 } else {
                     label.setTextColor(mDayNameColor);
                 }
@@ -550,11 +558,18 @@ public class SimpleDayPickerFragment extends ListFragment implements OnScrollLis
      * @param updateHighlight TODO(epastern):
      */
     protected void setMonthDisplayed(Time time, boolean updateHighlight) {
-        CharSequence oldMonth = mMonthName.getText();
-        mMonthName.setText(Utils.formatMonthYear(mContext, time));
-        mMonthName.invalidate();
-        if (!TextUtils.equals(oldMonth, mMonthName.getText())) {
-            mMonthName.sendAccessibilityEvent(AccessibilityEvent.TYPE_VIEW_FOCUSED);
+        // mMonthName is wired up in onActivityCreated, but onCreate calls
+        // goTo() (which in turn calls this method) before that runs when
+        // restoring from savedInstanceState. Skip the title update until
+        // the TextView exists; the next goTo() after onActivityCreated
+        // will repaint it.
+        if (mMonthName != null) {
+            CharSequence oldMonth = mMonthName.getText();
+            mMonthName.setText(Utils.formatMonthYear(mContext, time));
+            mMonthName.invalidate();
+            if (!TextUtils.equals(oldMonth, mMonthName.getText())) {
+                mMonthName.sendAccessibilityEvent(AccessibilityEvent.TYPE_VIEW_FOCUSED);
+            }
         }
         mCurrentMonthDisplayed = time.getMonth();
         if (updateHighlight) {

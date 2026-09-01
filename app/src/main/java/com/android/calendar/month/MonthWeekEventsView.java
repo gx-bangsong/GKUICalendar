@@ -46,10 +46,16 @@ import android.view.accessibility.AccessibilityManager;
 
 import androidx.core.content.ContextCompat;
 
+import com.google.android.material.color.MaterialColors;
+
 import com.android.calendar.DynamicTheme;
 import com.android.calendar.Event;
 import com.android.calendar.LunarUtils;
 import com.android.calendar.Utils;
+import com.android.calendar.lunar.LunarDayRenderer;
+import com.android.calendar.lunar.LunarHelper;
+import com.android.calendar.lunar.LunarInfo;
+import com.android.calendar.lunar.LunarMode;
 import com.android.calendar.settings.ViewDetailsPreferences;
 import com.android.calendar.calendarcommon2.Time;
 
@@ -116,6 +122,8 @@ public class MonthWeekEventsView extends SimpleWeekView {
     protected int mTodayIndex = -1;
     protected int mOrientation = Configuration.ORIENTATION_LANDSCAPE;
     protected List<ArrayList<Event>> mEvents = null;
+    /** Contextual lunar info per day of this week, or all-null when disabled. */
+    protected LunarInfo[] mLunarInfos;
     protected ArrayList<Event> mUnsortedEvents = null;
     // This is for drawing the outlines around event chips and supports up to 10
     // events being drawn on each day. The code will expand this if necessary.
@@ -265,6 +273,7 @@ public class MonthWeekEventsView extends SimpleWeekView {
     @Override
     protected void initView() {
         super.initView();
+        mLunarInfos = new LunarInfo[mNumDays];
 
         if (!mInitialized) {
             Resources resources = getContext().getResources();
@@ -414,6 +423,7 @@ public class MonthWeekEventsView extends SimpleWeekView {
 
         updateToday(tz);
         mNumCells = mNumDays + 1;
+        precomputeLunarInfos();
 
         if (params.containsKey(VIEW_PARAMS_ANIMATE_TODAY) && mHasToday) {
             synchronized (mAnimatorListener) {
@@ -431,6 +441,44 @@ public class MonthWeekEventsView extends SimpleWeekView {
                 mTodayAnimator.start();
             }
         }
+    }
+
+    /**
+     * Resolves the contextual lunar info for every day of this week once per
+     * bind, never per draw. Outside every reveal window this leaves the array
+     * all-null and drawing skips the lunar layer entirely.
+     */
+    private void precomputeLunarInfos() {
+        LunarMode mode = Utils.getLunarMode(getContext());
+        if (mode == LunarMode.OFF) {
+            java.util.Arrays.fill(mLunarInfos, null);
+            return;
+        }
+        java.util.Set<String> festivals = Utils.getEnabledLunarFestivals(getContext());
+        boolean jieqi = Utils.getShowLunarJieqi(getContext());
+        boolean fullLabel = Utils.getLunarDetailAlways(getContext());
+        for (int i = 0; i < mNumDays; i++) {
+            mLunarInfos[i] = LunarHelper.getLunarInfo(mFirstJulianDay + i, mode,
+                    festivals, jieqi, fullLabel);
+        }
+    }
+
+    /**
+     * Returns true when at least one event of this week covers the given
+     * julian day, i.e. the day's cell draws event chips below the number.
+     */
+    private boolean dayHasEvents(int julianDay) {
+        if (mEvents == null) {
+            return false;
+        }
+        for (ArrayList<Event> dayEvents : mEvents) {
+            for (Event event : dayEvents) {
+                if (event.startDay <= julianDay && julianDay <= event.endDay) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**
@@ -496,89 +544,23 @@ public class MonthWeekEventsView extends SimpleWeekView {
 
     @Override
     protected void drawDaySeparators(Canvas canvas) {
-        final int coordinatesPerLine = 4;
-        // There are mNumDays - 1 vertical lines and 1 horizontal, so the total is mNumDays
-        float[] lines = new float[mNumDays * coordinatesPerLine];
-        int i = 0;
-
-        // Horizontal line
-        lines[i++] = 0;
-        lines[i++] = 0;
-        lines[i++] = mWidth;
-        lines[i++] = 0;
-        int y0 = 0;
-        int y1 = mHeight;
-
-        // 6 vertical lines
-        while (i < lines.length) {
-            int x = computeDayLeftPosition(i / coordinatesPerLine);
-            lines[i++] = x;
-            lines[i++] = y0;
-            lines[i++] = x;
-            lines[i++] = y1;
-        }
-        p.setColor(mDaySeparatorInnerColor);
-        p.setStrokeWidth(mDaySeparatorInnerWidth);
-        canvas.drawLines(lines, 0, lines.length, p);
+        // Tile spacing and the outer month container provide the separation.
+        // Avoid the legacy full-height grid lines used by the old month view.
     }
 
     @Override
     protected void drawBackground(Canvas canvas) {
-        int i = 0;
-        int offset = 0;
-        r.top = mDaySeparatorInnerWidth;
-        r.bottom = mHeight;
-        if (mShowWeekNum) {
-            i++;
-            offset++;
-        }
-        if (mFocusDay[i]) {
-            while (++i < mOddMonth.length && mFocusDay[i])
-                ;
-            r.right = computeDayLeftPosition(i - offset);
-            r.left = 0;
-            p.setColor(mMonthBGFocusMonthColor);
-            canvas.drawRect(r, p);
-            // compute left edge for i, set up r, draw
-        } else if (mFocusDay[(i = mFocusDay.length - 1)]) {
-            while (--i >= offset && mFocusDay[i])
-                ;
-            i++;
-            // compute left edge for i, set up r, draw
-            r.right = mWidth;
-            r.left = computeDayLeftPosition(i - offset);
-            p.setColor(mMonthBGFocusMonthColor);
-            canvas.drawRect(r, p);
-        } else if (!mOddMonth[i]) {
-            while (++i < mOddMonth.length && !mOddMonth[i])
-                ;
-            r.right = computeDayLeftPosition(i - offset);
-            r.left = 0;
-            p.setColor(mMonthBGOtherColor);
-            canvas.drawRect(r, p);
-            // compute left edge for i, set up r, draw
-        } else if (!mOddMonth[(i = mOddMonth.length - 1)]) {
-            while (--i >= offset && !mOddMonth[i])
-                ;
-            i++;
-            // compute left edge for i, set up r, draw
-            r.right = mWidth;
-            r.left = computeDayLeftPosition(i - offset);
-            p.setColor(mMonthBGOtherColor);
-            canvas.drawRect(r, p);
-        }
-        if (mHasToday) {
-            int selectedColor = ContextCompat.getColor(mContext, DynamicTheme.getColorId(DynamicTheme.getPrimaryColor(mContext)));
-
-            if (Utils.getSharedPreference(mContext, "pref_theme", "light").equals("light")) {
-                p.setColor(selectedColor);
-                p.setAlpha(72);
-            } else {
-                p.setColor(mMonthBGTodayColor);
-            }
-            r.left = computeDayLeftPosition(mTodayIndex);
-            r.right = computeDayLeftPosition(mTodayIndex + 1);
-            canvas.drawRect(r, p);
+        // Draw each week as a row of compact, rounded MD3-like date tiles.
+        // The parent month layout clips these tiles to its outer rounded container.
+        int offset = mShowWeekNum ? 1 : 0;
+        int drawableDays = Math.min(mNumDays, mFocusDay.length);
+        float cellWidth = (float) mWidth / mNumDays;
+        for (int day = 0; day < drawableDays; day++) {
+            mRectF.set(day * cellWidth + 4, 4, (day + 1) * cellWidth - 4, mHeight - 4);
+            p.setStyle(Style.FILL);
+            p.setAlpha(255);
+            p.setColor(mFocusDay[day] ? mMonthBGFocusMonthColor : mMonthBGOtherColor);
+            canvas.drawRoundRect(mRectF, 8, 8, p);
         }
     }
 
@@ -618,6 +600,7 @@ public class MonthWeekEventsView extends SimpleWeekView {
         }
 
         y = mMonthNumAscentHeight + mTopPaddingMonthNumber;
+        mMonthNumPaint.setTextAlign(Align.CENTER);
 
         boolean isFocusMonth = mFocusDay[i];
         boolean isBold = false;
@@ -641,10 +624,56 @@ public class MonthWeekEventsView extends SimpleWeekView {
                 isFocusMonth = mFocusDay[i];
                 mMonthNumPaint.setColor(isFocusMonth ? mMonthNumColor : mMonthNumOtherColor);
             }
-            x = computeDayLeftPosition(i - offset) - (mSidePaddingMonthNumber);
+            int cellIndex = i - (mShowWeekNum ? 1 : 0);
+            x = (int) ((cellIndex + 0.5f) * mWidth / mNumDays);
+            if (mHasToday && todayIndex == i) {
+                // Snap the pill to the rendered glyph bounds (ascent..descent),
+                // not the loose halfHeight + 6 rectangle that previously
+                // surrounded the digit with too much empty space at the
+                // bottom. Numbers live on the cap height inside the
+                // ascent band, so a baseline-centred pill rendered above
+                // ascent still left the digit hugging the top edge. The
+                // tighter rectangle + chip-matching 8dp radius keeps the
+                // pill the same shape as the event chips beneath the day.
+                float halfWidth = mMonthNumPaint.measureText(mDayNumbers[i]) / 2f + 10;
+                float pillTop = y - mMonthNumAscentHeight;
+                float pillBottom = y + (mMonthNumHeight - mMonthNumAscentHeight);
+                mRectF.set(x - halfWidth, pillTop, x + halfWidth, pillBottom);
+                p.setStyle(Style.FILL);
+                p.setColor(MaterialColors.getColor(this, com.google.android.material.R.attr.colorPrimary));
+                canvas.drawRoundRect(mRectF, mMonthEventCornerRadius, mMonthEventCornerRadius, p);
+                mMonthNumPaint.setColor(MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnPrimary));
+            }
+            if (mLunarInfos != null && mLunarInfos[cellIndex] != null
+                    && mLunarInfos[cellIndex].isFestival()
+                    && !(mHasToday && todayIndex == i)) {
+                // Festival chip behind the number (EMPHASIZED state); the today
+                // pill above wins when both apply.
+                LunarDayRenderer.drawFestivalChip(canvas, this, x, y, mMonthNumAscentHeight,
+                        mMonthNumHeight, mDayNumbers[i], mMonthNumPaint);
+                if (i + 1 < numCount) {
+                    // Force the number color to be reset on the next iteration,
+                    // same trick the today pill uses.
+                    isFocusMonth = !mFocusDay[i + 1];
+                }
+            }
             canvas.drawText(mDayNumbers[i], x, y, mMonthNumPaint);
             if (isBold) {
                 mMonthNumPaint.setFakeBoldText(isBold = false);
+            }
+            if (mLunarInfos != null && cellIndex < mLunarInfos.length
+                    && mLunarInfos[cellIndex] != null) {
+                // Event chips are laid out directly below the day number, on
+                // the very line the lunar label occupies; the two cannot
+                // share the cell, so on days that carry events the chips win
+                // and the lunar label is skipped (a festival keeps its chip
+                // behind the day number). Reserving the line for the whole
+                // week instead is not an option: events spanning multiple
+                // days must keep the same line on every day they cover.
+                if (!dayHasEvents(mFirstJulianDay + cellIndex)) {
+                    LunarDayRenderer.drawLunarText(canvas, this, x, y, mMonthNumHeight,
+                            mLunarInfos[cellIndex], mHasToday && todayIndex == i);
+                }
             }
 
             if (LunarUtils.showLunar(getContext())) {
@@ -1358,7 +1387,9 @@ public class MonthWeekEventsView extends SimpleWeekView {
         @Override
         public void setRectangle(int spanningDays, int numberOfLines) {
             r.left = mBoxBoundaries.getX();
-            r.right = mBoxBoundaries.getX() + mEventSquareWidth;
+            // MD3 month-view event chip: use the entire day span, not only the
+            // legacy three-pixel color marker.
+            r.right = mBoxBoundaries.getRightEdge(spanningDays) - mBorderThickness;
             r.top = mBoxBoundaries.getY() + mEventAscentHeight - mEventSquareHeight;
             r.bottom = mBoxBoundaries.getY() + mEventAscentHeight + (numberOfLines - 1) * mEventHeight;
         }

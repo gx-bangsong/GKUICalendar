@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Simplified Chinese strings for the contextual lunar calendar. -->
+<resources>
+    <string name="lunar_preferences_title">农历</string>
+    <string name="lunar_mode_title">显示农历</string>
+    <string-array name="lunar_mode_entries">
+        <item>关闭</item>
+        <item>仅临近节日</item>
+        <item>每天</item>
+    </string-array>
+    <string name="lunar_festivals_title">触发农历显示的节日</string>
+    <string-array name="lunar_festival_entries">
+        <item>春节</item>
+        <item>元宵</item>
+        <item>清明</item>
+        <item>端午</item>
+        <item>七夕</item>
+        <item>中秋</item>
+        <item>重阳</item>
+        <item>腊八</item>
+    </string-array>
+    <string name="lunar_show_jieqi_title">显示二十四节气</string>
+    <string name="lunar_detail_always_title">显示完整农历日期（如八月十五）</string>
+    <string name="lunar_mode_default" translatable="false">contextual</string>
+</resources>

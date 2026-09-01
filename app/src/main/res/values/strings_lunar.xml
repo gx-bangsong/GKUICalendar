@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- English fallback strings for the contextual lunar calendar. -->
+<resources>
+    <string name="lunar_preferences_title">Lunar calendar</string>
+    <string name="lunar_mode_title">Show lunar dates</string>
+    <string-array name="lunar_mode_entries">
+        <item>Off</item>
+        <item>Near festivals only</item>
+        <item>Every day</item>
+    </string-array>
+    <string name="lunar_festivals_title">Festivals that reveal the lunar calendar</string>
+    <string-array name="lunar_festival_entries">
+        <item>Spring Festival (Chinese New Year)</item>
+        <item>Lantern Festival</item>
+        <item>Qingming Festival</item>
+        <item>Dragon Boat Festival</item>
+        <item>Qixi Festival</item>
+        <item>Mid-Autumn Festival</item>
+        <item>Double Ninth Festival</item>
+        <item>Laba Festival</item>
+    </string-array>
+    <string name="lunar_show_jieqi_title">Show the 24 solar terms</string>
+    <string name="lunar_detail_always_title">Show full lunar dates (e.g. 八月十五)</string>
+
+    <!-- Locale-independent values; shared by every translation. -->
+    <string-array name="lunar_mode_values" translatable="false">
+        <item>off</item>
+        <item>contextual</item>
+        <item>always</item>
+    </string-array>
+    <string name="lunar_mode_default" translatable="false">off</string>
+    <string-array name="lunar_festival_values" translatable="false">
+        <item>spring</item>
+        <item>yuanxiao</item>
+        <item>qingming</item>
+        <item>duanwu</item>
+        <item>qixi</item>
+        <item>zhongqiu</item>
+        <item>chongyang</item>
+        <item>laba</item>
+    </string-array>
+    <string-array name="lunar_festival_defaults" translatable="false">
+        <item>spring</item>
+        <item>yuanxiao</item>
+        <item>qingming</item>
+        <item>duanwu</item>
+        <item>qixi</item>
+        <item>zhongqiu</item>
+        <item>chongyang</item>
+        <item>laba</item>
+    </string-array>
+</resources>

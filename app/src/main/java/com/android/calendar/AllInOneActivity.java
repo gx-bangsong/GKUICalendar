@@ -83,6 +83,7 @@ import com.android.calendar.CalendarController.ViewType;
 import com.android.calendar.agenda.AgendaFragment;
 import com.android.calendar.alerts.AlertService;
 import com.android.calendar.month.MonthByWeekFragment;
+import com.android.calendar.shift.ShiftSchedulerFragment;
 import com.android.calendar.selectcalendars.SelectVisibleCalendarsFragment;
 import com.android.calendar.settings.GeneralPreferences;
 import com.android.calendar.settings.SettingsActivity;
@@ -161,6 +162,7 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
     private TextView mHomeTime;
     private TextView mDateRange;
     private TextView mWeekTextView;
+    private LinearLayout mDateGroup;
     private View mMiniMonth;
     private View mCalendarsList;
     private View mMiniMonthContainer;
@@ -369,6 +371,7 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
         setupFloatingActionButton();
 
         mHomeTime = binding.include.homeTime;
+        mDateGroup = binding.include.dateGroup;
         mMiniMonth = binding.include.miniMonth;
         if (mIsTabletConfig && mOrientation == Configuration.ORIENTATION_PORTRAIT) {
             mMiniMonth.setLayoutParams(new RelativeLayout.LayoutParams(mControlsAnimateWidth,
@@ -394,6 +397,11 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
+                FragmentManager fragmentManager = getSupportFragmentManager();
+                if (fragmentManager.getBackStackEntryCount() > 0) {
+                    fragmentManager.popBackStack();
+                    return;
+                }
                 if (mCurrentView == ViewType.EDIT || mBackToPreviousView) {
                     mController.sendEvent(this, EventType.GO_TO, null, null, -1, mPreviousView);
                 } else {
@@ -930,6 +938,11 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
             ImportActivity.pickImportFile(this);
         } else if (itemId == R.id.action_date_calculator) {
             startActivity(new Intent(this, com.android.calendar.date_calculator.DateCalculatorActivity.class));
+        } else if (itemId == R.id.shift_scheduler_menu_item) {
+            getSupportFragmentManager().beginTransaction()
+                .replace(R.id.main_pane, new ShiftSchedulerFragment())
+                .addToBackStack(null)
+                .commit();
         } else if (itemId == R.id.action_view_settings) {
             Intent intent = new Intent(this, SettingsActivity.class);
             intent.putExtra(SettingsActivityKt.EXTRA_SHOW_FRAGMENT, ViewDetailsPreferences.class.getName());
@@ -1233,6 +1246,23 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
         } else if (mHomeTime != null) {
             mHomeTime.setVisibility(View.GONE);
         }
+
+        // Collapse the secondary date row when nothing is shown in it. The
+        // date itself lives in the toolbar unless mIsTabletConfig bound
+        // date_bar as the title; configurations that inflate the sw600dp
+        // layout but take the phone code path (e.g. a ~800x820dp window
+        // matching no tablet_config qualifier) never bind date_bar, so with
+        // the week number and home time also hidden the row rendered as an
+        // empty 42dp bar between the toolbar and the calendar content.
+        if (mDateGroup != null) {
+            boolean hasSecondaryContent =
+                    (mIsTabletConfig && mDateRange != null && mDateRange.length() > 0)
+                    || (mWeekTextView != null
+                            && mWeekTextView.getVisibility() == View.VISIBLE)
+                    || (mHomeTime != null
+                            && mHomeTime.getVisibility() == View.VISIBLE);
+            mDateGroup.setVisibility(hasSecondaryContent ? View.VISIBLE : View.GONE);
+        }
     }
 
     public void goToDate() {
@@ -1351,10 +1381,14 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
                 if (event.startTime != null && event.endTime != null) {
                     // Event is all day , adjust the goto time to local time
                     if (event.isAllDay()) {
-                        Utils.convertAlldayUtcToLocal(
-                                event.startTime, event.startTime.toMillis(), mTimeZone);
-                        Utils.convertAlldayUtcToLocal(
-                                event.endTime, event.endTime.toMillis(), mTimeZone);
+                        long start = Utils.convertAlldayUtcToLocal(
+                                null, event.startTime.toMillis(), mTimeZone);
+                        long end = Utils.convertAlldayUtcToLocal(
+                                null, event.endTime.toMillis(), mTimeZone);
+                        event.startTime.setTimezone(mTimeZone);
+                        event.startTime.set(start);
+                        event.endTime.setTimezone(mTimeZone);
+                        event.endTime.set(end);
                     }
                     mController.sendEvent(this, EventType.GO_TO, event.startTime, event.endTime,
                             event.selectedTime, event.id, ViewType.AGENDA,

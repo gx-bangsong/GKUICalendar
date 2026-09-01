@@ -125,7 +125,8 @@ public class DynamicTheme {
         switch (theme) {
             case SYSTEM:
                 if (isSystemInDarkTheme(context)) {
-                    return "_" + "dark";
+                    boolean pureBlack = Utils.getSharedPreference(context, PURE_BLACK_NIGHT_MODE, false);
+                    return pureBlack ? "_black" : "_dark";
                 } else {
                     return "";
                 }
@@ -153,7 +154,12 @@ public class DynamicTheme {
         // application, but not for the resources. This is to find the package name of a known
         // resource to know what package to lookup the colors in.
         String packageName = res.getResourcePackageName(R.string.app_label);
-        return res.getColor(res.getIdentifier(id + suffix, "color", packageName));
+        int resId = res.getIdentifier(id + suffix, "color", packageName);
+        if (resId == 0) {
+            Log.w(TAG, "Missing themed color resource: " + id + suffix);
+            throw new Resources.NotFoundException("Missing themed color: " + id + suffix);
+        }
+        return res.getColor(resId);
     }
 
     public static int getDrawableId(Context context, String id) {
@@ -163,7 +169,11 @@ public class DynamicTheme {
         // application, but not for the resources. This is to find the package name of a known
         // resource to know what package to lookup the drawables in.
         String packageName = res.getResourcePackageName(R.string.app_label);
-        return res.getIdentifier(id + suffix, "drawable", packageName);
+        int resId = res.getIdentifier(id + suffix, "drawable", packageName);
+        if (resId == 0) {
+            Log.w(TAG, "Missing themed drawable resource: " + id + suffix);
+        }
+        return resId;
     }
 
     public static int getDialogStyle(Context context) {

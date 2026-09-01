@@ -57,6 +57,7 @@ import com.android.calendar.calendarcommon2.Time;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Locale;
 import java.util.HashMap;
 import java.util.List;
 
@@ -331,8 +332,12 @@ public class MonthByWeekFragment extends SimpleDayPickerFragment implements
 
         mDayLabels = new String[7];
         for (int i = Calendar.SUNDAY; i <= Calendar.SATURDAY; i++) {
-            mDayLabels[i - Calendar.SUNDAY] = DateUtils.getDayOfWeekString(i,
+            String label = DateUtils.getDayOfWeekString(i,
                     DateUtils.LENGTH_MEDIUM).toUpperCase();
+            if (Locale.getDefault().getLanguage().equals("zh")) {
+                label = label.replace("星期", "").replace("周", "");
+            }
+            mDayLabels[i - Calendar.SUNDAY] = label;
         }
     }
 
