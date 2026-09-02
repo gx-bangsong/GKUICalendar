@@ -2,10 +2,8 @@
 <resources>
     <string name="subscription_hub_title">订阅管理</string>
     <string name="sub_section_subscribed">已订阅</string>
-    <string name="sub_section_more">可添加</string>
     <string name="sub_state_enabled">已启用</string>
     <string name="sub_state_disabled">未启用</string>
-    <string name="sub_state_coming_soon">敬请期待</string>
 
     <string name="sub_lunar_name">农历</string>
     <string name="sub_lunar_summary">节日前后自动显示农历</string>
@@ -38,7 +36,6 @@
     <string name="sub_shift_anchor_weekday_fmt">%1$s %2$s</string>
     <string name="sub_shift_preview_title">未来 14 天</string>
 
-    <string name="sub_weather_name">天气</string>
     <string name="sub_period_name">生理期</string>
     <string name="sub_lunar_birthday_name">农历生日</string>
 
@@ -69,4 +66,46 @@
     <string name="sub_weekday_thu">周四</string>
     <string name="sub_weekday_fri">周五</string>
     <string name="sub_weekday_sat">周六</string>
+
+    <!-- 通用 -->
+    <string name="sub_days_fmt">%1$d 天</string>
+    <string name="sub_stepper_minus">−</string>
+    <string name="sub_stepper_plus">+</string>
+
+    <!-- 生理期 -->
+    <string name="sub_period_summary">经期、易孕期与下次预测</string>
+    <string name="sub_period_state_disabled">未启用</string>
+    <string name="sub_period_disable">关闭生理期记录</string>
+    <string name="sub_period_anchor_label">上次经期开始日</string>
+    <string name="sub_period_anchor_hint">请选择最近一次经期的第一天。</string>
+    <string name="sub_period_anchor_unset">未设置</string>
+    <string name="sub_period_cycle_label">周期长度</string>
+    <string name="sub_period_length_label">经期长度</string>
+    <string name="sub_period_privacy_note">所有数据仅保存在本机。预测结果仅供参考，不能作为避孕依据。</string>
+    <string name="sub_period_preview_title">未来 30 天</string>
+    <string name="sub_period_no_anchor">请设置上次经期日期</string>
+    <string name="sub_period_starts_today">预计今天开始</string>
+    <string name="sub_period_days_until_fmt">距离下次经期还有 %1$d 天</string>
+    <string name="sub_period_badge_period">经期</string>
+    <string name="sub_period_badge_predicted">预计</string>
+    <string name="sub_period_badge_ovulation">排卵</string>
+    <string name="sub_period_badge_fertile">易孕</string>
+    <string name="sub_period_badge_none">—</string>
+
+    <!-- 农历生日 -->
+    <string name="sub_lunar_birthday_summary">按农历重复的生日提醒</string>
+    <string name="sub_birthday_state_disabled">未启用</string>
+    <string name="sub_birthday_disable">关闭农历生日</string>
+    <string name="sub_birthday_name_hint">姓名</string>
+    <string name="sub_birthday_name_required">请输入姓名</string>
+    <string name="sub_birthday_lunar_date_label">农历生日</string>
+    <string name="sub_birthday_lunar_date_fmt">%1$d月%2$d日</string>
+    <string name="sub_birthday_month_label">农历月</string>
+    <string name="sub_birthday_day_label">农历日</string>
+    <string name="sub_birthday_add">添加生日</string>
+    <string name="sub_birthday_list_label">已保存的生日</string>
+    <string name="sub_birthday_remove">删除</string>
+    <string name="sub_birthday_empty">暂无生日</string>
+    <string name="sub_birthday_count_fmt">%1$d 个生日</string>
+    <string name="sub_birthday_badge_fmt">%1$s</string>
 </resources>

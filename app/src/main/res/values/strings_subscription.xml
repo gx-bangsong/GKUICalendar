@@ -2,10 +2,8 @@
 <resources>
     <string name="subscription_hub_title">Subscriptions</string>
     <string name="sub_section_subscribed">Subscribed</string>
-    <string name="sub_section_more">More subscriptions</string>
     <string name="sub_state_enabled">Enabled</string>
     <string name="sub_state_disabled">Not enabled</string>
-    <string name="sub_state_coming_soon">Coming soon</string>
 
     <string name="sub_lunar_name">Lunar calendar</string>
     <string name="sub_lunar_summary">Shows lunar dates around major Chinese festivals</string>
@@ -39,7 +37,6 @@
     <string name="sub_shift_anchor_weekday_fmt">%1$s %2$s</string>
     <string name="sub_shift_preview_title">Next 14 days</string>
 
-    <string name="sub_weather_name">Weather</string>
     <string name="sub_period_name">Period tracker</string>
     <string name="sub_lunar_birthday_name">Lunar birthdays</string>
 
@@ -70,4 +67,46 @@
     <string name="sub_weekday_thu">Thu</string>
     <string name="sub_weekday_fri">Fri</string>
     <string name="sub_weekday_sat">Sat</string>
+
+    <!-- Shared -->
+    <string name="sub_days_fmt">%1$d d</string>
+    <string name="sub_stepper_minus">−</string>
+    <string name="sub_stepper_plus">+</string>
+
+    <!-- Period tracker -->
+    <string name="sub_period_summary">Cycle, fertile window and next-period predictions</string>
+    <string name="sub_period_state_disabled">Not enabled</string>
+    <string name="sub_period_disable">Disable period tracking</string>
+    <string name="sub_period_anchor_label">Last period started</string>
+    <string name="sub_period_anchor_hint">Pick the first day of your most recent period.</string>
+    <string name="sub_period_anchor_unset">Not set</string>
+    <string name="sub_period_cycle_label">Cycle length</string>
+    <string name="sub_period_length_label">Period length</string>
+    <string name="sub_period_privacy_note">All data stays on this device. Predictions are estimates and are not contraception advice.</string>
+    <string name="sub_period_preview_title">Next 30 days</string>
+    <string name="sub_period_no_anchor">Set your last period date</string>
+    <string name="sub_period_starts_today">Period predicted to start today</string>
+    <string name="sub_period_days_until_fmt">%1$d days until next period</string>
+    <string name="sub_period_badge_period">period</string>
+    <string name="sub_period_badge_predicted">due</string>
+    <string name="sub_period_badge_ovulation">ovulation</string>
+    <string name="sub_period_badge_fertile">fertile</string>
+    <string name="sub_period_badge_none">—</string>
+
+    <!-- Lunar birthdays -->
+    <string name="sub_lunar_birthday_summary">Birthdays that follow the lunar calendar</string>
+    <string name="sub_birthday_state_disabled">Not enabled</string>
+    <string name="sub_birthday_disable">Disable lunar birthdays</string>
+    <string name="sub_birthday_name_hint">Name</string>
+    <string name="sub_birthday_name_required">Enter a name</string>
+    <string name="sub_birthday_lunar_date_label">Lunar birthday</string>
+    <string name="sub_birthday_lunar_date_fmt">Month %1$d, day %2$d</string>
+    <string name="sub_birthday_month_label">Lunar month</string>
+    <string name="sub_birthday_day_label">Lunar day</string>
+    <string name="sub_birthday_add">Add birthday</string>
+    <string name="sub_birthday_list_label">Saved birthdays</string>
+    <string name="sub_birthday_remove">Remove</string>
+    <string name="sub_birthday_empty">No birthdays yet</string>
+    <string name="sub_birthday_count_fmt">%1$d birthdays</string>
+    <string name="sub_birthday_badge_fmt">%1$s</string>
 </resources>

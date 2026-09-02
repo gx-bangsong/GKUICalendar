@@ -5,13 +5,15 @@ package com.android.calendar.subscription
 
 import android.content.Context
 import com.android.calendar.lunar.LunarProvider
+import com.android.calendar.subscription.birthday.BirthdayProvider
+import com.android.calendar.subscription.period.PeriodProvider
 import com.android.calendar.subscription.shift.ShiftProvider
 import com.android.calendar.subscription.traffic.TrafficProvider
 
 object SubscriptionRegistry {
 
     @JvmStatic
-    fun getAll(): List<SubscriptionProvider> = listOf(LunarProvider, ShiftProvider, TrafficProvider)
+    fun getAll(): List<SubscriptionProvider> = listOf(LunarProvider, ShiftProvider, TrafficProvider, PeriodProvider, BirthdayProvider)
 
     @JvmStatic
     fun getEnabledCellInfos(ctx: Context, julianDay: Int): List<CellInfo> {

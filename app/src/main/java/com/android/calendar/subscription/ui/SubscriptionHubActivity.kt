@@ -56,10 +56,6 @@ class SubscriptionHubActivity : AppCompatActivity() {
         for (p in SubscriptionRegistry.getAll()) {
             addProviderRow(p)
         }
-        addHeader(getString(R.string.sub_section_more))
-        addPlaceholder(R.string.sub_weather_name, R.string.sub_state_coming_soon, R.drawable.ic_sub_weather)
-        addPlaceholder(R.string.sub_period_name, R.string.sub_state_coming_soon, R.drawable.ic_sub_period)
-        addPlaceholder(R.string.sub_lunar_birthday_name, R.string.sub_state_coming_soon, R.drawable.ic_sub_cake)
     }
 
     private fun addHeader(label: String) {
@@ -102,26 +98,6 @@ class SubscriptionHubActivity : AppCompatActivity() {
             else if (!isChecked && was) p.onDisabled(ctx)
             if (isChecked) openSettings(p)
         }
-    }
-
-    private fun addPlaceholder(titleRes: Int, subtitleRes: Int, iconRes: Int) {
-        val root = LayoutInflater.from(this).inflate(
-            R.layout.item_subscription, container, false)
-        val icon: ImageView = root.findViewById(R.id.icon)
-        val title: TextView = root.findViewById(R.id.title)
-        val subtitle: TextView = root.findViewById(R.id.subtitle)
-        val toggle: MaterialSwitch = root.findViewById(R.id.toggle)
-
-        icon.setImageResource(iconRes)
-        title.text = getString(titleRes)
-        subtitle.text = getString(subtitleRes)
-        toggle.setOnCheckedChangeListener(null)
-        toggle.isChecked = false
-        toggle.isEnabled = false
-        toggle.alpha = 0.5f
-        root.isClickable = false
-        root.isFocusable = false
-        container.addView(root)
     }
 
     private fun openSettings(p: SubscriptionProvider) {
