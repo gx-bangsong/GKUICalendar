@@ -16,7 +16,7 @@
     <!-- Traffic subscription (Phase 1c placeholder provider) -->
     <string name="sub_traffic_name">Traffic restriction</string>
     <string name="sub_traffic_summary">License-plate driving restrictions reminder</string>
-    <string name="sub_traffic_coming_soon">Available in a future update</string>
+    <!-- retained: --><string name="sub_traffic_coming_soon">Available in a future update</string>
 
     <!-- Shift settings — Xiaomi-style quick presets + custom cycle editor -->
     <string name="sub_shift_state_disabled">Not enabled</string>
@@ -43,4 +43,32 @@
     <string name="sub_weather_name">Weather</string>
     <string name="sub_period_name">Period tracker</string>
     <string name="sub_lunar_birthday_name">Lunar birthdays</string>
+
+    <!-- Traffic restriction (限行) subscription -->
+    <string name="sub_traffic_state_disabled">Not enabled</string>
+    <string name="sub_traffic_disable">Disable restriction reminders</string>
+    <string name="sub_traffic_mode_label">Rule type</string>
+    <string name="sub_traffic_mode_tail">Tail number</string>
+    <string name="sub_traffic_mode_odd_even">Odd / even</string>
+    <string name="sub_traffic_plate_label">My plate tail digit</string>
+    <string name="sub_traffic_plate_hint">Pick the last digit of your plate (letters count as 0). Tap again to clear.</string>
+    <string name="sub_traffic_rule_label">Current rotation</string>
+    <string name="sub_traffic_rule_odd_even_body">Odd tail digits are restricted on odd days of the month, even tail digits on even days. Weekends are unrestricted.</string>
+    <string name="sub_traffic_rotate_group">Shift rotation by one group</string>
+    <string name="sub_traffic_holiday_note">Rotation groups change quarterly. Statutory-holiday adjustments are not applied automatically yet.</string>
+    <string name="sub_traffic_preview_title">Next 14 days</string>
+    <string name="sub_traffic_preview_restricted">restricted</string>
+    <string name="sub_traffic_preview_free">free</string>
+    <string name="sub_traffic_badge_digits_fmt">%1$d and %2$d</string>
+    <string name="sub_traffic_badge_restricted">restricted</string>
+    <string name="sub_traffic_summary_tail_fmt">Tail number · plate ending in %1$d</string>
+
+    <!-- Shared short weekday names used by subscription previews -->
+    <string name="sub_weekday_sun">Sun</string>
+    <string name="sub_weekday_mon">Mon</string>
+    <string name="sub_weekday_tue">Tue</string>
+    <string name="sub_weekday_wed">Wed</string>
+    <string name="sub_weekday_thu">Thu</string>
+    <string name="sub_weekday_fri">Fri</string>
+    <string name="sub_weekday_sat">Sat</string>
 </resources>

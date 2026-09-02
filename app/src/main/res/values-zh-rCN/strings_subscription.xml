@@ -15,7 +15,7 @@
 
     <string name="sub_traffic_name">车辆限行</string>
     <string name="sub_traffic_summary">尾号限行提醒</string>
-    <string name="sub_traffic_coming_soon">即将推出</string>
+    <!-- retained: --><string name="sub_traffic_coming_soon">即将推出</string>
 
     <!-- Shift settings -->
     <string name="sub_shift_state_disabled">未启用</string>
@@ -42,4 +42,32 @@
     <string name="sub_weather_name">天气</string>
     <string name="sub_period_name">生理期</string>
     <string name="sub_lunar_birthday_name">农历生日</string>
+
+    <!-- 车辆限行 -->
+    <string name="sub_traffic_state_disabled">未启用</string>
+    <string name="sub_traffic_disable">关闭限行提醒</string>
+    <string name="sub_traffic_mode_label">限行规则</string>
+    <string name="sub_traffic_mode_tail">尾号限行</string>
+    <string name="sub_traffic_mode_odd_even">单双号</string>
+    <string name="sub_traffic_plate_label">我的车牌尾号</string>
+    <string name="sub_traffic_plate_hint">选择车牌最后一位数字（字母按 0 计）。再次点击可取消。</string>
+    <string name="sub_traffic_rule_label">本轮限行表</string>
+    <string name="sub_traffic_rule_odd_even_body">单号尾号在单日限行，双号尾号在双日限行，周六日不限行。</string>
+    <string name="sub_traffic_rotate_group">轮换到下一组</string>
+    <string name="sub_traffic_holiday_note">限行尾号每季度轮换一次；法定节假日调休暂不自动处理。</string>
+    <string name="sub_traffic_preview_title">未来 14 天</string>
+    <string name="sub_traffic_preview_restricted">限行</string>
+    <string name="sub_traffic_preview_free">不限行</string>
+    <string name="sub_traffic_badge_digits_fmt">%1$d和%2$d</string>
+    <string name="sub_traffic_badge_restricted">限行</string>
+    <string name="sub_traffic_summary_tail_fmt">尾号限行 · 车牌尾号 %1$d</string>
+
+    <!-- 星期简称 -->
+    <string name="sub_weekday_sun">周日</string>
+    <string name="sub_weekday_mon">周一</string>
+    <string name="sub_weekday_tue">周二</string>
+    <string name="sub_weekday_wed">周三</string>
+    <string name="sub_weekday_thu">周四</string>
+    <string name="sub_weekday_fri">周五</string>
+    <string name="sub_weekday_sat">周六</string>
 </resources>
