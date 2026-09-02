@@ -15,7 +15,6 @@
 
     <string name="sub_traffic_name">车辆限行</string>
     <string name="sub_traffic_summary">尾号限行提醒</string>
-    <!-- retained: --><string name="sub_traffic_coming_soon">即将推出</string>
 
     <!-- Shift settings -->
     <string name="sub_shift_state_disabled">未启用</string>

@@ -16,7 +16,6 @@
     <!-- Traffic subscription (Phase 1c placeholder provider) -->
     <string name="sub_traffic_name">Traffic restriction</string>
     <string name="sub_traffic_summary">License-plate driving restrictions reminder</string>
-    <!-- retained: --><string name="sub_traffic_coming_soon">Available in a future update</string>
 
     <!-- Shift settings — Xiaomi-style quick presets + custom cycle editor -->
     <string name="sub_shift_state_disabled">Not enabled</string>
