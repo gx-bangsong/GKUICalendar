@@ -497,13 +497,15 @@ public class MonthWeekEventsView extends SimpleWeekView {
     private void drawCellInfos(Canvas canvas, List<CellInfo> infos, float cx, float baseline) {
         if (infos == null || infos.isEmpty()) return;
         float cellW = (float) mWidth / mNumDays;
+        int fallbackColor = MaterialColors.getColor(this,
+                com.google.android.material.R.attr.colorOnSurfaceVariant);
         sCellTextPaint.setTextSize(mTextSizeLunar);
-        sCellTextPaint.setColor(MaterialColors.getColor(this,
-                com.google.android.material.R.attr.colorOnSurfaceVariant));
         float tx = cx - cellW * 0.38f;
         float ty = baseline + mMonthNumHeight + mTextSizeLunar + 4;
         for (CellInfo ci : infos) {
             if (ci.getPrimaryText() == null) continue;
+            Integer c = ci.getBadgeColor();
+            sCellTextPaint.setColor(c != null ? c : fallbackColor);
             canvas.drawText(ci.getPrimaryText(), tx, ty, sCellTextPaint);
             ty += mTextSizeLunar + 2;
         }

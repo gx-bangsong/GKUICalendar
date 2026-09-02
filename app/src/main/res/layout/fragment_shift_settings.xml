@@ -25,11 +25,12 @@
             style="?attr/textAppearanceLabelLarge"
             android:layout_marginBottom="8dp" />
 
+        <!-- Row 1: 三班倒 / 四班三倒 / 上一休一 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginBottom="12dp">
+            android:layout_marginBottom="8dp">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_preset_three"
@@ -50,27 +51,134 @@
                 android:text="@string/sub_shift_preset_fourthree" />
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_preset_two_on_two_off"
+                android:id="@+id/btn_preset_one_one"
                 style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="@string/sub_shift_preset_two_two" />
+                android:text="@string/sub_shift_preset_one_one" />
         </LinearLayout>
+
+        <!-- Row 2: 上二休二 / 常白班 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="20dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_preset_two_two"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:text="@string/sub_shift_preset_two_two" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_preset_day"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:text="@string/sub_shift_preset_day" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+        </LinearLayout>
+
+        <!-- 倒班周期 row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingVertical="16dp"
+            android:foreground="?attr/selectableItemBackground"
+            android:clickable="false">
+
+            <TextView
+                style="?attr/textAppearanceBodyLarge"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/sub_shift_cycle_label" />
+
+            <TextView
+                android:id="@+id/shift_cycle_summary"
+                style="?attr/textAppearanceBodyLarge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+        </LinearLayout>
+
+        <!-- 倒班开始日 row (tap to anchor today) -->
+        <LinearLayout
+            android:id="@+id/shift_anchor_row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingVertical="16dp"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true">
+
+            <TextView
+                style="?attr/textAppearanceBodyLarge"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/sub_shift_anchor_label" />
+
+            <TextView
+                android:id="@+id/shift_anchor_summary"
+                style="?attr/textAppearanceBodyLarge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="?attr/colorOutlineVariant"
+            android:layout_marginVertical="4dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/sub_shift_per_rotation_label"
+            style="?attr/textAppearanceLabelLarge"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Per-day editor: filled in code. 2 columns on phones. -->
+        <LinearLayout
+            android:id="@+id/shift_day_grid"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingVertical="4dp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_disable"
             style="@style/Widget.Material3.Button.TonalButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/sub_shift_disable"
-            android:layout_marginBottom="20dp" />
+            android:layout_marginTop="20dp"
+            android:text="@string/sub_shift_disable" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/sub_shift_preview_title"
             style="?attr/textAppearanceLabelLarge"
+            android:layout_marginTop="24dp"
             android:layout_marginBottom="8dp" />
 
         <TextView
@@ -79,6 +187,7 @@
             android:layout_height="wrap_content"
             android:fontFamily="monospace"
             android:textAppearance="?attr/textAppearanceBodySmall"
-            android:lineSpacingExtra="4sp" />
+            android:lineSpacingExtra="4sp"
+            android:layout_marginBottom="24dp" />
     </LinearLayout>
 </ScrollView>

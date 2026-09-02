@@ -17,13 +17,26 @@
     <string name="sub_traffic_summary">尾号限行提醒</string>
     <string name="sub_traffic_coming_soon">即将推出</string>
 
-    <!-- Shift settings (Phase 1b) -->
+    <!-- Shift settings -->
     <string name="sub_shift_state_disabled">未启用</string>
     <string name="sub_shift_choose_preset">快速预设</string>
     <string name="sub_shift_preset_three">三班倒</string>
     <string name="sub_shift_preset_fourthree">四班三倒</string>
+    <string name="sub_shift_preset_one_one">上一休一</string>
     <string name="sub_shift_preset_two_two">上二休二</string>
+    <string name="sub_shift_preset_day">常白班</string>
     <string name="sub_shift_disable">关闭轮班提醒</string>
+    <string name="sub_shift_cycle_label">倒班周期</string>
+    <string name="sub_shift_cycle_days_fmt">每一轮%d天</string>
+    <string name="sub_shift_anchor_label">倒班开始日</string>
+    <string name="sub_shift_per_rotation_label">每轮倒班提醒</string>
+    <string name="sub_shift_day_n_fmt">第%d天</string>
+    <string name="sub_shift_time_morning">07:30</string>
+    <string name="sub_shift_time_afternoon">15:30</string>
+    <string name="sub_shift_time_night">23:30</string>
+    <string name="sub_shift_rest">休息</string>
+    <string name="sub_shift_anchor_date_fmt">%1$d年%2$d月%3$d日</string>
+    <string name="sub_shift_anchor_weekday_fmt">%1$s %2$s</string>
     <string name="sub_shift_preview_title">未来 14 天</string>
 
     <string name="sub_weather_name">天气</string>
