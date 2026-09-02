@@ -4,7 +4,7 @@
 package com.android.calendar.subscription
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SubscriptionRegistryTest {
@@ -12,9 +12,18 @@ class SubscriptionRegistryTest {
         assertEquals(3, BgStyle.values().size)
     }
 
-    @Test fun providersList_containsLunarAndShift() {
-        val ids = SubscriptionRegistry.getAll().map { it.id }.toSet()
-        assertEquals(setOf("lunar", "shift"), ids)
+    @Test fun providersList_containsEveryBuiltInSubscription() {
+        val ids = HashSet<String>()
+        for (p in SubscriptionRegistry.getAll()) ids.add(p.id)
+        assertEquals(
+            setOf("lunar", "shift", "traffic", "period", "lunar_birthday"), ids)
+    }
+
+    @Test fun providerPrioritiesAreUnique() {
+        val seen = HashSet<Int>()
+        for (p in SubscriptionRegistry.getAll()) {
+            assertTrue("duplicate priority " + p.priority, seen.add(p.priority))
+        }
     }
 
     @Test fun cellInfo_primaryTextPreserved() {
