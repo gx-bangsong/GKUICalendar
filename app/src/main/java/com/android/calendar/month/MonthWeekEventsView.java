@@ -57,6 +57,8 @@ import com.android.calendar.lunar.LunarHelper;
 import com.android.calendar.lunar.LunarInfo;
 import com.android.calendar.lunar.LunarMode;
 import com.android.calendar.settings.ViewDetailsPreferences;
+import com.android.calendar.subscription.CellInfo;
+import com.android.calendar.subscription.SubscriptionRegistry;
 import com.android.calendar.calendarcommon2.Time;
 
 import java.util.ArrayList;
@@ -125,6 +127,15 @@ public class MonthWeekEventsView extends SimpleWeekView {
     /** Contextual lunar info per day of this week, or all-null when disabled. */
     protected LunarInfo[] mLunarInfos;
     protected ArrayList<Event> mUnsortedEvents = null;
+
+    /** Generic [CellInfo]s per day (produced in [setWeekParams]). */
+    protected ArrayList<ArrayList<CellInfo>> mCellInfos;
+    private static final Paint sCellTextPaint;
+    static {
+        sCellTextPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        sCellTextPaint.setTextAlign(Paint.Align.LEFT);
+    }
+
     // This is for drawing the outlines around event chips and supports up to 10
     // events being drawn on each day. The code will expand this if necessary.
     protected TextPaint mEventPaint;
@@ -274,6 +285,8 @@ public class MonthWeekEventsView extends SimpleWeekView {
     protected void initView() {
         super.initView();
         mLunarInfos = new LunarInfo[mNumDays];
+        mCellInfos = new ArrayList<>(mNumDays);
+        for (int i = 0; i < mNumDays; i++) mCellInfos.add(new ArrayList<CellInfo>());
 
         if (!mInitialized) {
             Resources resources = getContext().getResources();
@@ -424,6 +437,7 @@ public class MonthWeekEventsView extends SimpleWeekView {
         updateToday(tz);
         mNumCells = mNumDays + 1;
         precomputeLunarInfos();
+        precomputeSubscriptionCellInfos();
 
         if (params.containsKey(VIEW_PARAMS_ANIMATE_TODAY) && mHasToday) {
             synchronized (mAnimatorListener) {
@@ -460,6 +474,38 @@ public class MonthWeekEventsView extends SimpleWeekView {
         for (int i = 0; i < mNumDays; i++) {
             mLunarInfos[i] = LunarHelper.getLunarInfo(mFirstJulianDay + i, mode,
                     festivals, jieqi, fullLabel);
+        }
+    }
+
+    /** Populates [mCellInfos] once per bind (never onDraw). */
+    private void precomputeSubscriptionCellInfos() {
+        // Guard against week-size changes (month view is always 7, but keep safe).
+        while (mCellInfos.size() < mNumDays) mCellInfos.add(new ArrayList<CellInfo>());
+        for (int i = 0; i < mNumDays; i++) {
+            ArrayList<CellInfo> day = mCellInfos.get(i);
+            day.clear();
+            List<CellInfo> all = SubscriptionRegistry.INSTANCE.getEnabledCellInfos(
+                    getContext(), mFirstJulianDay + i);
+            for (CellInfo ci : all) {
+                // Lunar already draws via LunarDayRenderer; skip to avoid double-draw.
+                if (!"lunar".equals(ci.getProviderId())) day.add(ci);
+            }
+        }
+    }
+
+    /** Draws small subscription badges (shift "早" etc.) in the lower-left of the cell. */
+    private void drawCellInfos(Canvas canvas, List<CellInfo> infos, float cx, float baseline) {
+        if (infos == null || infos.isEmpty()) return;
+        float cellW = (float) mWidth / mNumDays;
+        sCellTextPaint.setTextSize(mTextSizeLunar);
+        sCellTextPaint.setColor(MaterialColors.getColor(this,
+                com.google.android.material.R.attr.colorOnSurfaceVariant));
+        float tx = cx - cellW * 0.38f;
+        float ty = baseline + mMonthNumHeight + mTextSizeLunar + 4;
+        for (CellInfo ci : infos) {
+            if (ci.getPrimaryText() == null) continue;
+            canvas.drawText(ci.getPrimaryText(), tx, ty, sCellTextPaint);
+            ty += mTextSizeLunar + 2;
         }
     }
 
@@ -730,6 +776,15 @@ public class MonthWeekEventsView extends SimpleWeekView {
                     // restore the text size.
                     mMonthNumPaint.setTextSize(originalTextSize);
                 }
+            }
+
+            // Generic subscription badges (shift, traffic, …) drawn on top.
+            // Skip when this day has events: event chips occupy the same band
+            // as the lunar label, so adding a third glyph collides. Match the
+            // same rule used for the lunar label above.
+            if (mCellInfos != null && cellIndex >= 0 && cellIndex < mCellInfos.size()
+                    && !dayHasEvents(mFirstJulianDay + cellIndex)) {
+                drawCellInfos(canvas, mCellInfos.get(cellIndex), x, y);
             }
         }
     }

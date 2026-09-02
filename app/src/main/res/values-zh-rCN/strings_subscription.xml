@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="subscription_hub_title">订阅管理</string>
+    <string name="sub_section_subscribed">已订阅</string>
+    <string name="sub_section_more">可添加</string>
+    <string name="sub_state_enabled">已启用</string>
+    <string name="sub_state_disabled">未启用</string>
+    <string name="sub_state_coming_soon">敬请期待</string>
+
+    <string name="sub_lunar_name">农历</string>
+    <string name="sub_lunar_summary">节日前后自动显示农历</string>
+
+    <string name="sub_shift_name">轮班助手</string>
+    <string name="sub_shift_summary">三班倒 · 排班提醒</string>
+
+    <string name="sub_traffic_name">车辆限行</string>
+    <string name="sub_traffic_summary">尾号限行提醒</string>
+    <string name="sub_traffic_coming_soon">即将推出</string>
+
+    <!-- Shift settings (Phase 1b) -->
+    <string name="sub_shift_state_disabled">未启用</string>
+    <string name="sub_shift_choose_preset">快速预设</string>
+    <string name="sub_shift_preset_three">三班倒</string>
+    <string name="sub_shift_preset_fourthree">四班三倒</string>
+    <string name="sub_shift_preset_two_two">上二休二</string>
+    <string name="sub_shift_disable">关闭轮班提醒</string>
+    <string name="sub_shift_preview_title">未来 14 天</string>
+
+    <string name="sub_weather_name">天气</string>
+    <string name="sub_period_name">生理期</string>
+    <string name="sub_lunar_birthday_name">农历生日</string>
+</resources>

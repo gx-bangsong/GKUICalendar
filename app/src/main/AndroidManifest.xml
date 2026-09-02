@@ -99,6 +99,12 @@
         </activity>
 
         <activity
+            android:name="com.android.calendar.subscription.ui.SubscriptionHubActivity"
+            android:label="@string/subscription_hub_title"
+            android:exported="false"
+            android:parentActivityName="com.android.calendar.AllInOneActivity" />
+
+        <activity
             android:name="com.android.calendar.date_calculator.DateCalculatorActivity"
             android:label="@string/date_calculator"
             android:parentActivityName="com.android.calendar.AllInOneActivity" />

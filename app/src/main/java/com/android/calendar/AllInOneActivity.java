@@ -83,7 +83,6 @@ import com.android.calendar.CalendarController.ViewType;
 import com.android.calendar.agenda.AgendaFragment;
 import com.android.calendar.alerts.AlertService;
 import com.android.calendar.month.MonthByWeekFragment;
-import com.android.calendar.shift.ShiftSchedulerFragment;
 import com.android.calendar.selectcalendars.SelectVisibleCalendarsFragment;
 import com.android.calendar.settings.GeneralPreferences;
 import com.android.calendar.settings.SettingsActivity;
@@ -938,11 +937,9 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
             ImportActivity.pickImportFile(this);
         } else if (itemId == R.id.action_date_calculator) {
             startActivity(new Intent(this, com.android.calendar.date_calculator.DateCalculatorActivity.class));
-        } else if (itemId == R.id.shift_scheduler_menu_item) {
-            getSupportFragmentManager().beginTransaction()
-                .replace(R.id.main_pane, new ShiftSchedulerFragment())
-                .addToBackStack(null)
-                .commit();
+        } else if (itemId == R.id.action_subscriptions) {
+            startActivity(new Intent(this,
+                com.android.calendar.subscription.ui.SubscriptionHubActivity.class));
         } else if (itemId == R.id.action_view_settings) {
             Intent intent = new Intent(this, SettingsActivity.class);
             intent.putExtra(SettingsActivityKt.EXTRA_SHOW_FRAGMENT, ViewDetailsPreferences.class.getName());

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="subscription_hub_title">Subscriptions</string>
+    <string name="sub_section_subscribed">Subscribed</string>
+    <string name="sub_section_more">More subscriptions</string>
+    <string name="sub_state_enabled">Enabled</string>
+    <string name="sub_state_disabled">Not enabled</string>
+    <string name="sub_state_coming_soon">Coming soon</string>
+
+    <string name="sub_lunar_name">Lunar calendar</string>
+    <string name="sub_lunar_summary">Shows lunar dates around major Chinese festivals</string>
+
+    <string name="sub_shift_name">Shift assistant</string>
+    <string name="sub_shift_summary">Rotation shifts on duty / rest days</string>
+
+    <!-- Shift traffic placeholder shown before Phase 1c -->
+    <string name="sub_traffic_name">Traffic restriction</string>
+    <string name="sub_traffic_summary">License-plate driving restrictions reminder</string>
+    <string name="sub_traffic_coming_soon">Available in a future update</string>
+
+    <!-- Shift settings (Phase 1b) -->
+    <string name="sub_shift_state_disabled">Not enabled</string>
+    <string name="sub_shift_choose_preset">Quick presets</string>
+    <string name="sub_shift_preset_three">三班倒</string>
+    <string name="sub_shift_preset_fourthree">四班三倒</string>
+    <string name="sub_shift_preset_two_two">上二休二</string>
+    <string name="sub_shift_disable">Disable shift reminders</string>
+    <string name="sub_shift_preview_title">Next 14 days</string>
+
+    <string name="sub_weather_name">Weather</string>
+    <string name="sub_period_name">Period tracker</string>
+    <string name="sub_lunar_birthday_name">Lunar birthdays</string>
+</resources>
