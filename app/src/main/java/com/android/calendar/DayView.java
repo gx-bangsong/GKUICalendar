@@ -181,6 +181,11 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     /** Cached so onDraw never touches SharedPreferences. */
     private boolean mSubscriptionsEnabled;
     private int mSubscriptionTextColor;
+    /** Number of enabled providers = number of badge lines to reserve. */
+    private int mSubscriptionLineCount;
+    /** Sized to SUBSCRIPTION_TEXT_SIZE, used only for ellipsize measurement. */
+    private final android.text.TextPaint mSubscriptionEllipsizePaint =
+            new android.text.TextPaint();
     private int mLoadedFirstJulianDay = -1;
     private int mLastJulianDay;
 
@@ -416,6 +421,8 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private static int DAY_HEADER_ONE_DAY_RIGHT_MARGIN = 5;
     private static int DAY_HEADER_ONE_DAY_BOTTOM_MARGIN = 6;
     private static int DAY_HEADER_RIGHT_MARGIN = 4;
+    /** Badge text is a touch smaller than the weekday label so 4 lines fit. */
+    private static float SUBSCRIPTION_TEXT_SIZE = 11;
     private static int DAY_HEADER_BOTTOM_MARGIN = 3;
     private static float DAY_HEADER_FONT_SIZE = 14;
     private static float DATE_HEADER_FONT_SIZE = 32;
@@ -669,7 +676,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         initAccessibilityVariables();
 
         mResources = context.getResources();
-        refreshSubscriptionState();
         mCreateNewEventString = mResources.getString(R.string.event_create);
         mNewEventHintString = mResources.getString(R.string.day_view_new_event_hint);
         mNumDays = numDays;
@@ -726,6 +732,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 DEFAULT_CELL_HEIGHT *= mScale;
                 DAY_HEADER_HEIGHT *= mScale;
                 DAY_HEADER_RIGHT_MARGIN *= mScale;
+                SUBSCRIPTION_TEXT_SIZE *= mScale;
                 DAY_HEADER_ONE_DAY_LEFT_MARGIN *= mScale;
                 DAY_HEADER_ONE_DAY_RIGHT_MARGIN *= mScale;
                 DAY_HEADER_ONE_DAY_BOTTOM_MARGIN *= mScale;
@@ -757,13 +764,18 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         mAnimateDayEventHeight = (int) MIN_UNEXPANDED_ALLDAY_EVENT_HEIGHT;
 
         HOURS_MARGIN = HOURS_LEFT_MARGIN + HOURS_RIGHT_MARGIN;
+        // Must run after density scaling so the badge paint is sized correctly,
+        // and before DAY_HEADER_HEIGHT is derived from the badge line count.
+        refreshSubscriptionState();
         DAY_HEADER_HEIGHT = mNumDays == 1 ? ONE_DAY_HEADER_HEIGHT : MULTI_DAY_HEADER_HEIGHT;
         if (LunarUtils.showLunar(mContext) && mNumDays != 1) {
             DAY_HEADER_HEIGHT = (int) (DAY_HEADER_HEIGHT + DAY_HEADER_FONT_SIZE + 2);
         }
-        // Subscriptions (shift/traffic/...) draw one extra line under the date.
+        // Subscriptions (shift/traffic/...) each draw their own line under the
+        // date, so reserve height for every enabled provider rather than one.
         if (mSubscriptionsEnabled && mNumDays != 1) {
-            DAY_HEADER_HEIGHT = (int) (DAY_HEADER_HEIGHT + DAY_HEADER_FONT_SIZE + 2);
+            DAY_HEADER_HEIGHT = (int) (DAY_HEADER_HEIGHT
+                    + mSubscriptionLineCount * (SUBSCRIPTION_TEXT_SIZE + 2));
         }
 
         mCurrentTimeLine = mResources.getDrawable(R.drawable.timeline_indicator_holo_light);
@@ -822,9 +834,8 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
      * resolves theme attributes during onDraw.
      */
     private void refreshSubscriptionState() {
-        mSubscriptionsEnabled =
-                !com.android.calendar.subscription.SubscriptionRegistry.getAll().isEmpty()
-                && hasAnyEnabledSubscription();
+        mSubscriptionLineCount = SubscriptionText.maxLineCount(mContext);
+        mSubscriptionsEnabled = mSubscriptionLineCount > 0;
         android.util.TypedValue tv = new android.util.TypedValue();
         if (mContext.getTheme().resolveAttribute(
                 com.google.android.material.R.attr.colorOnSurfaceVariant, tv, true)) {
@@ -832,16 +843,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         } else {
             mSubscriptionTextColor = Color.GRAY;
         }
-    }
-
-    private boolean hasAnyEnabledSubscription() {
-        for (com.android.calendar.subscription.SubscriptionProvider p
-                : com.android.calendar.subscription.SubscriptionRegistry.getAll()) {
-            if (p.isEnabled(mContext)) {
-                return true;
-            }
-        }
-        return false;
+        mSubscriptionEllipsizePaint.setTextSize(SUBSCRIPTION_TEXT_SIZE);
     }
 
     private void init(Context context) {
@@ -975,8 +977,17 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
     public void handleOnResume() {
         initAccessibilityVariables();
-        // Pick up subscriptions toggled while we were in the background.
+        // Pick up subscriptions toggled while we were in the background, and
+        // resize the header so a newly enabled provider gets its own line.
+        int previousLines = mSubscriptionLineCount;
         refreshSubscriptionState();
+        if (previousLines != mSubscriptionLineCount && mNumDays != 1) {
+            DAY_HEADER_HEIGHT = (int) (
+                    (mNumDays == 1 ? ONE_DAY_HEADER_HEIGHT : MULTI_DAY_HEADER_HEIGHT)
+                    + (LunarUtils.showLunar(mContext) ? DAY_HEADER_FONT_SIZE + 2 : 0)
+                    + mSubscriptionLineCount * (SUBSCRIPTION_TEXT_SIZE + 2));
+            remeasure(getWidth(), getHeight());
+        }
         mFutureBgColor = mFutureBgColorRes;
         mIs24HourFormat = DateFormat.is24HourFormat(mContext);
         mHourStrs = mIs24HourFormat ? CalendarData.s24Hours : CalendarData.s12Hours;
@@ -2635,18 +2646,35 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 }
             }
 
-            // Subscription badges, on their own line below the date/lunar text.
+            // Subscription badges: one line per provider so four enabled
+            // subscriptions stack vertically instead of overrunning the
+            // column and colliding with the neighbouring day.
             if (mSubscriptionsEnabled) {
-                String subs = SubscriptionText.plain(mContext, mFirstJulianDay + day);
-                if (!TextUtils.isEmpty(subs)) {
+                java.util.List<String> subs =
+                        SubscriptionText.lines(mContext, mFirstJulianDay + day);
+                if (!subs.isEmpty()) {
+                    java.util.List<Integer> subColors =
+                            SubscriptionText.lineColors(mContext, mFirstJulianDay + day);
                     float subY = y + DAY_HEADER_FONT_SIZE + 2;
                     if (LunarUtils.showLunar(mContext)) {
                         subY += DAY_HEADER_FONT_SIZE + 2;
                     }
-                    int prev = p.getColor();
-                    p.setColor(mSubscriptionTextColor);
-                    canvas.drawText(subs, x, subY, p);
-                    p.setColor(prev);
+                    // Keep each badge inside its own column.
+                    float columnWidth = (float) (mViewWidth - mHoursWidth) / mNumDays
+                            - DAY_HEADER_RIGHT_MARGIN * 2;
+                    int prevColor = p.getColor();
+                    float prevSize = p.getTextSize();
+                    p.setTextSize(SUBSCRIPTION_TEXT_SIZE);
+                    for (int i = 0; i < subs.size(); i++) {
+                        Integer c = i < subColors.size() ? subColors.get(i) : null;
+                        p.setColor(c != null ? c : mSubscriptionTextColor);
+                        String line = TextUtils.ellipsize(subs.get(i), mSubscriptionEllipsizePaint,
+                                columnWidth, TextUtils.TruncateAt.END).toString();
+                        canvas.drawText(line, x, subY, p);
+                        subY += SUBSCRIPTION_TEXT_SIZE + 2;
+                    }
+                    p.setTextSize(prevSize);
+                    p.setColor(prevColor);
                 }
             }
         } else {

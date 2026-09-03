@@ -64,6 +64,49 @@ object SubscriptionText {
         return if (sb.isEmpty()) null else sb
     }
 
+    /**
+     * Each enabled provider's badge as a separate string, so callers that lay
+     * out in narrow columns (day/week header) can stack them on their own
+     * lines instead of overflowing one long line into the next column.
+     */
+    @JvmStatic
+    fun lines(ctx: Context, julianDay: Int): List<String> {
+        val infos = SubscriptionRegistry.getEnabledCellInfos(ctx, julianDay)
+        if (infos.isEmpty()) return emptyList()
+        val out = ArrayList<String>(infos.size)
+        for (ci in infos) {
+            val t = ci.primaryText ?: continue
+            out.add(t)
+        }
+        return out
+    }
+
+    /** Per-badge colors parallel to [lines]; entries may be null. */
+    @JvmStatic
+    fun lineColors(ctx: Context, julianDay: Int): List<Int?> {
+        val infos = SubscriptionRegistry.getEnabledCellInfos(ctx, julianDay)
+        if (infos.isEmpty()) return emptyList()
+        val out = ArrayList<Int?>(infos.size)
+        for (ci in infos) {
+            if (ci.primaryText == null) continue
+            out.add(ci.badgeColor)
+        }
+        return out
+    }
+
+    /**
+     * Largest number of badge lines any provider set can produce, used to
+     * reserve header height up front. Counts only enabled providers.
+     */
+    @JvmStatic
+    fun maxLineCount(ctx: Context): Int {
+        var n = 0
+        for (p in SubscriptionRegistry.getAll()) {
+            if (p.isEnabled(ctx)) n++
+        }
+        return n
+    }
+
     /** True when at least one enabled provider renders something that day. */
     @JvmStatic
     fun hasAny(ctx: Context, julianDay: Int): Boolean =
