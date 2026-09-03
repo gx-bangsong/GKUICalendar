@@ -62,6 +62,11 @@
         android:orderInCategory="5"
         app:showAsAction="never"/>
     <item
+        android:id="@+id/action_subscriptions"
+        android:title="@string/subscription_hub_title"
+        android:orderInCategory="6"
+        app:showAsAction="never"/>
+    <item
         android:id="@+id/action_view_settings"
         android:alphabeticShortcut="v"
         android:title="@string/view_settings"
