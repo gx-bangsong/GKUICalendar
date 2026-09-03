@@ -3,6 +3,7 @@
  */
 package com.android.calendar.subscription.shift.ui
 
+import android.app.TimePickerDialog
 import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -15,6 +16,7 @@ import com.android.calendar.calendarcommon2.Time
 import com.android.calendar.subscription.shift.ShiftProvider
 import com.android.calendar.subscription.shift.data.ShiftEngine
 import com.android.calendar.subscription.shift.data.ShiftPresets
+import com.android.calendar.subscription.shift.data.ShiftTimes
 import com.android.calendar.subscription.shift.data.ShiftType
 import ws.xsoh.etar.R
 import java.util.Locale
@@ -139,6 +141,9 @@ class ShiftSettingsFragment : Fragment() {
             val lp = LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             item.layoutParams = lp
+            value.setOnLongClickListener {
+                editShiftTimes(cycle[i]); true
+            }
             value.setOnClickListener {
                 cycle[i] = nextType(cycle[i])
                 bindDayChip(value, cycle[i])
@@ -153,31 +158,47 @@ class ShiftSettingsFragment : Fragment() {
     }
 
     private fun bindDayChip(v: TextView, type: Int) {
-        val labelRes = when (type) {
-            ShiftType.MORNING   -> R.string.sub_shift_time_morning
-            ShiftType.AFTERNOON -> R.string.sub_shift_time_afternoon
-            ShiftType.NIGHT     -> R.string.sub_shift_time_night
-            else                -> R.string.sub_shift_rest
-        }
         val chipBg = when (type) {
             ShiftType.MORNING   -> R.drawable.bg_shift_chip_morning
             ShiftType.AFTERNOON -> R.drawable.bg_shift_chip_afternoon
             ShiftType.NIGHT     -> R.drawable.bg_shift_chip_night
             else                -> R.drawable.bg_shift_chip_rest
         }
-        val textColor = ShiftPresets.badgeColor(type)
-        v.text = getString(
-            if (type == ShiftType.REST) R.string.sub_shift_rest else R.string.sub_shift_day_n_fmt,
-            if (type == ShiftType.REST) 0 else labelRes)
-        // Set the label to "早班/中班/晚班/休息" directly.
-        v.text = when (type) {
-            ShiftType.MORNING   -> "\u65e9\u73ed " + getString(R.string.sub_shift_time_morning)
-            ShiftType.AFTERNOON -> "\u4e2d\u73ed " + getString(R.string.sub_shift_time_afternoon)
-            ShiftType.NIGHT     -> "\u665a\u73ed " + getString(R.string.sub_shift_time_night)
-            else                -> getString(R.string.sub_shift_rest)
-        }
+        v.text = shiftChipLabel(type)
         v.setBackgroundResource(chipBg)
-        v.setTextColor(textColor)
+        v.setTextColor(ShiftPresets.badgeColor(type))
+    }
+
+    /** "早班 07:30-15:30" — times come from the editable [ShiftTimes]. */
+    private fun shiftChipLabel(type: Int): String {
+        if (type == ShiftType.REST) return getString(R.string.sub_shift_rest)
+        val ctx = requireContext()
+        val name = when (type) {
+            ShiftType.MORNING   -> getString(R.string.sub_shift_name_morning)
+            ShiftType.AFTERNOON -> getString(R.string.sub_shift_name_afternoon)
+            else                -> getString(R.string.sub_shift_name_night)
+        }
+        return name + " " + ShiftTimes.formatRange(
+            ShiftTimes.getStart(ctx, type), ShiftTimes.getEnd(ctx, type))
+    }
+
+    /**
+     * Long-pressing a day chip edits that shift type's start time, then its
+     * end time, so durations are fully customisable (the pre-refactor
+     * ShiftPreset had start/end minutes; Phase 1b had hard-coded strings).
+     */
+    private fun editShiftTimes(type: Int) {
+        if (type == ShiftType.REST) return
+        val ctx = requireContext()
+        val start = ShiftTimes.getStart(ctx, type)
+        TimePickerDialog(ctx, { _, sh, sm ->
+            val newStart = sh * 60 + sm
+            val end = ShiftTimes.getEnd(ctx, type)
+            TimePickerDialog(ctx, { _, eh, em ->
+                ShiftTimes.setTimes(ctx, type, newStart, eh * 60 + em)
+                refresh()
+            }, end / 60, end % 60, true).show()
+        }, start / 60, start % 60, true).show()
     }
 
     private fun nextType(t: Int): Int = when (t) {

@@ -143,6 +143,14 @@
                 android:textColor="?attr/colorOnSurfaceVariant"
                 android:layout_marginTop="12dp" android:layout_marginBottom="8dp" />
 
+            <TextView
+                style="?attr/textAppearanceBodySmall"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:text="@string/sub_shift_times_hint" />
+
             <LinearLayout
                 android:id="@+id/shift_day_grid"
                 android:layout_width="match_parent"

@@ -4,7 +4,7 @@
     android:height="24dp"
     android:viewportWidth="960"
     android:viewportHeight="960"
-    android:tint="?attr/colorOnSurfaceVariant">
+    android:tint="?attr/colorOnSecondaryContainer">
     <path
         android:fillColor="@android:color/white"
         android:pathData="M628,678 450,500v-192h60v167l152,152 -34,51zM480,880q-83,0 -156,-32 -73,-32 -127.5,-86.5T110,634Q78,561 78,478t32,-156q32,-73 86.5,-127.5T324,110q73,-32 156,-32t156,32q73,32 127.5,86.5T850,322q32,73 32,156t-32,156q-32,73 -86.5,127.5T636,848q-73,32 -156,32zM480,820q142,0 241,-99 99,-99 99,-241t-99,-241q-99,-99 -241,-99t-241,99q-99,99 -99,241t99,241q99,99 241,99z"/>

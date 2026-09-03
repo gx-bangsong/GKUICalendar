@@ -29,9 +29,6 @@
     <string name="sub_shift_anchor_label">倒班开始日</string>
     <string name="sub_shift_per_rotation_label">每轮倒班提醒</string>
     <string name="sub_shift_day_n_fmt">第%d天</string>
-    <string name="sub_shift_time_morning">07:30</string>
-    <string name="sub_shift_time_afternoon">15:30</string>
-    <string name="sub_shift_time_night">23:30</string>
     <string name="sub_shift_rest">休息</string>
     <string name="sub_shift_anchor_date_fmt">%1$d年%2$d月%3$d日</string>
     <string name="sub_shift_anchor_weekday_fmt">%1$s %2$s</string>
@@ -109,4 +106,11 @@
     <string name="sub_birthday_empty">No birthdays yet</string>
     <string name="sub_birthday_count_fmt">%1$d birthdays</string>
     <string name="sub_birthday_badge_fmt">%1$s</string>
+
+    <!-- Editable shift clock times -->
+    <string name="sub_shift_name_morning">早班</string>
+    <string name="sub_shift_name_afternoon">中班</string>
+    <string name="sub_shift_name_night">晚班</string>
+    <string name="sub_shift_times_hint">Long-press a shift to change its start and end time.</string>
+    <string name="sub_shift_duration_fmt">%1$dh %2$dm</string>
 </resources>

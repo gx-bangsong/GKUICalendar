@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Material Symbols Outlined: directions_car -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="960"
     android:viewportHeight="960"
-    android:tint="?attr/colorOnSurfaceVariant">
+    android:tint="?attr/colorOnSecondaryContainer">
     <path
         android:fillColor="@android:color/white"
-        android:pathData="M160,880v-80h640v80H160zM274,380h80v-80h132v80h80l-84,-204q-6,-15 -19,-24.5T434,142q-15,0 -28,9t-19,25l-113,204zM370,800q-45,0 -77.5,-32T260,690q0,-46 32,-78t78,-32q46,0 78,32t32,78q0,46 -32,78T370,800zM590,800q-45,0 -77.5,-32T480,690q0,-46 32,-78t78,-32q46,0 78,32t32,78q0,46 -32,78T590,800zM160,200v-80h640v80H160zM180,640q11,-68 56,-129.5T340,420L246,191 320,160l100,240h120l100,-240 74,31 -94,229q59,29 104,90.5T680,640H180z"/>
+        android:pathData="M240,720v40q0,17 -11.5,28.5T200,800h-40q-17,0 -28.5,-11.5T120,760v-320l84,-240q4,-13 15,-20.5t25,-7.5h472q14,0 25,7.5t15,20.5l84,240v320q0,17 -11.5,28.5T800,800h-40q-17,0 -28.5,-11.5T720,760v-40H240zM232,360h496l-42,-120H274l-42,120zM300,600q25,0 42.5,-17.5T360,540q0,-25 -17.5,-42.5T300,480q-25,0 -42.5,17.5T240,540q0,25 17.5,42.5T300,600zM660,600q25,0 42.5,-17.5T720,540q0,-25 -17.5,-42.5T660,480q-25,0 -42.5,17.5T600,540q0,25 17.5,42.5T660,600zM200,640h560v-200H200v200z"/>
 </vector>

@@ -8,6 +8,7 @@ package com.android.calendar.subscription.ui
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -15,6 +16,8 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.graphics.ColorUtils
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.preference.PreferenceFragmentCompat
 import com.android.calendar.Utils
 import com.android.calendar.lunar.LunarMode
@@ -23,6 +26,7 @@ import com.android.calendar.settings.GeneralPreferences
 import com.android.calendar.settings.SettingsActivity
 import com.android.calendar.subscription.SubscriptionProvider
 import com.android.calendar.subscription.SubscriptionRegistry
+import com.google.android.material.color.MaterialColors
 import com.google.android.material.materialswitch.MaterialSwitch
 import ws.xsoh.etar.R
 
@@ -51,6 +55,7 @@ class SubscriptionHubActivity : AppCompatActivity() {
 
         val toolbar = findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
+        matchStatusBarToToolbar()
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         toolbar.setNavigationOnClickListener { onSupportNavigateUp() }
 
@@ -164,6 +169,21 @@ class SubscriptionHubActivity : AppCompatActivity() {
             .addToBackStack(TAG_SUB_SETTINGS)
             .commit()
         showFragmentContainer(true)
+    }
+
+    /**
+     * The app theme paints the status bar with `?android:colorBackground`
+     * (the stock M3 surface) while this screen's app bar uses
+     * `?attr/colorSurface`, which the theme overrides to a different value —
+     * so the two never lined up. Resolve the app bar's own colour and apply
+     * it to the status bar, then pick matching icon polarity.
+     */
+    private fun matchStatusBarToToolbar() {
+        val surface = MaterialColors.getColor(
+            this, com.google.android.material.R.attr.colorSurface, Color.WHITE)
+        window.statusBarColor = surface
+        WindowInsetsControllerCompat(window, window.decorView)
+            .isAppearanceLightStatusBars = ColorUtils.calculateLuminance(surface) > 0.5
     }
 
     /** Swaps between the hub list and a hosted settings fragment. */
