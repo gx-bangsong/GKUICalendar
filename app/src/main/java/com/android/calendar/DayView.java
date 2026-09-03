@@ -29,6 +29,7 @@ import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.database.Cursor;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Paint.Align;
 import android.graphics.Paint.Style;
@@ -80,6 +81,7 @@ import com.android.calendar.CalendarController.EventType;
 import com.android.calendar.CalendarController.ViewType;
 import com.android.calendar.settings.GeneralPreferences;
 import com.android.calendar.calendarcommon2.Time;
+import com.android.calendar.subscription.SubscriptionText;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.ArrayList;
@@ -176,6 +178,9 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
     private final Typeface mBold = Typeface.DEFAULT_BOLD;
     private int mFirstJulianDay;
+    /** Cached so onDraw never touches SharedPreferences. */
+    private boolean mSubscriptionsEnabled;
+    private int mSubscriptionTextColor;
     private int mLoadedFirstJulianDay = -1;
     private int mLastJulianDay;
 
@@ -664,6 +669,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         initAccessibilityVariables();
 
         mResources = context.getResources();
+        refreshSubscriptionState();
         mCreateNewEventString = mResources.getString(R.string.event_create);
         mNewEventHintString = mResources.getString(R.string.day_view_new_event_hint);
         mNumDays = numDays;
@@ -755,6 +761,10 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         if (LunarUtils.showLunar(mContext) && mNumDays != 1) {
             DAY_HEADER_HEIGHT = (int) (DAY_HEADER_HEIGHT + DAY_HEADER_FONT_SIZE + 2);
         }
+        // Subscriptions (shift/traffic/...) draw one extra line under the date.
+        if (mSubscriptionsEnabled && mNumDays != 1) {
+            DAY_HEADER_HEIGHT = (int) (DAY_HEADER_HEIGHT + DAY_HEADER_FONT_SIZE + 2);
+        }
 
         mCurrentTimeLine = mResources.getDrawable(R.drawable.timeline_indicator_holo_light);
         mCurrentTimeAnimateLine = mResources
@@ -804,6 +814,34 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             mHandler = getHandler();
             mHandler.post(mUpdateCurrentTime);
         }
+    }
+
+    /**
+     * Caches whether any subscription is enabled plus the color to draw its
+     * badges with, so {@link #drawDayHeader} never reads preferences or
+     * resolves theme attributes during onDraw.
+     */
+    private void refreshSubscriptionState() {
+        mSubscriptionsEnabled =
+                !com.android.calendar.subscription.SubscriptionRegistry.getAll().isEmpty()
+                && hasAnyEnabledSubscription();
+        android.util.TypedValue tv = new android.util.TypedValue();
+        if (mContext.getTheme().resolveAttribute(
+                com.google.android.material.R.attr.colorOnSurfaceVariant, tv, true)) {
+            mSubscriptionTextColor = tv.data;
+        } else {
+            mSubscriptionTextColor = Color.GRAY;
+        }
+    }
+
+    private boolean hasAnyEnabledSubscription() {
+        for (com.android.calendar.subscription.SubscriptionProvider p
+                : com.android.calendar.subscription.SubscriptionRegistry.getAll()) {
+            if (p.isEnabled(mContext)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void init(Context context) {
@@ -937,6 +975,8 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
     public void handleOnResume() {
         initAccessibilityVariables();
+        // Pick up subscriptions toggled while we were in the background.
+        refreshSubscriptionState();
         mFutureBgColor = mFutureBgColorRes;
         mIs24HourFormat = DateFormat.is24HourFormat(mContext);
         mHourStrs = mIs24HourFormat ? CalendarData.s24Hours : CalendarData.s12Hours;
@@ -2592,6 +2632,21 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                         false, null);
                 if (!TextUtils.isEmpty(lunarInfo)) {
                     canvas.drawText(lunarInfo, x, y + DAY_HEADER_FONT_SIZE + 2, p);
+                }
+            }
+
+            // Subscription badges, on their own line below the date/lunar text.
+            if (mSubscriptionsEnabled) {
+                String subs = SubscriptionText.plain(mContext, mFirstJulianDay + day);
+                if (!TextUtils.isEmpty(subs)) {
+                    float subY = y + DAY_HEADER_FONT_SIZE + 2;
+                    if (LunarUtils.showLunar(mContext)) {
+                        subY += DAY_HEADER_FONT_SIZE + 2;
+                    }
+                    int prev = p.getColor();
+                    p.setColor(mSubscriptionTextColor);
+                    canvas.drawText(subs, x, subY, p);
+                    p.setColor(prev);
                 }
             }
         } else {

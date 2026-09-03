@@ -35,12 +35,18 @@ import java.util.TimeZone
  */
 class ShiftSettingsFragment : Fragment() {
 
+    private companion object {
+        const val MIN_CYCLE = 1
+        const val MAX_CYCLE = 31
+    }
+
     private lateinit var status: TextView
     private lateinit var cycleSummary: TextView
     private lateinit var anchorSummary: TextView
     private lateinit var anchorRow: View
     private lateinit var dayGrid: LinearLayout
     private lateinit var preview: TextView
+    private lateinit var cycleLenValue: TextView
 
     private var cycle: IntArray = ShiftPresets.cycleForKey(ShiftPresets.KEY_THREE)!!
     private var anchorJd: Int = todayJulianDay()
@@ -55,6 +61,10 @@ class ShiftSettingsFragment : Fragment() {
         anchorRow = root.findViewById(R.id.shift_anchor_row)
         dayGrid = root.findViewById(R.id.shift_day_grid)
         preview = root.findViewById(R.id.shift_preview)
+        cycleLenValue = root.findViewById(R.id.shift_cycle_len_value)
+
+        root.findViewById<View>(R.id.btn_cycle_minus).setOnClickListener { resizeCycle(-1) }
+        root.findViewById<View>(R.id.btn_cycle_plus).setOnClickListener { resizeCycle(+1) }
 
         root.findViewById<View>(R.id.btn_preset_three)
             .setOnClickListener { applyPreset(ShiftPresets.KEY_THREE) }
@@ -89,6 +99,23 @@ class ShiftSettingsFragment : Fragment() {
         }
     }
 
+    /**
+     * Grows or shrinks the rotation, so any cycle length in
+     * [MIN_CYCLE]..[MAX_CYCLE] is possible rather than only the five preset
+     * shapes. Added days default to 休 (rest) and can then be tapped to the
+     * desired shift; removing pops the last day.
+     */
+    private fun resizeCycle(delta: Int) {
+        val target = (cycle.size + delta).coerceIn(MIN_CYCLE, MAX_CYCLE)
+        if (target == cycle.size) return
+        val next = IntArray(target)
+        for (i in 0 until target) {
+            next[i] = if (i < cycle.size) cycle[i] else ShiftType.REST
+        }
+        cycle = next
+        persist(); refresh()
+    }
+
     private fun applyPreset(key: String) {
         val c = ShiftPresets.cycleForKey(key) ?: return
         cycle = c.copyOf()
@@ -108,11 +135,13 @@ class ShiftSettingsFragment : Fragment() {
             cycleSummary.text = ""
             anchorSummary.text = ""
             preview.text = ""
+            cycleLenValue.text = getString(R.string.sub_days_fmt, cycle.size)
             dayGrid.removeAllViews()
             return
         }
         status.text = sum
         cycleSummary.text = getString(R.string.sub_shift_cycle_days_fmt, cycle.size)
+        cycleLenValue.text = getString(R.string.sub_days_fmt, cycle.size)
         anchorSummary.text = formatAnchorDate(ctx, anchorJd)
         rebuildDayGrid(ctx)
         preview.text = buildPreview(ctx)

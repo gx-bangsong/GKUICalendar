@@ -28,6 +28,8 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
+import com.android.calendar.subscription.SubscriptionText;
+
 import com.android.calendar.DynamicTheme;
 import com.google.android.material.color.MaterialColors;
 import com.android.calendar.Utils;
@@ -208,6 +210,8 @@ public class AgendaByDayAdapter extends BaseAdapter {
                 agendaDayView = mInflater.inflate(R.layout.agenda_day, parent, false);
                 holder.dayView = (TextView) agendaDayView.findViewById(R.id.day);
                 holder.dateView = (TextView) agendaDayView.findViewById(R.id.date);
+                holder.subscriptionView =
+                        (TextView) agendaDayView.findViewById(R.id.subscription_badges);
                 holder.julianDay = row.mDay;
                 holder.grayed = false;
                 agendaDayView.setTag(holder);
@@ -249,6 +253,7 @@ public class AgendaByDayAdapter extends BaseAdapter {
             holder.dayView.setText(dayViewText);
             holder.dateView.setText(String.format(Locale.getDefault(), "%d", date.getDay()));
             holder.dayView.setTextColor(MaterialColors.getColor(holder.dayView, com.google.android.material.R.attr.colorOnSurfaceVariant));
+            bindSubscriptions(holder, row.mDay);
             if (row.mDay == mTodayJulianDay) {
                 holder.dateView.setBackgroundResource(R.drawable.circle);
                 holder.dateView.setBackgroundTintList(ColorStateList.valueOf(
@@ -676,9 +681,30 @@ public class AgendaByDayAdapter extends BaseAdapter {
         return true;
     }
 
+    /**
+     * Shows the enabled subscriptions' badges under the weekday label, so
+     * agenda view carries the same shift / traffic / period information the
+     * month grid draws. Costs nothing when every provider is disabled.
+     */
+    private void bindSubscriptions(ViewHolder holder, int julianDay) {
+        if (holder.subscriptionView == null) {
+            return;
+        }
+        int fallback = MaterialColors.getColor(holder.subscriptionView,
+                com.google.android.material.R.attr.colorOnSurfaceVariant);
+        CharSequence badges = SubscriptionText.colored(mContext, julianDay, fallback);
+        if (badges == null) {
+            holder.subscriptionView.setVisibility(View.GONE);
+        } else {
+            holder.subscriptionView.setText(badges);
+            holder.subscriptionView.setVisibility(View.VISIBLE);
+        }
+    }
+
     static class ViewHolder {
         TextView dayView;
         TextView dateView;
+        TextView subscriptionView;
         int julianDay;
         boolean grayed;
     }

@@ -112,4 +112,5 @@
     <string name="sub_shift_name_night">晚班</string>
     <string name="sub_shift_times_hint">长按班次可修改上下班时间。</string>
     <string name="sub_shift_duration_fmt">%1$d小时%2$d分</string>
+    <string name="sub_shift_cycle_length_label">循环天数</string>
 </resources>

@@ -113,4 +113,5 @@
     <string name="sub_shift_name_night">晚班</string>
     <string name="sub_shift_times_hint">Long-press a shift to change its start and end time.</string>
     <string name="sub_shift_duration_fmt">%1$dh %2$dm</string>
+    <string name="sub_shift_cycle_length_label">Days in rotation</string>
 </resources>
