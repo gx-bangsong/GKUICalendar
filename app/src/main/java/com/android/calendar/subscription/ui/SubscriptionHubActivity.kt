@@ -10,10 +10,12 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.View
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.preference.PreferenceFragmentCompat
 import com.android.calendar.Utils
 import com.android.calendar.lunar.LunarMode
 import com.android.calendar.settings.EXTRA_SHOW_FRAGMENT
@@ -40,6 +42,8 @@ class SubscriptionHubActivity : AppCompatActivity() {
 
     private lateinit var prefs: SharedPreferences
     private lateinit var container: LinearLayout
+    private lateinit var scroll: View
+    private lateinit var fragmentContainer: View
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,10 +52,22 @@ class SubscriptionHubActivity : AppCompatActivity() {
         val toolbar = findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        toolbar.setNavigationOnClickListener { finish() }
+        toolbar.setNavigationOnClickListener { onSupportNavigateUp() }
 
         prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         container = findViewById(R.id.list_container)
+        scroll = findViewById(R.id.scroll)
+        fragmentContainer = findViewById(R.id.sub_fragment_container)
+
+        // Restore the list/fragment split across configuration changes.
+        supportFragmentManager.addOnBackStackChangedListener {
+            val hasChild = supportFragmentManager.findFragmentByTag(TAG_SUB_SETTINGS) != null
+            showFragmentContainer(hasChild)
+            if (!hasChild) buildList()
+        }
+        showFragmentContainer(
+            supportFragmentManager.findFragmentByTag(TAG_SUB_SETTINGS) != null)
+
         buildList()
     }
 
@@ -60,6 +76,12 @@ class SubscriptionHubActivity : AppCompatActivity() {
         // Summaries ("3 days until next period", cycle length, ...) change in
         // the settings screens, so rebuild when coming back.
         buildList()
+    }
+
+    override fun onSupportNavigateUp(): Boolean {
+        if (supportFragmentManager.popBackStackImmediate()) return true
+        finish()
+        return true
     }
 
     private fun buildList() {
@@ -120,10 +142,37 @@ class SubscriptionHubActivity : AppCompatActivity() {
         if (enabled) p.onEnabled(this) else p.onDisabled(this)
     }
 
+    /**
+     * Shows a provider's settings as a fragment inside this activity.
+     *
+     * [LunarPreferences] is the one exception: it's an androidx
+     * [PreferenceFragmentCompat] wired into the main Settings hierarchy, so it
+     * keeps using [SettingsActivity] where the preference theme lives.
+     */
     private fun openSettings(p: SubscriptionProvider) {
-        val intent = Intent(this, SettingsActivity::class.java)
-        intent.putExtra(EXTRA_SHOW_FRAGMENT, p.getSettingsFragmentClass().name)
-        startActivity(intent)
+        val fragmentClass = p.getSettingsFragmentClass()
+        if (PreferenceFragmentCompat::class.java.isAssignableFrom(fragmentClass)) {
+            val intent = Intent(this, SettingsActivity::class.java)
+            intent.putExtra(EXTRA_SHOW_FRAGMENT, fragmentClass.name)
+            startActivity(intent)
+            return
+        }
+        val fragment = supportFragmentManager.fragmentFactory.instantiate(
+            classLoader, fragmentClass.name)
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.sub_fragment_container, fragment, TAG_SUB_SETTINGS)
+            .addToBackStack(TAG_SUB_SETTINGS)
+            .commit()
+        showFragmentContainer(true)
+    }
+
+    /** Swaps between the hub list and a hosted settings fragment. */
+    private fun showFragmentContainer(show: Boolean) {
+        fragmentContainer.visibility = if (show) View.VISIBLE else View.GONE
+        scroll.visibility = if (show) View.GONE else View.VISIBLE
+        if (!show) {
+            supportActionBar?.title = getString(R.string.subscription_hub_title)
+        }
     }
 
     private fun setProviderEnabled(id: String, enabled: Boolean) {
@@ -140,5 +189,6 @@ class SubscriptionHubActivity : AppCompatActivity() {
 
     companion object {
         private const val PREFS_NAME = "subscription_hub"
+        private const val TAG_SUB_SETTINGS = "sub_settings"
     }
 }
