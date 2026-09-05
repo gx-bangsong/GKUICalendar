@@ -2604,12 +2604,19 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         // Draw day of the month
         String dateNumStr = String.valueOf(dateNum);
         if (mNumDays > 1) {
+            // The header is bottom-anchored: the date sits at `y` and the
+            // weekday is drawn *above* it. Badges render below the date, so
+            // lift the whole block by the space they need.
+            float subscriptionBlock = mSubscriptionsEnabled
+                    ? mSubscriptionLineCount * (SUBSCRIPTION_TEXT_SIZE + 2) : 0;
             float y = -1;
             if (LunarUtils.showLunar(mContext)) {
-                y = DAY_HEADER_HEIGHT - DAY_HEADER_BOTTOM_MARGIN - DATE_HEADER_FONT_SIZE - 2;
+                y = DAY_HEADER_HEIGHT - DAY_HEADER_BOTTOM_MARGIN - DATE_HEADER_FONT_SIZE - 2
+                        - subscriptionBlock;
             } else {
-                y = DAY_HEADER_HEIGHT - DAY_HEADER_BOTTOM_MARGIN;
+                y = DAY_HEADER_HEIGHT - DAY_HEADER_BOTTOM_MARGIN - subscriptionBlock;
             }
+            final float dateBaseline = y;
             // Draw day of the month
             x = computeDayLeftPosition(day) + DAY_HEADER_RIGHT_MARGIN;
             p.setTextAlign(Align.LEFT);
@@ -2655,10 +2662,9 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 if (!subs.isEmpty()) {
                     java.util.List<Integer> subColors =
                             SubscriptionText.lineColors(mContext, mFirstJulianDay + day);
-                    float subY = y + DAY_HEADER_FONT_SIZE + 2;
-                    if (LunarUtils.showLunar(mContext)) {
-                        subY += DAY_HEADER_FONT_SIZE + 2;
-                    }
+                    // Anchor to the date baseline, not the weekday line
+                    // (which sits above it), so badges never overlap the date.
+                    float subY = dateBaseline + SUBSCRIPTION_TEXT_SIZE + 2;
                     // Keep each badge inside its own column.
                     float columnWidth = (float) (mViewWidth - mHoursWidth) / mNumDays
                             - DAY_HEADER_RIGHT_MARGIN * 2;
