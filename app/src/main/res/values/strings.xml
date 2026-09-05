@@ -900,4 +900,14 @@
     <string name="countdown_today">Today is the day!</string>
     <!-- Date calculator -->
     <string name="start_date_label">Start Date</string>
+    <!-- Quick reschedule (event info overflow menu) -->
+    <string name="reschedule_label">Move event</string>
+    <string name="reschedule_today">Move to today</string>
+    <string name="reschedule_tomorrow">Move 1 day later</string>
+    <string name="reschedule_yesterday">Move 1 day earlier</string>
+    <string name="reschedule_next_week">Move 1 week later</string>
+    <string name="reschedule_pick_date">Pick a date\u2026</string>
+    <string name="reschedule_done">Event moved</string>
+    <string name="reschedule_unchanged">Event is already on that day</string>
+    <string name="reschedule_not_for_repeating">Repeating events can\'t be moved this way</string>
 </resources>

@@ -41,6 +41,10 @@
         android:title="@string/cal_export_event_sdcard_title"
         android:icon="@drawable/outline_save_event"
         app:showAsAction="ifRoom"/>
+    <item android:id="@+id/info_action_reschedule"
+        android:alphabeticShortcut="m"
+        android:title="@string/reschedule_label"
+        app:showAsAction="never" />
     <item android:id='@+id/info_action_change_color'
         android:alphabeticShortcut="c"
         android:icon="@drawable/outline_color_lens"

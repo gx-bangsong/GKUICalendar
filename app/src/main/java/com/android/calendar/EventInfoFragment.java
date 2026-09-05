@@ -32,6 +32,7 @@ import android.app.Service;
 import android.content.ActivityNotFoundException;
 import android.content.ContentProviderOperation;
 import android.content.ContentResolver;
+import android.app.DatePickerDialog;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
@@ -123,6 +124,8 @@ import com.android.calendar.settings.GeneralPreferences;
 import com.android.calendar.calendarcommon2.DateException;
 import com.android.calendar.calendarcommon2.Duration;
 import com.android.calendar.calendarcommon2.EventRecurrence;
+import androidx.appcompat.app.AlertDialog;
+
 import com.android.calendar.calendarcommon2.Time;
 import com.android.calendar.colorpicker.ColorPickerSwatch.OnColorSelectedListener;
 import com.android.calendar.colorpicker.HsvColorComparator;
@@ -1141,8 +1144,126 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
             shareEvent(ShareType.SDCARD);
         } else if (itemId == R.id.info_action_duplicate) {
             duplicateEvent();
+        } else if (itemId == R.id.info_action_reschedule) {
+            showRescheduleDialog();
         }
         return super.onOptionsItemSelected(item);
+    }
+
+
+    /**
+     * Smartisan-style quick reschedule: shift the event to today, nudge it a
+     * day either way, or pick an exact date. The event keeps its time of day
+     * and duration; only the date moves.
+     *
+     * Recurring events are not offered, because moving a single instance
+     * needs an exception row rather than a plain UPDATE of the series.
+     */
+    private void showRescheduleDialog() {
+        if (mIsRepeating) {
+            Toast.makeText(mContext, R.string.reschedule_not_for_repeating,
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+        final CharSequence[] items = new CharSequence[] {
+                getString(R.string.reschedule_today),
+                getString(R.string.reschedule_tomorrow),
+                getString(R.string.reschedule_yesterday),
+                getString(R.string.reschedule_next_week),
+                getString(R.string.reschedule_pick_date),
+        };
+        new AlertDialog.Builder(mContext)
+                .setTitle(R.string.reschedule_label)
+                .setItems(items, (dialog, which) -> {
+                    switch (which) {
+                        case 0: rescheduleToJulianDay(todayJulianDay()); break;
+                        case 1: rescheduleByDays(1); break;
+                        case 2: rescheduleByDays(-1); break;
+                        case 3: rescheduleByDays(7); break;
+                        default: showReschedulePicker(); break;
+                    }
+                })
+                .show();
+    }
+
+    private int todayJulianDay() {
+        String tz = Utils.getTimeZone(mContext, null);
+        Time t = new Time(tz);
+        long now = System.currentTimeMillis();
+        t.set(now);
+        return Time.getJulianDay(now, t.getGmtOffset());
+    }
+
+    /** Julian day the event currently starts on. */
+    private int currentJulianDay() {
+        String tz = mAllDay ? Time.TIMEZONE_UTC : Utils.getTimeZone(mContext, null);
+        Time t = new Time(tz);
+        t.set(mStartMillis);
+        return Time.getJulianDay(mStartMillis, t.getGmtOffset());
+    }
+
+    private void showReschedulePicker() {
+        String tz = mAllDay ? Time.TIMEZONE_UTC : Utils.getTimeZone(mContext, null);
+        Time t = new Time(tz);
+        t.set(mStartMillis);
+        new DatePickerDialog(mContext, (view, year, month, dayOfMonth) -> {
+            Time picked = new Time(tz);
+            picked.set(mStartMillis);
+            picked.setYear(year);
+            picked.setMonth(month);
+            picked.setDay(dayOfMonth);
+            long millis = picked.normalize();
+            rescheduleByDays(Time.getJulianDay(millis, picked.getGmtOffset())
+                    - currentJulianDay());
+        }, t.getYear(), t.getMonth(), t.getDay()).show();
+    }
+
+    private void rescheduleToJulianDay(int targetJulianDay) {
+        rescheduleByDays(targetJulianDay - currentJulianDay());
+    }
+
+    /**
+     * Shifts start and end by whole days, preserving time-of-day and duration
+     * across DST boundaries by re-normalizing through {@link Time} rather than
+     * adding a fixed number of milliseconds.
+     */
+    private void rescheduleByDays(int deltaDays) {
+        if (deltaDays == 0) {
+            Toast.makeText(mContext, R.string.reschedule_unchanged,
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String tz = mAllDay ? Time.TIMEZONE_UTC : Utils.getTimeZone(mContext, null);
+        long duration = mEndMillis - mStartMillis;
+
+        Time start = new Time(tz);
+        start.set(mStartMillis);
+        start.setDay(start.getDay() + deltaDays);
+        long newStart = start.normalize();
+
+        Time end = new Time(tz);
+        end.set(mEndMillis);
+        end.setDay(end.getDay() + deltaDays);
+        long newEnd = end.normalize();
+        if (newEnd <= newStart) {
+            // Fall back to preserving the raw duration if normalization
+            // collapsed the range (can happen across a DST spring-forward).
+            newEnd = newStart + duration;
+        }
+
+        ContentValues values = new ContentValues();
+        values.put(Events.DTSTART, newStart);
+        values.put(Events.DTEND, newEnd);
+        Uri uri = ContentUris.withAppendedId(Events.CONTENT_URI, mEventId);
+        mHandler.startUpdate(mHandler.getNextToken(), null, uri, values,
+                null, null, Utils.UNDO_DELAY);
+
+        mStartMillis = newStart;
+        mEndMillis = newEnd;
+        Toast.makeText(mContext, R.string.reschedule_done, Toast.LENGTH_SHORT).show();
+        if (mActivity != null) {
+            mActivity.finish();
+        }
     }
 
     /**

@@ -369,4 +369,14 @@
     <!-- Date calculator -->
     <string name="start_date_label">开始日期</string>
     <string name="end_date">结束日期</string>
+    <!-- 快速改期 -->
+    <string name="reschedule_label">移动日程</string>
+    <string name="reschedule_today">移到今天</string>
+    <string name="reschedule_tomorrow">推迟一天</string>
+    <string name="reschedule_yesterday">提前一天</string>
+    <string name="reschedule_next_week">推迟一周</string>
+    <string name="reschedule_pick_date">选择日期\u2026</string>
+    <string name="reschedule_done">已移动日程</string>
+    <string name="reschedule_unchanged">日程已在该日期</string>
+    <string name="reschedule_not_for_repeating">重复日程无法通过此方式移动</string>
 </resources>

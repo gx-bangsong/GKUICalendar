@@ -109,16 +109,6 @@
                         android:textSize="14sp"/>
                 </LinearLayout>
 
-                <!-- ATTENDEES -->
-                <include
-                    android:id="@+id/attendee_list"
-                    layout="@layout/contact_item" />
-
-                <!-- REMINDERS -->
-                <include
-                    android:id="@+id/reminders_container"
-                    layout="@layout/contact_item" />
-
                 <!-- ORGANIZER -->
                 <LinearLayout
                     android:id="@+id/organizer_container"
