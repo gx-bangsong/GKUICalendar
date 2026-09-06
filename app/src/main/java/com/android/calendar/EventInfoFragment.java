@@ -1183,11 +1183,6 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
      * needs an exception row rather than a plain UPDATE of the series.
      */
     private void showRescheduleDialog() {
-        if (mIsRepeating) {
-            Toast.makeText(mContext, R.string.reschedule_not_for_repeating,
-                    Toast.LENGTH_SHORT).show();
-            return;
-        }
         final CharSequence[] items = new CharSequence[] {
                 getString(R.string.reschedule_today),
                 getString(R.string.reschedule_tomorrow),
@@ -1274,13 +1269,79 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
             newEnd = newStart + duration;
         }
 
+        if (mIsRepeating) {
+            // Ask whether to move just this occurrence or the whole series,
+            // mirroring the edit/delete flows.
+            promptRescheduleScope(newStart, newEnd);
+        } else {
+            applyRescheduleAll(newStart, newEnd);
+        }
+    }
+
+    /**
+     * Recurring events are ambiguous: moving "the event" could mean this one
+     * occurrence or every one of them. Let the user say which.
+     */
+    private void promptRescheduleScope(final long newStart, final long newEnd) {
+        final CharSequence[] scopes = new CharSequence[] {
+                getString(R.string.modify_event),
+                getString(R.string.modify_all),
+        };
+        new AlertDialog.Builder(mContext)
+                .setTitle(R.string.reschedule_label)
+                .setItems(scopes, (dialog, which) -> {
+                    if (which == 0) {
+                        applyRescheduleSingleInstance(newStart, newEnd);
+                    } else {
+                        applyRescheduleAll(newStart, newEnd);
+                    }
+                })
+                .show();
+    }
+
+    /**
+     * Moves every occurrence by rewriting the master event's DTSTART/DTEND.
+     */
+    private void applyRescheduleAll(long newStart, long newEnd) {
         ContentValues values = new ContentValues();
         values.put(Events.DTSTART, newStart);
         values.put(Events.DTEND, newEnd);
         Uri uri = ContentUris.withAppendedId(Events.CONTENT_URI, mEventId);
         mHandler.startUpdate(mHandler.getNextToken(), null, uri, values,
                 null, null, Utils.UNDO_DELAY);
+        finishReschedule(newStart, newEnd);
+    }
 
+    /**
+     * Moves a single occurrence by inserting an exception row keyed on the
+     * instance's original start time. The provider detaches that instance from
+     * the series and leaves the remaining occurrences untouched.
+     */
+    private void applyRescheduleSingleInstance(long newStart, long newEnd) {
+        ContentValues values = new ContentValues();
+        values.put(Events.ORIGINAL_INSTANCE_TIME, mStartMillis);
+        values.put(Events.DTSTART, newStart);
+        values.put(Events.DTEND, newEnd);
+        values.put(Events.STATUS, Events.STATUS_CONFIRMED);
+        if (mAllDay) {
+            values.put(Events.ALL_DAY, 1);
+        }
+        // An exception must not carry the series' recurrence rule.
+        values.putNull(Events.RRULE);
+        values.putNull(Events.DURATION);
+        values.put(Events.EVENT_TIMEZONE,
+                mAllDay ? Time.TIMEZONE_UTC : Utils.getTimeZone(mContext, null));
+
+        ArrayList<ContentProviderOperation> ops = new ArrayList<ContentProviderOperation>();
+        Uri exceptionUri = Uri.withAppendedPath(Events.CONTENT_EXCEPTION_URI,
+                String.valueOf(mEventId));
+        ops.add(ContentProviderOperation.newInsert(exceptionUri).withValues(values).build());
+        mHandler.startBatch(mHandler.getNextToken(), null, CalendarContract.AUTHORITY, ops,
+                Utils.UNDO_DELAY);
+        finishReschedule(newStart, newEnd);
+    }
+
+    private void finishReschedule(long newStart, long newEnd) {
         mStartMillis = newStart;
         mEndMillis = newEnd;
         Toast.makeText(mContext, R.string.reschedule_done, Toast.LENGTH_SHORT).show();
@@ -2087,7 +2148,7 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
         if (rescheduleButton == null) {
             return;
         }
-        boolean show = mCanModifyEvent && !mIsRepeating && mEventId > 0;
+        boolean show = mCanModifyEvent && mEventId > 0;
         rescheduleButton.setVisibility(show ? View.VISIBLE : View.GONE);
     }
 
