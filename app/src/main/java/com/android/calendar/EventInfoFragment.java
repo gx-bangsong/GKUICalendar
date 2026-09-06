@@ -924,6 +924,29 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
         };
         reminderAddButton.setOnClickListener(addReminderOnClickListener);
 
+        // Smartisan-style quick reschedule card, shown in the body rather than
+        // buried in the overflow menu. Visibility is settled in updateMenu()
+        // once we know whether the event repeats / can be modified.
+        View rescheduleButton = mView.findViewById(R.id.reschedule_button);
+        if (rescheduleButton != null) {
+            // Tap does the common case straight away, like Smartisan.
+            rescheduleButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    rescheduleToJulianDay(todayJulianDay());
+                }
+            });
+            // Long-press reveals the other offsets and the date picker.
+            rescheduleButton.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    showRescheduleDialog();
+                    return true;
+                }
+            });
+        }
+        updateRescheduleButton();
+
         // Set reminders variables
 
         SharedPreferences prefs = GeneralPreferences.Companion.getSharedPreferences(mActivity);
@@ -2039,6 +2062,9 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
                     mWindowStyle == EventInfoFragment.FULL_WINDOW_STYLE) && mMenu != null) {
                 mActivity.invalidateOptionsMenu();
             }
+            // The card lives in the body, so refresh it even when there is no
+            // options menu to invalidate (dialog / tablet pane).
+            updateRescheduleButton();
         } else {
             setVisibilityCommon(view, R.id.calendar, View.GONE);
             sendAccessibilityEventIfQueryDone(TOKEN_QUERY_DUPLICATE_CALENDARS);
@@ -2048,7 +2074,25 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
     /**
      *
      */
+    /**
+     * The quick-reschedule card only makes sense for a one-off event on a
+     * writable calendar; a plain UPDATE on a recurring event would silently
+     * move the whole series.
+     */
+    private void updateRescheduleButton() {
+        if (mView == null) {
+            return;
+        }
+        View rescheduleButton = mView.findViewById(R.id.reschedule_button);
+        if (rescheduleButton == null) {
+            return;
+        }
+        boolean show = mCanModifyEvent && !mIsRepeating && mEventId > 0;
+        rescheduleButton.setVisibility(show ? View.VISIBLE : View.GONE);
+    }
+
     private void updateMenu() {
+        updateRescheduleButton();
         if (mMenu == null) {
             return;
         }

@@ -73,6 +73,22 @@
             -->
             <include layout="@layout/event_info_headline" />
 
+            <!-- Smartisan-style quick reschedule card. Hidden for repeating
+                 events and calendars the user cannot modify. -->
+            <Button
+                android:id="@+id/reschedule_button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="12dp"
+                android:layout_marginTop="12dp"
+                android:minHeight="56dp"
+                android:textAllCaps="false"
+                android:textSize="18sp"
+                android:visibility="gone"
+                android:text="@string/reschedule_move_to_today"
+                style="@style/Widget.Material3.Button.TonalButton" />
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
