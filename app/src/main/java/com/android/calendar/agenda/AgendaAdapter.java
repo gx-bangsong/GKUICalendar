@@ -227,7 +227,13 @@ public class AgendaAdapter extends ResourceCursorAdapter {
             long now = System.currentTimeMillis();
             String extraInfo = "";
             if (EventExtraUtils.EVENT_TYPE_ANNIVERSARY.equals(eventType) || EventExtraUtils.EVENT_TYPE_BIRTHDAY.equals(eventType)) {
-                extraInfo = EventExtraUtils.getAnniversaryDisplayString(context, begin, now);
+                // Yearly recurrence means BEGIN is this year's occurrence; the
+                // original date lives in DTSTART.
+                long originalStart = cursor.getLong(AgendaWindowAdapter.INDEX_DTSTART);
+                if (originalStart <= 0) {
+                    originalStart = begin;
+                }
+                extraInfo = EventExtraUtils.getAnniversaryDisplayString(context, originalStart, now);
             } else if (EventExtraUtils.EVENT_TYPE_COUNTDOWN.equals(eventType)) {
                 extraInfo = EventExtraUtils.getCountdownDisplayString(context, begin, now);
             }

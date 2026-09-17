@@ -363,6 +363,7 @@
     <string name="event_type_countdown">倒数日</string>
     <string name="anniversary_years_passed">已经 %d 年</string>
     <string name="anniversary_today">周年快乐！</string>
+    <string name="anniversary_today_nth">今天是第 %d 年</string>
     <string name="countdown_days_remaining">还剩下 %d 天</string>
     <string name="countdown_days_passed">已经过去 %d 天</string>
     <string name="countdown_today">就在今天！</string>

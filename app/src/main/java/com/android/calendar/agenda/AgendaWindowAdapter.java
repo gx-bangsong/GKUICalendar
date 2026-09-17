@@ -96,6 +96,8 @@ public class AgendaWindowAdapter extends BaseAdapter
     public static final int INDEX_CAN_ORGANIZER_RESPOND= 16;
     public static final int INDEX_TIME_ZONE = 17;
     public static final int INDEX_CUSTOM_APP_URI = 18;
+    // Series start date (not the instance BEGIN); needed to count anniversary years.
+    public static final int INDEX_DTSTART = 19;
     static final boolean BASICLOG = false;
     static final boolean DEBUGLOG = false;
     private static final String TAG = "AgendaWindowAdapter";
@@ -123,6 +125,7 @@ public class AgendaWindowAdapter extends BaseAdapter
             Instances.CAN_ORGANIZER_RESPOND, // 16
             Instances.EVENT_TIMEZONE, // 17
             Instances.CUSTOM_APP_URI, // 18
+            Instances.DTSTART, // 19
     };
     // Listview may have a bug where the index/position is not consistent when there's a header.
     // position == positionInListView - OFF_BY_ONE_BUG

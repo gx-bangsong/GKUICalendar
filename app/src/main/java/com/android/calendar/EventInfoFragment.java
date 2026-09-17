@@ -1320,12 +1320,20 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
     private void applyRescheduleSingleInstance(long newStart, long newEnd) {
         ContentValues values = new ContentValues();
         values.put(Events.ORIGINAL_INSTANCE_TIME, mStartMillis);
+        // The provider matches the exception back to its parent occurrence
+        // using the sync id + original all-day flag. Without these it cannot
+        // cancel the original instance, so the old and moved copies both
+        // render - the duplicate-event bug.
+        String syncId = mEventCursor != null
+                ? mEventCursor.getString(EVENT_INDEX_SYNC_ID) : null;
+        if (!TextUtils.isEmpty(syncId)) {
+            values.put(Events.ORIGINAL_SYNC_ID, syncId);
+        }
+        values.put(Events.ORIGINAL_ALL_DAY, mAllDay ? 1 : 0);
         values.put(Events.DTSTART, newStart);
         values.put(Events.DTEND, newEnd);
         values.put(Events.STATUS, Events.STATUS_CONFIRMED);
-        if (mAllDay) {
-            values.put(Events.ALL_DAY, 1);
-        }
+        values.put(Events.ALL_DAY, mAllDay ? 1 : 0);
         // An exception must not carry the series' recurrence rule.
         values.putNull(Events.RRULE);
         values.putNull(Events.DURATION);
@@ -1767,7 +1775,14 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
                 long now = System.currentTimeMillis();
                 String extraInfo = "";
                 if (com.android.calendar.event.EventExtraUtils.EVENT_TYPE_ANNIVERSARY.equals(eventType) || com.android.calendar.event.EventExtraUtils.EVENT_TYPE_BIRTHDAY.equals(eventType)) {
-                    extraInfo = com.android.calendar.event.EventExtraUtils.getAnniversaryDisplayString(context, mStartMillis, now);
+                    // Anniversaries recur yearly, so mStartMillis is *this*
+                    // year's occurrence. Use the series DTSTART - the original
+                    // date - or the elapsed year count is always zero.
+                    long originalStart = mEventCursor.getLong(EVENT_INDEX_DTSTART);
+                    if (originalStart <= 0) {
+                        originalStart = mStartMillis;
+                    }
+                    extraInfo = com.android.calendar.event.EventExtraUtils.getAnniversaryDisplayString(context, originalStart, now);
                 } else if (com.android.calendar.event.EventExtraUtils.EVENT_TYPE_COUNTDOWN.equals(eventType)) {
                     extraInfo = com.android.calendar.event.EventExtraUtils.getCountdownDisplayString(context, mStartMillis, now);
                 }

@@ -895,6 +895,7 @@
     <string name="event_type_countdown">Countdown</string>
     <string name="anniversary_years_passed">Already %d years</string>
     <string name="anniversary_today">Happy Anniversary!</string>
+    <string name="anniversary_today_nth">%d years today</string>
     <string name="countdown_days_remaining">Still %d days</string>
     <string name="countdown_days_passed">Already %d days passed</string>
     <string name="countdown_today">Today is the day!</string>
