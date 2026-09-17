@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+ : follow the launcher's dynamic-colour surface and its
+     system-provided corner radius so the widget matches the home screen. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <corners android:radius="@dimen/widget_corner_radius" />
+    <solid android:color="@android:color/system_accent1_50" />
+</shape>

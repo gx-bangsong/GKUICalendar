@@ -19,6 +19,8 @@
     android:minHeight="180dip"
     android:minResizeWidth="140dip"
     android:minResizeHeight="110dip"
+    android:targetCellWidth="4"
+    android:targetCellHeight="3"
     android:description="@string/gadget_description"
     android:updatePeriodMillis="0"
     android:previewImage="@drawable/calendar_widget_preview"

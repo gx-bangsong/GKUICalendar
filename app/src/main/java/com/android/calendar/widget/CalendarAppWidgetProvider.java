@@ -35,7 +35,6 @@ import android.util.Log;
 import android.widget.RemoteViews;
 
 import com.android.calendar.AllInOneActivity;
-import com.android.calendar.DynamicTheme;
 import com.android.calendar.EventInfoActivity;
 import com.android.calendar.Utils;
 import com.android.calendar.event.EditEventActivity;
@@ -205,21 +204,21 @@ public class CalendarAppWidgetProvider extends AppWidgetProvider {
             Time time = new Time(Utils.getTimeZone(context, null));
             time.set(System.currentTimeMillis());
             long millis = time.toMillis();
+            // MD3 header: the month reads as the headline, with the weekday
+            // and day as the supporting line beneath it.
+            final String month = Utils.formatDateRange(context, millis, millis,
+                    DateUtils.FORMAT_SHOW_DATE | DateUtils.FORMAT_NO_MONTH_DAY
+                            | DateUtils.FORMAT_NO_YEAR);
             final String dayOfWeek = DateUtils.getDayOfWeekString(time.getWeekDay() + 1,
                     DateUtils.LENGTH_MEDIUM);
             final String date = Utils.formatDateRange(context, millis, millis,
                     DateUtils.FORMAT_ABBREV_ALL | DateUtils.FORMAT_SHOW_DATE
                             | DateUtils.FORMAT_NO_YEAR);
-            views.setTextViewText(R.id.day_of_week, dayOfWeek);
-            views.setTextViewText(R.id.date, date);
+            views.setTextViewText(R.id.date, month);
+            views.setTextViewText(R.id.day_of_week, dayOfWeek + ", " + date);
 
-            // Set widget header background based on chosen primary app color
-            int headerColor = DynamicTheme.getColorId(DynamicTheme.getPrimaryColor(context));
-            views.setInt(R.id.header, "setBackgroundResource", headerColor);
-
-            // Set widget background color based on chosen app theme
-            int backgroundColor = DynamicTheme.getWidgetBackgroundStyle(context);
-            views.setInt(R.id.widget_background, "setBackgroundResource", backgroundColor);
+            // The rounded MD3 container is supplied by the layout background;
+            // tinting it here would square off the corners.
 
             // Attach to list of events
             views.setRemoteAdapter(R.id.events_list, updateIntent);

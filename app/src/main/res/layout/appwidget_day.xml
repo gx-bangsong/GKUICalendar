@@ -14,32 +14,29 @@
      limitations under the License.
 -->
 
+<!-- Material 3 day separator. -->
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/appwidget_date"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:layout_marginLeft="2dip"
-    android:layout_marginRight="2dip"
-    android:layout_marginTop="2dip"
+    android:layout_height="wrap_content"
     android:addStatesFromChildren="true"
     android:clickable="false"
     android:focusable="false"
     android:focusableInTouchMode="false"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:paddingTop="10dp"
+    android:paddingBottom="2dp">
 
-    <!-- Left edge should align with those of event texts.
-         TODO: values marginLeft/marginRight should be same as those in
-         appwidget_row.xml. Should be better to have those values in style.xml
-      -->
     <TextView
         android:id="@+id/date"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingStart="4dip"
-        android:shadowColor="@color/text_shadow_color"
-        android:shadowRadius="1"
-        android:textColor="@color/appwidget_date"
-        android:textSize="12sp" />
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:paddingStart="4dp"
+        android:textColor="@color/widget_on_surface_variant"
+        android:textSize="@dimen/widget_date_dow_text"
+        android:textStyle="bold" />
 
 </LinearLayout>

@@ -31,8 +31,7 @@
         android:padding="7dip"
         android:gravity="center"
         android:textSize="14sp"
-        android:textStyle="bold"
-        android:textColor="@color/appwidget_no_events"
+        android:textColor="@color/widget_on_surface_variant"
         android:text="@string/gadget_no_events" />
 
 </LinearLayout>

@@ -40,7 +40,6 @@ import android.view.View;
 import android.widget.RemoteViews;
 import android.widget.RemoteViewsService;
 
-import com.android.calendar.DynamicTheme;
 import com.android.calendar.Utils;
 import com.android.calendar.widget.CalendarAppWidgetModel.DayInfo;
 import com.android.calendar.widget.CalendarAppWidgetModel.EventInfo;
@@ -292,14 +291,11 @@ public class CalendarAppWidgetService extends RemoteViewsService {
                 int adaptiveTextColor = Utils.getAdaptiveTextColor(mContext, mStandardColor, displayColor);
                 int adaptiveAllDayTextColor = Utils.getAdaptiveTextColor(mContext, mAllDayColor, displayColor);
 
-                final long now = System.currentTimeMillis();
-                if (!eventInfo.allDay && eventInfo.start <= now && now <= eventInfo.end) {
-                    int past_bg_color = R.color.agenda_past_days_bar_background_color;
-                    views.setInt(R.id.widget_row, "setBackgroundResource", past_bg_color);
-                } else {
-                    int future_bg_color = DynamicTheme.getWidgetBackgroundStyle(mContext);
-                    views.setInt(R.id.widget_row, "setBackgroundResource", future_bg_color);
-                }
+                // The rounded chip itself carries the colour, so the row behind
+                // it stays transparent - a solid background would reintroduce
+                // square corners around every event.
+                views.setInt(R.id.widget_row, "setBackgroundResource",
+                        android.R.color.transparent);
 
                 if (!eventInfo.allDay) {
                     updateTextView(views, R.id.when, eventInfo.visibWhen, eventInfo.when);
@@ -313,11 +309,11 @@ public class CalendarAppWidgetService extends RemoteViewsService {
                 if (eventInfo.allDay) {
                     if (selfAttendeeStatus == Attendees.ATTENDEE_STATUS_INVITED) {
                         views.setInt(R.id.agenda_item_color, "setImageResource",
-                                R.drawable.widget_chip_not_responded_bg);
+                                R.drawable.widget_chip_md3_outlined);
                         views.setInt(R.id.title, "setTextColor", displayColor);
                     } else {
                         views.setInt(R.id.agenda_item_color, "setImageResource",
-                                R.drawable.widget_chip_responded_bg);
+                                R.drawable.widget_chip_md3_filled);
                         views.setInt(R.id.title, "setTextColor", adaptiveAllDayTextColor);
                     }
                     if (selfAttendeeStatus == Attendees.ATTENDEE_STATUS_DECLINED) {
@@ -333,20 +329,20 @@ public class CalendarAppWidgetService extends RemoteViewsService {
                     views.setInt(R.id.where, "setTextColor", mDeclinedColor);
 
                     views.setInt(R.id.agenda_item_color, "setImageResource",
-                            R.drawable.widget_chip_responded_bg);
+                            R.drawable.widget_chip_md3_filled);
                     // 40% opacity
                     views.setInt(R.id.agenda_item_color, "setColorFilter",
                             Utils.getDeclinedColorFromColor(displayColor));
                 } else {
                     if (selfAttendeeStatus == Attendees.ATTENDEE_STATUS_INVITED) {
                         views.setInt(R.id.agenda_item_color, "setImageResource",
-                                R.drawable.widget_chip_not_responded_bg);
+                                R.drawable.widget_chip_md3_outlined);
                         views.setInt(R.id.title, "setTextColor", displayColor);
                         views.setInt(R.id.when, "setTextColor", displayColor);
                         views.setInt(R.id.where, "setTextColor", displayColor);
                     } else {
                         views.setInt(R.id.agenda_item_color, "setImageResource",
-                                R.drawable.widget_chip_responded_bg);
+                                R.drawable.widget_chip_md3_filled);
                         views.setInt(R.id.title, "setTextColor", adaptiveTextColor);
                         views.setInt(R.id.when, "setTextColor", adaptiveTextColor);
                         views.setInt(R.id.where, "setTextColor", adaptiveTextColor);

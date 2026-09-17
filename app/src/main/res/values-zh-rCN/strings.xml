@@ -380,4 +380,5 @@
     <string name="reschedule_move_to_today">移动到今天</string>
     <string name="reschedule_done">已移动日程</string>
     <string name="reschedule_unchanged">日程已在该日期</string>
+    <string name="gadget_description">一眼查看即将到来的日程</string>
 </resources>

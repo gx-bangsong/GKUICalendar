@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- MD3 widget palette (light). -->
+    <color name="widget_surface">#FFEDF3FB</color>
+    <color name="widget_chip_surface">#FFE7EDF4</color>
+    <color name="widget_fab_container">#FF0B5E9E</color>
+    <color name="widget_fab_icon">#FFFFFFFF</color>
+    <color name="widget_date_pill">#FF0B5E9E</color>
+    <color name="widget_date_pill_text">#FFFFFFFF</color>
+    <color name="widget_on_surface">#FF1A1C1E</color>
+    <color name="widget_on_surface_variant">#FF43474E</color>
+</resources>
