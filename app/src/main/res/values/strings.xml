@@ -585,6 +585,12 @@
     <!-- Caption to show on gadget when there are no upcoming calendar events -->
     <string name="gadget_no_events">No upcoming calendar events</string>
     <string name="gadget_description">Your upcoming events at a glance</string>
+    <!-- Sample content shown in the widget picker preview only -->
+    <string name="widget_preview_month">July</string>
+    <string name="widget_preview_date">Tue, Jul 11</string>
+    <string name="widget_preview_event_1">Team standup</string>
+    <string name="widget_preview_event_2">Design review</string>
+    <string name="widget_preview_event_3">Lunch with Sam</string>
 
     <!-- Experimental settings [CHAR LIMIT = 30]-->
     <string name="preferences_experimental_category">Experimental</string>

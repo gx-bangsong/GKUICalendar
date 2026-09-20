@@ -9,4 +9,10 @@
     <color name="widget_date_pill_text">#FFFFFFFF</color>
     <color name="widget_on_surface">#FF1A1C1E</color>
     <color name="widget_on_surface_variant">#FF43474E</color>
+
+    <!-- Sample chip colours used only by the widget-picker preview layout.
+         Chip 3 is deliberately pale to show the contrast-aware dark text. -->
+    <color name="widget_preview_chip_1">#FF0B8043</color>
+    <color name="widget_preview_chip_2">#FF3F79BA</color>
+    <color name="widget_preview_chip_3">#FFF6BF26</color>
 </resources>

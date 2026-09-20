@@ -24,6 +24,7 @@
     android:description="@string/gadget_description"
     android:updatePeriodMillis="0"
     android:previewImage="@drawable/calendar_widget_preview"
+    android:previewLayout="@layout/appwidget_preview"
     android:initialLayout="@layout/appwidget"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="keyguard|home_screen">

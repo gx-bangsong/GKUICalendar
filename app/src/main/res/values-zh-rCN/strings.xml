@@ -381,4 +381,9 @@
     <string name="reschedule_done">已移动日程</string>
     <string name="reschedule_unchanged">日程已在该日期</string>
     <string name="gadget_description">一眼查看即将到来的日程</string>
+    <string name="widget_preview_month">7月</string>
+    <string name="widget_preview_date">7月11日 周二</string>
+    <string name="widget_preview_event_1">早会</string>
+    <string name="widget_preview_event_2">设计评审</string>
+    <string name="widget_preview_event_3">午餐约会</string>
 </resources>

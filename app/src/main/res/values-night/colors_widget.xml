@@ -9,4 +9,8 @@
     <color name="widget_date_pill_text">#FF00325A</color>
     <color name="widget_on_surface">#FFE2E2E6</color>
     <color name="widget_on_surface_variant">#FFC3C7CF</color>
+
+    <color name="widget_preview_chip_1">#FF5E9E74</color>
+    <color name="widget_preview_chip_2">#FF7BA7DC</color>
+    <color name="widget_preview_chip_3">#FFE0C060</color>
 </resources>
