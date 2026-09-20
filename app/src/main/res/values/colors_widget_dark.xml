@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Explicit dark palette for the widget.
+
+     These are deliberately NOT in values-night: the widget follows Etar's own
+     theme preference, which can differ from the system uiMode, so the provider
+     selects between the light and *_dark variants at runtime. -->
+<resources>
+    <color name="widget_surface_dark">#FF1A1C1E</color>
+    <color name="widget_chip_surface_dark">#FF25282C</color>
+    <color name="widget_fab_container_dark">#FFA8C8F0</color>
+    <color name="widget_fab_icon_dark">#FF00325A</color>
+    <color name="widget_on_surface_dark">#FFE2E2E6</color>
+    <color name="widget_on_surface_variant_dark">#FFC3C7CF</color>
+</resources>

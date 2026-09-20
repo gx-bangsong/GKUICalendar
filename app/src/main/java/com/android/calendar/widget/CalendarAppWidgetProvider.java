@@ -35,6 +35,7 @@ import android.util.Log;
 import android.widget.RemoteViews;
 
 import com.android.calendar.AllInOneActivity;
+import com.android.calendar.DynamicTheme;
 import com.android.calendar.EventInfoActivity;
 import com.android.calendar.Utils;
 import com.android.calendar.event.EditEventActivity;
@@ -217,8 +218,21 @@ public class CalendarAppWidgetProvider extends AppWidgetProvider {
             views.setTextViewText(R.id.date, month);
             views.setTextViewText(R.id.day_of_week, dayOfWeek + ", " + date);
 
-            // The rounded MD3 container is supplied by the layout background;
-            // tinting it here would square off the corners.
+            // Etar's theme preference is independent of the system uiMode, so
+            // -night qualifiers are not enough: resolve the palette here and
+            // apply it to the rounded MD3 container explicitly.
+            final boolean dark = DynamicTheme.isWidgetDark(context);
+            views.setInt(R.id.widget_background, "setBackgroundResource",
+                    dark ? R.drawable.widget_container_bg_dark
+                         : R.drawable.widget_container_bg);
+            views.setInt(R.id.iv_add, "setBackgroundResource",
+                    dark ? R.drawable.widget_fab_bg_dark
+                         : R.drawable.widget_fab_bg);
+            views.setTextColor(R.id.date, context.getColor(
+                    dark ? R.color.widget_on_surface_dark : R.color.widget_on_surface));
+            views.setTextColor(R.id.day_of_week, context.getColor(
+                    dark ? R.color.widget_on_surface_variant_dark
+                         : R.color.widget_on_surface_variant));
 
             // Attach to list of events
             views.setRemoteAdapter(R.id.events_list, updateIntent);

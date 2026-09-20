@@ -962,6 +962,32 @@ public class Utils {
     }
 
     /**
+     * Returns black or white - whichever is legible on top of the supplied
+     * background colour. Unlike {@link #getAdaptiveTextColor}, this does not
+     * depend on the "real event colors" preference: callers that always paint
+     * text directly onto a calendar-coloured surface (such as the widget's
+     * Material 3 chips) must contrast against that surface no matter what the
+     * user's preference is, or pale calendars render white-on-white.
+     *
+     * @param background the colour the text will be drawn on
+     * @return {@link Color#BLACK} or {@link Color#WHITE}
+     */
+    public static int getContrastingTextColor(int background) {
+        return getBrightnessFromColor(background) > BRIGHTNESS_THRESHOLD
+                ? Color.BLACK : Color.WHITE;
+    }
+
+    /**
+     * A dimmed companion to {@link #getContrastingTextColor} for secondary
+     * lines (time, location) so they read as supporting text while keeping
+     * the same contrast polarity.
+     */
+    public static int getSecondaryContrastingTextColor(int background) {
+        int base = getContrastingTextColor(background);
+        return ColorUtils.setAlphaComponent(base, 0xCC);
+    }
+
+    /**
      * If real event colors is enabled, this returns a dark or light text color depending on
      * the event background color
      *

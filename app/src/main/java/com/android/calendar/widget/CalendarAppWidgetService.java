@@ -40,6 +40,7 @@ import android.view.View;
 import android.widget.RemoteViews;
 import android.widget.RemoteViewsService;
 
+import com.android.calendar.DynamicTheme;
 import com.android.calendar.Utils;
 import com.android.calendar.widget.CalendarAppWidgetModel.DayInfo;
 import com.android.calendar.widget.CalendarAppWidgetModel.EventInfo;
@@ -149,8 +150,8 @@ public class CalendarAppWidgetService extends RemoteViewsService {
         };
         private int mAppWidgetId;
         private int mDeclinedColor;
-        private int mStandardColor;
-        private int mAllDayColor;
+        private int mOnSurfaceColor;
+        private int mOnSurfaceVariantColor;
 
         protected CalendarFactory(Context context, Intent intent) {
             mContext = context;
@@ -159,8 +160,16 @@ public class CalendarAppWidgetService extends RemoteViewsService {
                     AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID);
 
             mDeclinedColor = mResources.getColor(R.color.appwidget_item_declined_color);
-            mStandardColor = mResources.getColor(R.color.appwidget_item_standard_color);
-            mAllDayColor = mResources.getColor(R.color.appwidget_item_allday_color);
+            // Foreground colours for text drawn on the widget surface rather
+            // than on a calendar-coloured chip. Resolved from Etar's theme
+            // preference so they stay in step with the container the provider
+            // paints (the system uiMode alone is not authoritative here).
+            boolean dark = DynamicTheme.isWidgetDark(mContext);
+            mOnSurfaceColor = mResources.getColor(
+                    dark ? R.color.widget_on_surface_dark : R.color.widget_on_surface);
+            mOnSurfaceVariantColor = mResources.getColor(
+                    dark ? R.color.widget_on_surface_variant_dark
+                         : R.color.widget_on_surface_variant);
         }
 
         public CalendarFactory() {
@@ -268,6 +277,7 @@ public class CalendarAppWidgetService extends RemoteViewsService {
                 final Intent intent = CalendarAppWidgetProvider.getLaunchFillInIntent(mContext, 0,
                         0, 0, false);
                 views.setOnClickFillInIntent(R.id.appwidget_no_events, intent);
+                views.setTextColor(R.id.no_events, mOnSurfaceVariantColor);
                 return views;
             }
 
@@ -277,6 +287,7 @@ public class CalendarAppWidgetService extends RemoteViewsService {
                         R.layout.appwidget_day);
                 DayInfo dayInfo = mModel.mDayInfos.get(rowInfo.mIndex);
                 updateTextView(views, R.id.date, View.VISIBLE, dayInfo.mDayLabel);
+                views.setTextColor(R.id.date, mOnSurfaceVariantColor);
                 return views;
             } else {
                 RemoteViews views;
@@ -288,8 +299,12 @@ public class CalendarAppWidgetService extends RemoteViewsService {
                     views = new RemoteViews(mContext.getPackageName(), R.layout.widget_item);
                 }
                 int displayColor = Utils.getDisplayColorFromColor(mContext, eventInfo.color);
-                int adaptiveTextColor = Utils.getAdaptiveTextColor(mContext, mStandardColor, displayColor);
-                int adaptiveAllDayTextColor = Utils.getAdaptiveTextColor(mContext, mAllDayColor, displayColor);
+                // Text sits directly on the colour-filled MD3 chip, so pick
+                // the legible polarity for that chip rather than assuming
+                // white. Pale calendars were rendering white-on-white.
+                int adaptiveTextColor = Utils.getContrastingTextColor(displayColor);
+                int adaptiveAllDayTextColor = adaptiveTextColor;
+                int secondaryTextColor = Utils.getSecondaryContrastingTextColor(displayColor);
 
                 // The rounded chip itself carries the colour, so the row behind
                 // it stays transparent - a solid background would reintroduce
@@ -310,7 +325,7 @@ public class CalendarAppWidgetService extends RemoteViewsService {
                     if (selfAttendeeStatus == Attendees.ATTENDEE_STATUS_INVITED) {
                         views.setInt(R.id.agenda_item_color, "setImageResource",
                                 R.drawable.widget_chip_md3_outlined);
-                        views.setInt(R.id.title, "setTextColor", displayColor);
+                        views.setInt(R.id.title, "setTextColor", mOnSurfaceColor);
                     } else {
                         views.setInt(R.id.agenda_item_color, "setImageResource",
                                 R.drawable.widget_chip_md3_filled);
@@ -324,9 +339,11 @@ public class CalendarAppWidgetService extends RemoteViewsService {
                         views.setInt(R.id.agenda_item_color, "setColorFilter", displayColor);
                     }
                 } else if (selfAttendeeStatus == Attendees.ATTENDEE_STATUS_DECLINED) {
-                    views.setInt(R.id.title, "setTextColor", mDeclinedColor);
-                    views.setInt(R.id.when, "setTextColor", mDeclinedColor);
-                    views.setInt(R.id.where, "setTextColor", mDeclinedColor);
+                    int declinedBg = Utils.getDeclinedColorFromColor(displayColor);
+                    int declinedText = Utils.getContrastingTextColor(declinedBg);
+                    views.setInt(R.id.title, "setTextColor", declinedText);
+                    views.setInt(R.id.when, "setTextColor", declinedText);
+                    views.setInt(R.id.where, "setTextColor", declinedText);
 
                     views.setInt(R.id.agenda_item_color, "setImageResource",
                             R.drawable.widget_chip_md3_filled);
@@ -335,17 +352,20 @@ public class CalendarAppWidgetService extends RemoteViewsService {
                             Utils.getDeclinedColorFromColor(displayColor));
                 } else {
                     if (selfAttendeeStatus == Attendees.ATTENDEE_STATUS_INVITED) {
+                        // Outlined chip: the fill is transparent, so the text
+                        // sits on the widget surface and must use the surface
+                        // foreground colours instead of the calendar colour.
                         views.setInt(R.id.agenda_item_color, "setImageResource",
                                 R.drawable.widget_chip_md3_outlined);
-                        views.setInt(R.id.title, "setTextColor", displayColor);
-                        views.setInt(R.id.when, "setTextColor", displayColor);
-                        views.setInt(R.id.where, "setTextColor", displayColor);
+                        views.setInt(R.id.title, "setTextColor", mOnSurfaceColor);
+                        views.setInt(R.id.when, "setTextColor", mOnSurfaceVariantColor);
+                        views.setInt(R.id.where, "setTextColor", mOnSurfaceVariantColor);
                     } else {
                         views.setInt(R.id.agenda_item_color, "setImageResource",
                                 R.drawable.widget_chip_md3_filled);
                         views.setInt(R.id.title, "setTextColor", adaptiveTextColor);
-                        views.setInt(R.id.when, "setTextColor", adaptiveTextColor);
-                        views.setInt(R.id.where, "setTextColor", adaptiveTextColor);
+                        views.setInt(R.id.when, "setTextColor", secondaryTextColor);
+                        views.setInt(R.id.where, "setTextColor", secondaryTextColor);
                     }
                     views.setInt(R.id.agenda_item_color, "setColorFilter", displayColor);
                 }

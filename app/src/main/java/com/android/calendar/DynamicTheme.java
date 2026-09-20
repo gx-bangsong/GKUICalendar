@@ -195,6 +195,29 @@ public class DynamicTheme {
         }
     }
 
+    /**
+     * True when the widget should paint itself with the dark palette.
+     *
+     * The widget cannot rely on -night resource qualifiers alone: those follow
+     * the system uiMode, while Etar has its own theme preference. A user on
+     * "Dark"/"Black" with the system in light mode would otherwise get a light
+     * widget, and vice versa.
+     */
+    public static boolean isWidgetDark(Context context) {
+        String theme = getTheme(context);
+        switch (theme) {
+            case SYSTEM:
+                return isSystemInDarkTheme(context);
+            case LIGHT:
+                return false;
+            case DARK:
+            case BLACK:
+                return true;
+            default:
+                return isSystemInDarkTheme(context);
+        }
+    }
+
     public static int getWidgetBackgroundStyle(Context context) {
         String theme = getTheme(context);
         boolean pureBlack = Utils.getSharedPreference(context, PURE_BLACK_NIGHT_MODE, false);
