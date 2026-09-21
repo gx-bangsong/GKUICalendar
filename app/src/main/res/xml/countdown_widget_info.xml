@@ -6,6 +6,7 @@
     android:minResizeHeight="70dip"
     android:description="@string/countdown_widget_description"
     android:updatePeriodMillis="0"
+    android:previewImage="@drawable/countdown_widget_preview_image"
     android:initialLayout="@layout/countdown_widget"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="keyguard|home_screen">

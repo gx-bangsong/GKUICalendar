@@ -24,11 +24,17 @@ ON_SURFACE_VAR = (67, 71, 78, 255)
 FAB = (11, 94, 158, 255)
 WHITE = (255, 255, 255, 255)
 
-# Sample events; colours echo the calendar palette used in the app.
+# Sample events. Colours mirror widget_preview_chip_1..3 in colors_widget.xml
+# so this static image and the API 31+ previewLayout agree. The third chip is
+# deliberately pale so the preview shows the contrast-aware dark text.
+WHITE_T = (255, 255, 255, 255)
+WHITE_D = (255, 255, 255, 205)
+DARK_T = (26, 28, 30, 255)
+DARK_D = (26, 28, 30, 205)
 EVENTS = [
-    ("Team standup", "9:00 AM", (88, 150, 96, 255)),
-    ("Design review", "11:30 AM", (63, 121, 186, 255)),
-    ("Lunch with Sam", "1:00 PM", (198, 126, 58, 255)),
+    ("Team standup", "9:00 AM", (11, 128, 67, 255), WHITE_T, WHITE_D),
+    ("Design review", "11:30 AM", (63, 121, 186, 255), WHITE_T, WHITE_D),
+    ("Lunch with Sam", "1:00 PM", (246, 191, 38, 255), DARK_T, DARK_D),
 ]
 
 
@@ -75,12 +81,12 @@ def render():
     y = 56
     chip_h = 27
     gap = 5
-    for title, when, color in EVENTS:
+    for title, when, color, fg, fg_dim in EVENTS:
         rr(d, (pad, y, W_DP - pad, y + chip_h), 9, fill=color)
         d.text((int((pad + 9) * SS), int((y + 5.5) * SS)),
-               title, font=f(FONT_BOLD, 8.5), fill=WHITE)
+               title, font=f(FONT_BOLD, 8.5), fill=fg)
         d.text((int((pad + 9) * SS), int((y + 16) * SS)),
-               when, font=f(FONT, 7.5), fill=(255, 255, 255, 205))
+               when, font=f(FONT, 7.5), fill=fg_dim)
         y += chip_h + gap
 
     return img

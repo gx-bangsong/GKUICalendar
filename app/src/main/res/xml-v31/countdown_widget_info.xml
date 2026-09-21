@@ -8,6 +8,7 @@
     android:targetCellHeight="2"
     android:description="@string/countdown_widget_description"
     android:updatePeriodMillis="0"
+    android:previewImage="@drawable/countdown_widget_preview_image"
     android:initialLayout="@layout/countdown_widget"
     android:previewLayout="@layout/countdown_widget_preview"
     android:resizeMode="horizontal|vertical"
