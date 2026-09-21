@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Material 3 countdown / memorial-day widget. -->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/countdown_background"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_container_bg"
+    android:orientation="vertical"
+    android:paddingStart="@dimen/widget_padding"
+    android:paddingEnd="@dimen/widget_padding"
+    android:paddingTop="@dimen/widget_padding"
+    android:paddingBottom="4dp">
+
+    <TextView
+        android:id="@+id/countdown_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:text="@string/countdown_widget_label"
+        android:textColor="@color/widget_on_surface"
+        android:textSize="@dimen/widget_title_text" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <ListView
+            android:id="@+id/countdown_list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingTop="10dp"
+            android:clipToPadding="false"
+            android:cacheColorHint="@null"
+            android:divider="@null"
+            android:dividerHeight="@dimen/widget_row_spacing"
+            android:scrollbarThumbVertical="@color/appwidget_scrollbar"
+            android:listSelector="@android:color/transparent" />
+
+        <TextView
+            android:id="@+id/countdown_empty"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:padding="8dp"
+            android:text="@string/countdown_widget_empty"
+            android:textColor="@color/widget_on_surface_variant"
+            android:textSize="14sp" />
+    </FrameLayout>
+</LinearLayout>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="180dip"
+    android:minHeight="110dip"
+    android:minResizeWidth="140dip"
+    android:minResizeHeight="70dip"
+    android:description="@string/countdown_widget_description"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/countdown_widget"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="keyguard|home_screen">
+</appwidget-provider>

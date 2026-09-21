@@ -386,4 +386,17 @@
     <string name="widget_preview_event_1">早会</string>
     <string name="widget_preview_event_2">设计评审</string>
     <string name="widget_preview_event_3">午餐约会</string>
+    <string name="countdown_widget_label">倒数日</string>
+    <string name="countdown_widget_description">倒数日与纪念日还有多少天</string>
+    <string name="countdown_widget_empty">暂无倒数日或纪念日</string>
+    <string name="countdown_widget_today">今天</string>
+    <string name="countdown_widget_days_left">天后</string>
+    <string name="countdown_widget_days_past">天前</string>
+    <string name="countdown_widget_nth_year">第 %d 年</string>
+    <string name="countdown_preview_event_1">京都之旅</string>
+    <string name="countdown_preview_date_1">8月14日</string>
+    <string name="countdown_preview_days_1">32</string>
+    <string name="countdown_preview_event_2">结婚纪念日</string>
+    <string name="countdown_preview_date_2">第 7 年 · 9月2日</string>
+    <string name="countdown_preview_days_2">51</string>
 </resources>
