@@ -351,6 +351,20 @@
             android:permission="android.permission.BIND_REMOTEVIEWS">
         </service>
 
+        <!-- 万年历 / 宜忌 widget -->
+        <receiver android:name="com.android.calendar.widget.AlmanacWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.LOCALE_CHANGED" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider"
+                android:resource="@xml/almanac_widget_info" />
+        </receiver>
+
         <service android:name="com.android.calendar.AsyncQueryServiceHelper" />
 
     </application>

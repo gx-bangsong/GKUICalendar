@@ -585,6 +585,21 @@
     <!-- Caption to show on gadget when there are no upcoming calendar events -->
     <string name="gadget_no_events">No upcoming calendar events</string>
     <string name="gadget_description">Your upcoming events at a glance</string>
+    <!-- 万年历 almanac widget. The almanac is a Chinese-calendar concept and
+         lunar-java emits Chinese terms, so these stay Chinese in every locale. -->
+    <string name="almanac_widget_label">万年历</string>
+    <string name="almanac_widget_description">今日黄历宜忌</string>
+    <string name="almanac_yi">宜</string>
+    <string name="almanac_ji">忌</string>
+    <string name="almanac_none">无</string>
+    <string name="almanac_preview_day">22</string>
+    <string name="almanac_preview_month">2026年9月</string>
+    <string name="almanac_preview_lunar">八月十二</string>
+    <string name="almanac_preview_weekday">星期二  秋分</string>
+    <string name="almanac_preview_ganzhi">丙午年 丁酉月 戊辰日</string>
+    <string name="almanac_preview_yi">祖祭 祈福 开光 结婚</string>
+    <string name="almanac_preview_ji">动土 破土 安葬</string>
+
     <!-- Countdown / memorial-day widget -->
     <string name="countdown_widget_label">Countdown</string>
     <string name="countdown_widget_description">Days until your countdowns and anniversaries</string>

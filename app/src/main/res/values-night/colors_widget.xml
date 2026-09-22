@@ -13,4 +13,7 @@
     <color name="widget_preview_chip_1">#FF5E9E74</color>
     <color name="widget_preview_chip_2">#FF7BA7DC</color>
     <color name="widget_preview_chip_3">#FFE0C060</color>
+
+    <color name="almanac_yi">#FFE57373</color>
+    <color name="almanac_ji">#FF90A4AE</color>
 </resources>

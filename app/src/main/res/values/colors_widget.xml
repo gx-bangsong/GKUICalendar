@@ -15,4 +15,8 @@
     <color name="widget_preview_chip_1">#FF0B8043</color>
     <color name="widget_preview_chip_2">#FF3F79BA</color>
     <color name="widget_preview_chip_3">#FFF6BF26</color>
+
+    <!-- 万年历 almanac badges -->
+    <color name="almanac_yi">#FFC62828</color>
+    <color name="almanac_ji">#FF37474F</color>
 </resources>
