@@ -66,6 +66,8 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:paddingStart="@dimen/event_info_gutter"
+            android:paddingEnd="@dimen/event_info_gutter"
             android:orientation="vertical">
 
             <!--  Container for the event's headline
@@ -74,7 +76,10 @@
             <include layout="@layout/event_info_headline" />
 
             <!-- Smartisan-style quick reschedule card. Hidden for repeating
-                 events and calendars the user cannot modify. -->
+                 events and calendars the user cannot modify.
+                 Height and text size come from the Material3 tonal button
+                 style rather than fixed values, so the button keeps the same
+                 proportions as the rest of the screen on a tablet. -->
             <Button
                 android:id="@+id/reschedule_button"
                 android:layout_width="match_parent"
@@ -82,9 +87,7 @@
                 android:layout_marginStart="12dp"
                 android:layout_marginEnd="12dp"
                 android:layout_marginTop="12dp"
-                android:minHeight="56dp"
                 android:textAllCaps="false"
-                android:textSize="18sp"
                 android:visibility="gone"
                 android:text="@string/reschedule_move_to_today"
                 style="@style/Widget.Material3.Button.TonalButton" />

@@ -19,4 +19,7 @@
     <dimen name="recurrence_picker_height">300dp</dimen>
     <dimen name="recurrence_picker_width">600dp</dimen>
 
+
+    <dimen name="event_info_gutter">96dp</dimen>
+
 </resources>

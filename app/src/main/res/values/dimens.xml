@@ -93,4 +93,10 @@
     <dimen name="month_event_corner_radius">8dp</dimen>
     <dimen name="agenda_item_corner_radius">16dp</dimen>
     <dimen name="action_bar_button_corner_radius">24dp</dimen>
+
+    <!-- Horizontal gutter for the event detail column. Wide screens get a
+         larger gutter so the content stays a readable measure instead of
+         stretching the full window width. -->
+    <dimen name="event_info_gutter">0dp</dimen>
+
 </resources>

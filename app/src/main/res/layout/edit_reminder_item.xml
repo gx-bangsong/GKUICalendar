@@ -26,16 +26,20 @@
         android:layout_marginTop="4dp"
         android:contentDescription="@string/accessibility_reminder_time"
         android:gravity="top|start"
+        app:layout_constraintHorizontal_chainStyle="spread"
+        app:layout_constraintHorizontal_weight="1"
+        app:layout_constraintEnd_toStartOf="@+id/reminder_method_value"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <CheckBox
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:text="@string/after_start_of_event"
         android:layout_marginTop="2dp"
-        app:layout_constraintStart_toEndOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/reminder_minutes_value"
         android:id="@+id/reminder_minutes_sign" />
 
@@ -46,6 +50,7 @@
         android:contentDescription="@string/accessibility_reminder_type"
         android:entries="@array/reminder_methods_labels"
         android:gravity="top|start"
+        app:layout_constraintHorizontal_weight="2"
         app:layout_constraintEnd_toStartOf="@+id/reminder_remove"
         app:layout_constraintStart_toEndOf="@+id/reminder_minutes_value"
         app:layout_constraintTop_toTopOf="@+id/reminder_minutes_value" />
