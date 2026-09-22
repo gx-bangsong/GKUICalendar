@@ -949,6 +949,15 @@ public class EditEventFragment extends Fragment implements EventHandler, OnColor
 
     class Done implements EditEventHelper.EditDoneRunnable {
         private int mCode = -1;
+        /**
+         * Saving is a one-shot action. Clearing mSaveOnDetach below only stops
+         * the *detach* path from saving again; it does not stop run() itself
+         * from being invoked twice. A double tap on Done therefore used to
+         * issue two inserts and create two identical events. The exit that
+         * follows a save is asynchronous, so the second tap lands while the
+         * screen is still up and still interactive.
+         */
+        private boolean mSaved = false;
 
         @Override
         public void setDoneCode(int code) {
@@ -957,6 +966,14 @@ public class EditEventFragment extends Fragment implements EventHandler, OnColor
 
         @Override
         public void run() {
+            // Suppress only the duplicate *save*, not the whole callback: the
+            // exit and delete paths below must still run, otherwise a second
+            // press could strand the user on the edit screen.
+            if (mSaved) {
+                mCode &= ~Utils.DONE_SAVE;
+            } else if ((mCode & Utils.DONE_SAVE) != 0) {
+                mSaved = true;
+            }
             // We only want this to get called once, either because the user
             // pressed back/home or one of the buttons on screen
             mSaveOnDetach = false;
