@@ -211,7 +211,10 @@ public class CountdownWidgetService extends RemoteViewsService {
             RemoteViews views = new RemoteViews(
                     mContext.getPackageName(), R.layout.countdown_widget_item);
 
-            views.setInt(R.id.countdown_chip, "setBackgroundResource",
+            // setColorFilter tints an ImageView's *image*, not its background,
+            // so the chip must be set with setImageResource. Using
+            // setBackgroundResource left an untinted white pill.
+            views.setInt(R.id.countdown_chip, "setImageResource",
                     R.drawable.widget_chip_md3_filled);
             views.setInt(R.id.countdown_chip, "setColorFilter", row.color);
             // Text sits on the calendar-coloured chip, so pick the legible

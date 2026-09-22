@@ -124,7 +124,7 @@ import com.android.calendar.settings.GeneralPreferences;
 import com.android.calendar.calendarcommon2.DateException;
 import com.android.calendar.calendarcommon2.Duration;
 import com.android.calendar.calendarcommon2.EventRecurrence;
-import androidx.appcompat.app.AlertDialog;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import com.android.calendar.calendarcommon2.Time;
 import com.android.calendar.colorpicker.ColorPickerSwatch.OnColorSelectedListener;
@@ -1190,7 +1190,7 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
                 getString(R.string.reschedule_next_week),
                 getString(R.string.reschedule_pick_date),
         };
-        new AlertDialog.Builder(mContext)
+        new MaterialAlertDialogBuilder(mContext)
                 .setTitle(R.string.reschedule_label)
                 .setItems(items, (dialog, which) -> {
                     switch (which) {
@@ -1287,7 +1287,7 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
                 getString(R.string.modify_event),
                 getString(R.string.modify_all),
         };
-        new AlertDialog.Builder(mContext)
+        new MaterialAlertDialogBuilder(mContext)
                 .setTitle(R.string.reschedule_label)
                 .setItems(scopes, (dialog, which) -> {
                     if (which == 0) {
