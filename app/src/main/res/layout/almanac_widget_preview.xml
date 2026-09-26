@@ -41,6 +41,7 @@
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1"
+        android:gravity="center_vertical"
         android:orientation="vertical">
 
         <TextView
@@ -72,7 +73,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:baselineAligned="false"
-            android:gravity="center_vertical"
+            android:gravity="top"
             android:orientation="horizontal">
 
             <TextView
@@ -86,10 +87,12 @@
                 android:textSize="13sp" />
 
             <TextView
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
                 android:layout_marginStart="8dp"
-                android:maxLines="1"
+                android:lineSpacingExtra="1dp"
+                android:maxLines="2"
                 android:text="@string/almanac_preview_yi"
                 android:textColor="@color/widget_on_surface"
                 android:textSize="13sp" />
@@ -100,7 +103,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="5dp"
             android:baselineAligned="false"
-            android:gravity="center_vertical"
+            android:gravity="top"
             android:orientation="horizontal">
 
             <TextView
@@ -114,10 +117,12 @@
                 android:textSize="13sp" />
 
             <TextView
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
                 android:layout_marginStart="8dp"
-                android:maxLines="1"
+                android:lineSpacingExtra="1dp"
+                android:maxLines="2"
                 android:text="@string/almanac_preview_ji"
                 android:textColor="@color/widget_on_surface"
                 android:textSize="13sp" />
