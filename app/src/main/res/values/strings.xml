@@ -602,6 +602,11 @@
 
     <!-- Countdown / memorial-day widget -->
     <string name="countdown_widget_label">Countdown</string>
+
+    <!-- Picker title for the agenda widget. Without an android:label on the
+         receiver the picker falls back to the application name, so all three
+         widgets were listed as the app itself. -->
+    <string name="agenda_widget_label">Agenda</string>
     <string name="countdown_widget_description">Days until your countdowns and anniversaries</string>
     <string name="countdown_widget_empty">No countdowns or anniversaries yet</string>
     <string name="countdown_widget_today">Today</string>

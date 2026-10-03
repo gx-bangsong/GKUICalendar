@@ -293,6 +293,7 @@
 
         <!-- Declarations for the widget -->
         <receiver android:name="com.android.calendar.widget.CalendarAppWidgetProvider"
+            android:label="@string/agenda_widget_label"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -329,6 +330,7 @@
 
         <!-- Countdown / memorial-day widget -->
         <receiver android:name="com.android.calendar.widget.CountdownWidgetProvider"
+            android:label="@string/countdown_widget_label"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -353,6 +355,7 @@
 
         <!-- 万年历 / 宜忌 widget -->
         <receiver android:name="com.android.calendar.widget.AlmanacWidgetProvider"
+            android:label="@string/almanac_widget_label"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
