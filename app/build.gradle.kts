@@ -151,8 +151,7 @@ dependencies {
 	implementation(libs.google.android.material)
     implementation(libs.androidx.work.runtime)
     implementation(libs.androidx.concurrent.futures)
-    // Guava for Futures.immediateFailedFuture (used in CalendarAppSearchIndexer)
-    implementation("com.google.guava:guava:32.1.2-android")
+    implementation("androidx.concurrent:concurrent-futures-ktx:1.3.0")
     testImplementation(libs.junit)
 
 	coreLibraryDesugaring(libs.android.tools.desugar)
