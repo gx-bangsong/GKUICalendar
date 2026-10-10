@@ -16,39 +16,38 @@
 
 package com.android.calendar.search
 
+import androidx.appsearch.app.GenericDocument
+
 /**
- * Plain-data holder for one calendar event as it will be indexed
- * into AppSearch.
- *
- * This is deliberately not annotated with [androidx.appsearch.annotation.Document].
- * The 1.0.0-alpha04 @Document processor would force the project's
- * Kotlin compilation to round-trip through kapt stub generation,
- * which interacts badly with the existing Room kapt pipeline and
- * trips the gradle-generateBp step's working-tree check. Writing
- * the schema manually with AppSearchSchema.Builder (in the
- * indexer) keeps the same on-device shape while sidestepping both
- * concerns.
- *
- * Property mapping:
- *   - id, namespace          -> StringPropertyConfig (INDEXING_TYPE_EXACT_TERMS,
- *                                TOKENIZER_TYPE_PLAIN, required for the
- *                                namespace and id columns AppSearch
- *                                writes behind the scenes).
- *   - title, description,    -> StringPropertyConfig (default
- *     location                 indexing / tokenizer, indexed for
- *                                free-text search by Pixel Launcher
- *                                / system search).
- *   - startMillis,           -> LongPropertyConfig.
- *     endMillis
- *   - allDay                 -> BooleanPropertyConfig.
+ * One calendar event as indexed into AppSearch. Plain data; the AppSearch document
+ * is built by [toGenericDocument]. The document id is stable per provider event id,
+ * so re-writing the same event overwrites instead of duplicating.
  */
 data class CalendarEventDocument(
-    val id: String,
-    val namespace: String,
+    val eventId: Long,
     val title: String,
     val description: String,
     val location: String,
     val startMillis: Long,
     val endMillis: Long,
     val allDay: Boolean,
-)
+) {
+    /** Stable document id: same event always maps to the same document. */
+    fun documentId(): String = "event:$eventId"
+
+    fun toGenericDocument(): GenericDocument {
+        val builder = GenericDocument.Builder<GenericDocument.Builder<*>>(
+            CalendarAppSearchIndexer.EVENTS_NAMESPACE,
+            documentId(),
+            CalendarAppSearchIndexer.EVENTS_SCHEMA_TYPE
+        )
+        builder.putLong(CalendarAppSearchIndexer.PROP_EVENT_ID, eventId)
+        builder.putString(CalendarAppSearchIndexer.PROP_TITLE, title)
+        builder.putString(CalendarAppSearchIndexer.PROP_DESCRIPTION, description)
+        builder.putString(CalendarAppSearchIndexer.PROP_LOCATION, location)
+        builder.putLong(CalendarAppSearchIndexer.PROP_START_MILLIS, startMillis)
+        builder.putLong(CalendarAppSearchIndexer.PROP_END_MILLIS, endMillis)
+        builder.putBoolean(CalendarAppSearchIndexer.PROP_ALL_DAY, allDay)
+        return builder.build()
+    }
+}
