@@ -24,6 +24,8 @@ import androidx.appsearch.app.AppSearchSession
 import androidx.appsearch.app.SetSchemaRequest
 import androidx.appsearch.platformstorage.PlatformStorage
 import com.google.common.util.concurrent.ListenableFuture
+import java.util.concurrent.Executor
+import java.util.concurrent.TimeUnit
 
 private const val TAG = "CalendarAppSearchIndexer"
 private const val DATABASE_NAME = "ws.xsoh.etar.events"
@@ -97,7 +99,33 @@ internal object CalendarAppSearchIndexer {
             //    not AppSearch.
             Log.d(TAG, "PlatformStorage unavailable (API < 31); skipping AppSearch indexing")
             FailedAppSearchFuture("AppSearch PlatformStorage requires Android 12+ (API 31)")
-        }
+        
+
+/**
+ * A failed [ListenableFuture] for AppSearch sessions on API < 31.
+ * Used when PlatformStorage is unavailable and we don't fall back to LocalStorage
+ * (which bundles libicing.so with 16 KB ELF alignment issues).
+ */
+internal class FailedAppSearchFuture(private val message: String) : ListenableFuture<AppSearchSession> {
+
+    private val exception = UnsupportedOperationException(message)
+
+    override fun addListener(listener: Runnable, executor: Executor) {
+        executor.execute(listener)
+    }
+
+    override fun cancel(mayInterruptIfRunning: Boolean): Boolean = true
+
+    override fun isCancelled(): Boolean = true
+
+    override fun isDone(): Boolean = true
+
+    override fun get(): AppSearchSession = throw exception
+
+    override fun get(timeout: Long, unit: TimeUnit): AppSearchSession = throw exception
+}
+
+}
     }
 
     /**
