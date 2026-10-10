@@ -41,13 +41,13 @@ data class CalendarEventDocument(
             documentId(),
             CalendarAppSearchIndexer.EVENTS_SCHEMA_TYPE
         )
-        builder.putLong(CalendarAppSearchIndexer.PROP_EVENT_ID, eventId)
-        builder.putString(CalendarAppSearchIndexer.PROP_TITLE, title)
-        builder.putString(CalendarAppSearchIndexer.PROP_DESCRIPTION, description)
-        builder.putString(CalendarAppSearchIndexer.PROP_LOCATION, location)
-        builder.putLong(CalendarAppSearchIndexer.PROP_START_MILLIS, startMillis)
-        builder.putLong(CalendarAppSearchIndexer.PROP_END_MILLIS, endMillis)
-        builder.putBoolean(CalendarAppSearchIndexer.PROP_ALL_DAY, allDay)
+        builder.setPropertyLong(CalendarAppSearchIndexer.PROP_EVENT_ID, eventId)
+        builder.setPropertyString(CalendarAppSearchIndexer.PROP_TITLE, title)
+        builder.setPropertyString(CalendarAppSearchIndexer.PROP_DESCRIPTION, description)
+        builder.setPropertyString(CalendarAppSearchIndexer.PROP_LOCATION, location)
+        builder.setPropertyLong(CalendarAppSearchIndexer.PROP_START_MILLIS, startMillis)
+        builder.setPropertyLong(CalendarAppSearchIndexer.PROP_END_MILLIS, endMillis)
+        builder.setPropertyBoolean(CalendarAppSearchIndexer.PROP_ALL_DAY, allDay)
         return builder.build()
     }
 }
