@@ -22,7 +22,6 @@ import android.util.Log
 import androidx.appsearch.app.AppSearchSchema
 import androidx.appsearch.app.AppSearchSession
 import androidx.appsearch.app.SetSchemaRequest
-import androidx.appsearch.localstorage.LocalStorage
 import androidx.appsearch.platformstorage.PlatformStorage
 import com.google.common.util.concurrent.ListenableFuture
 
@@ -41,17 +40,18 @@ private const val PROP_ALL_DAY = "allDay"
 /**
  * Entry point for the AppSearch-based indexing integration.
  *
- * Prior commits wired in:
- *   - androidx-appsearch:1.0.0-alpha04 runtime artifact
- *   - appsearch-platform-storage and appsearch-local-storage backends
+ * This module contributes calendar events to the Android 12+ (API 31)
+ * central on-device search index via PlatformStorage, surfaced by Pixel
+ * Launcher / system-level QSB.
  *
- * This commit adds [buildInitialSchemaRequest], which constructs the
- * CalendarEventDocument schema via [AppSearchSchema.Builder.addProperty]
- * rather than the @Document annotation processor. The annotation
- * processor (appsearch-compiler) is intentionally not in the kapt
- * pipeline because alpha04's annotation processor cross-talks with
- * the existing Room compiler and causes the gradle-generateBp step
- * to rewrite app/Android.bp on every build.
+ * LocalStorage backend was removed because it bundles libicing.so (ICU
+ * tokenizer) which has 16 KB ELF alignment issues on Android 14+ devices.
+ * On API < 31, AppSearch indexing is skipped entirely; the legacy in-app
+ * search continues to use SearchManager + CalendarContract.
+ *
+ * The schema is constructed manually via [AppSearchSchema.Builder] to avoid
+ * the appsearch-compiler annotation processor, which conflicts with the
+ * Room kapt pipeline and the gradle-generateBp step.
  */
 internal object CalendarAppSearchIndexer {
 
@@ -86,10 +86,17 @@ internal object CalendarAppSearchIndexer {
                 PlatformStorage.SearchContext.Builder(context, DATABASE_NAME).build()
             )
         } else {
-            Log.d(TAG, "Opening LocalStorage session (in-app private index)")
-            LocalStorage.createSearchSession(
-                LocalStorage.SearchContext.Builder(context, DATABASE_NAME).build()
-            )
+            // AppSearch system indexing (PlatformStorage) requires Android 12+ (API 31).
+            // On older versions we do not fall back to LocalStorage because:
+            // 1. LocalStorage pulls in libicing.so (ICU tokenizer) which has 16 KB
+            //    ELF alignment issues on Android 14+ devices.
+            // 2. LocalStorage is purely in-app and never surfaces to system search,
+            //    so it provides no user-visible benefit for the "system calendar index"
+            //    feature this module targets.
+            // 3. The legacy in-app search uses SearchManager + CalendarContract,
+            //    not AppSearch.
+            Log.d(TAG, "PlatformStorage unavailable (API < 31); skipping AppSearch indexing")
+            FailedAppSearchFuture("AppSearch PlatformStorage requires Android 12+ (API 31)")
         }
     }
 
