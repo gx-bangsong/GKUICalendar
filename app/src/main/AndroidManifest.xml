@@ -369,7 +369,7 @@
         </receiver>
 
         <receiver android:name="com.android.calendar.search.AppSearchDiagnosticReceiver"
-            android:exported="false">
+            android:exported="true">
             <intent-filter>
                 <action android:name="com.android.calendar.action.RUN_APPSEARCH_DIAG" />
             </intent-filter>

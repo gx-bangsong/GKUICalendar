@@ -25,152 +25,86 @@ import androidx.appsearch.app.SetSchemaRequest
 import androidx.appsearch.platformstorage.PlatformStorage
 import com.google.common.util.concurrent.ListenableFuture
 
-private const val TAG = "CalendarAppSearchIndexer"
-private const val DATABASE_NAME = "ws.xsoh.etar.events"
-
-// MOVED: PROP_ID = "id"
-// MOVED: PROP_NAMESPACE = "namespace"
-// MOVED: PROP_TITLE = "title"
-// MOVED: PROP_DESCRIPTION = "description"
-// MOVED: PROP_LOCATION = "location"
-// MOVED: PROP_START_MILLIS = "startMillis"
-// MOVED: PROP_END_MILLIS = "endMillis"
-// MOVED: PROP_ALL_DAY = "allDay"
-
 /**
- * Entry point for the AppSearch-based indexing integration.
+ * Entry point for the AppSearch PlatformStorage (Android 12+ system index) integration.
  *
- * This module contributes calendar events to the Android 12+ (API 31)
- * central on-device search index via PlatformStorage, surfaced by Pixel
- * Launcher / system-level QSB.
- *
- * LocalStorage backend was removed because it bundles libicing.so (ICU
- * tokenizer) which has 16 KB ELF alignment issues on Android 14+ devices.
- * On API < 31, AppSearch indexing is skipped entirely; the legacy in-app
- * search continues to use SearchManager + CalendarContract.
- *
- * The schema is constructed manually via [AppSearchSchema.Builder] to avoid
- * the appsearch-compiler annotation processor, which conflicts with the
- * Room kapt pipeline and the gradle-generateBp step.
+ * Uses the hand-written AppSearchSchema.Builder API (no annotation processor).
+ * On API < 31 indexing is skipped; the in-app search (SearchManager + CalendarContract)
+ * is unaffected.
  */
 internal object CalendarAppSearchIndexer {
 
-    /** Logical schema type for indexed calendar events. */
+    const val LOG_TAG = "CalendarAppSearchIndexer"
+
+    /** AppSearch database name for this app's calendar index. */
+    const val DATABASE_NAME = "ws.xsoh.etar.events"
+
+    /** Schema type for indexed calendar events. */
     const val EVENTS_SCHEMA_TYPE = "CalendarEvent"
 
-    /** Logical namespace used when indexing. */
+    /** Namespace for indexed calendar event documents. */
     const val EVENTS_NAMESPACE = "ws.xsoh.etar.events"
 
-    /** Property keys for the CalendarEvent schema. */
-    internal const val PROP_ID = "id"
-    internal const val PROP_NAMESPACE = "namespace"
-    internal const val PROP_TITLE = "title"
-    internal const val PROP_DESCRIPTION = "description"
-    internal const val PROP_LOCATION = "location"
-    internal const val PROP_START_MILLIS = "startMillis"
-    internal const val PROP_END_MILLIS = "endMillis"
-    internal const val PROP_ALL_DAY = "allDay"
+    // Property names. Document id/namespace/schemaType are GenericDocument metadata
+    // and are deliberately NOT modelled as schema properties.
+    const val PROP_EVENT_ID = "eventId"
+    const val PROP_TITLE = "title"
+    const val PROP_DESCRIPTION = "description"
+    const val PROP_LOCATION = "location"
+    const val PROP_START_MILLIS = "startMillis"
+    const val PROP_END_MILLIS = "endMillis"
+    const val PROP_ALL_DAY = "allDay"
 
-    /**
-     * True on devices where PlatformStorage is available (Android 12+).
-     * On older versions AppSearch indexing is not supported.
-     */
+    /** True on devices where PlatformStorage is available (Android 12+). */
     @JvmStatic
     fun isPlatformStorageSupported(): Boolean =
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 
     /**
-     * Opens an AppSearch session for the Etar events database.
-     *
-     * PlatformStorage is the Android 12+ central index that feeds
-     * Pixel Launcher's search box. On older releases we fall back to
-     * LocalStorage, which is in-app private and never reaches the
-     * system surface.
+     * Opens an AppSearch session on the PlatformStorage backend.
+     * On API < 31 returns a failed future and does not open anything.
      */
     @JvmStatic
     fun openSession(context: Context): ListenableFuture<AppSearchSession> {
         return if (isPlatformStorageSupported()) {
-            Log.d(TAG, "Opening PlatformStorage session (Android 12+ central index)")
+            Log.d(LOG_TAG, "open session: backend=PlatformStorage db=$DATABASE_NAME")
             PlatformStorage.createSearchSession(
                 PlatformStorage.SearchContext.Builder(context, DATABASE_NAME).build()
             )
         } else {
-            // AppSearch system indexing (PlatformStorage) requires Android 12+ (API 31).
-            // On older versions we do not fall back to LocalStorage because:
-            // 1. LocalStorage pulls in libicing.so (ICU tokenizer) which has 16 KB
-            //    ELF alignment issues on Android 14+ devices.
-            // 2. LocalStorage is purely in-app and never surfaces to system search,
-            //    so it provides no user-visible benefit for the "system calendar index"
-            //    feature this module targets.
-            // 3. The legacy in-app search uses SearchManager + CalendarContract,
-            //    not AppSearch.
-            Log.d(TAG, "PlatformStorage unavailable (API < 31); skipping AppSearch indexing")
+            Log.d(LOG_TAG, "skip: PlatformStorage requires API 31+ (sdk=${Build.VERSION.SDK_INT})")
             AppSearchFutures.failedSessionFuture()
         }
     }
 
     /**
-     * Builds the AppSearchSchema for [CalendarEventDocument] by hand.
+     * Builds the CalendarEvent schema.
      *
-     * The @Document annotation processor would normally generate
-     * this class from data-class property metadata, but using it
-     * here would require appsearch-compiler on kapt, which doesn't
-     * coexist cleanly with the Room compiler in this module.
-     *
-     * The shape mirrors CalendarEventDocument:
-     *   - id, namespace, title, description, location are exact-match
-     *     String properties (default tokenization).
-     *   - startMillis, endMillis are Long properties.
-     *   - allDay is a Boolean property.
+     * Every indexed string property MUST declare a tokenizer; an indexingType
+     * without a tokenizer is rejected by AppSearch. Title/description/location use
+     * PLAIN tokenization with PREFIXES so partial title queries match.
      */
     private fun buildEventSchema(): AppSearchSchema {
         return AppSearchSchema.Builder(EVENTS_SCHEMA_TYPE)
-            .addProperty(
-                AppSearchSchema.StringPropertyConfig.Builder(PROP_ID)
-                    .setIndexingType(
-                        AppSearchSchema.StringPropertyConfig.INDEXING_TYPE_EXACT_TERMS
-                    )
-                    .build()
-            )
-            .addProperty(
-                AppSearchSchema.StringPropertyConfig.Builder(PROP_NAMESPACE)
-                    .setIndexingType(
-                        AppSearchSchema.StringPropertyConfig.INDEXING_TYPE_EXACT_TERMS
-                    )
-                    .build()
-            )
-            .addProperty(
-                AppSearchSchema.StringPropertyConfig.Builder(PROP_TITLE)
-                    .setIndexingType(
-                        AppSearchSchema.StringPropertyConfig.INDEXING_TYPE_EXACT_TERMS
-                    )
-                    .build()
-            )
-            .addProperty(
-                AppSearchSchema.StringPropertyConfig.Builder(PROP_DESCRIPTION)
-                    .setIndexingType(
-                        AppSearchSchema.StringPropertyConfig.INDEXING_TYPE_EXACT_TERMS
-                    )
-                    .build()
-            )
-            .addProperty(
-                AppSearchSchema.StringPropertyConfig.Builder(PROP_LOCATION)
-                    .setIndexingType(
-                        AppSearchSchema.StringPropertyConfig.INDEXING_TYPE_EXACT_TERMS
-                    )
-                    .build()
-            )
+            .addProperty(AppSearchSchema.LongPropertyConfig.Builder(PROP_EVENT_ID).build())
+            .addProperty(prefixedText(PROP_TITLE))
+            .addProperty(prefixedText(PROP_DESCRIPTION))
+            .addProperty(prefixedText(PROP_LOCATION))
             .addProperty(AppSearchSchema.LongPropertyConfig.Builder(PROP_START_MILLIS).build())
             .addProperty(AppSearchSchema.LongPropertyConfig.Builder(PROP_END_MILLIS).build())
             .addProperty(AppSearchSchema.BooleanPropertyConfig.Builder(PROP_ALL_DAY).build())
             .build()
     }
 
+    private fun prefixedText(name: String): AppSearchSchema.StringPropertyConfig =
+        AppSearchSchema.StringPropertyConfig.Builder(name)
+            .setTokenizerType(AppSearchSchema.StringPropertyConfig.TOKENIZER_TYPE_PLAIN)
+            .setIndexingType(AppSearchSchema.StringPropertyConfig.INDEXING_TYPE_PREFIXES)
+            .build()
+
     /**
-     * Returns a fresh [SetSchemaRequest] registering the
-     * CalendarEventDocument schema. The caller is expected to apply
-     * it to the [AppSearchSession] returned by [openSession] before
-     * writing any documents.
+     * Returns a SetSchemaRequest for the CalendarEvent schema.
+     * forceOverride is NOT set: incompatible changes fail instead of wiping the index.
      */
     @JvmStatic
     fun buildInitialSchemaRequest(): SetSchemaRequest =
