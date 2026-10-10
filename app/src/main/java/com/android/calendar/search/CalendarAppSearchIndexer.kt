@@ -28,14 +28,14 @@ import com.google.common.util.concurrent.ListenableFuture
 private const val TAG = "CalendarAppSearchIndexer"
 private const val DATABASE_NAME = "ws.xsoh.etar.events"
 
-private const val PROP_ID = "id"
-private const val PROP_NAMESPACE = "namespace"
-private const val PROP_TITLE = "title"
-private const val PROP_DESCRIPTION = "description"
-private const val PROP_LOCATION = "location"
-private const val PROP_START_MILLIS = "startMillis"
-private const val PROP_END_MILLIS = "endMillis"
-private const val PROP_ALL_DAY = "allDay"
+internal const val PROP_ID = "id"
+internal const val PROP_NAMESPACE = "namespace"
+internal const val PROP_TITLE = "title"
+internal const val PROP_DESCRIPTION = "description"
+internal const val PROP_LOCATION = "location"
+internal const val PROP_START_MILLIS = "startMillis"
+internal const val PROP_END_MILLIS = "endMillis"
+internal const val PROP_ALL_DAY = "allDay"
 
 /**
  * Entry point for the AppSearch-based indexing integration.
