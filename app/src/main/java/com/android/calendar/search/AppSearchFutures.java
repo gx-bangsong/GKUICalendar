@@ -17,6 +17,7 @@
 package com.android.calendar.search;
 
 import androidx.concurrent.futures.CallbackToFutureAdapter;
+import androidx.appsearch.app.AppSearchSession;
 import com.google.common.util.concurrent.ListenableFuture;
 
 /**
