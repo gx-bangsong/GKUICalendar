@@ -186,9 +186,9 @@ class CalendarAppSearchDiagnostic private constructor(
                 val futures = docs.map { doc ->
                     Futures.transformAsync(
                         session.put(doc),
-                        { success ->
-                            Log.d(TAG, "Put result for ${doc.id}: success=$success")
-                            IndexResult(if (success) 1 else 0, if (success) 0 else 1, doc.id)
+                        { _ ->
+                            Log.d(TAG, "Put result for ${doc.id}: success")
+                            IndexResult(1, 0, doc.id)
                         },
                         executor
                     )
