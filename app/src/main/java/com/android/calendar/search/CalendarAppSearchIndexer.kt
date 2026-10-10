@@ -96,7 +96,7 @@ internal object CalendarAppSearchIndexer {
             // 3. The legacy in-app search uses SearchManager + CalendarContract,
             //    not AppSearch.
             Log.d(TAG, "PlatformStorage unavailable (API < 31); skipping AppSearch indexing")
-            CallbackToFutureAdapter.getFuture<AppSearchSession> { completer ->
+            CallbackToFutureAdapter.getFuture { completer ->
                 completer.setException(UnsupportedOperationException("AppSearch PlatformStorage requires Android 12+ (API 31)"))
                 "AppSearch PlatformStorage unavailable on API < 31"
             }
