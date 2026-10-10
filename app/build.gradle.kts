@@ -32,6 +32,16 @@ android {
 	testNamespace = "com.android.calendar.tests"
 	compileSdk = 36
 
+	packagingOptions {
+		// Exclude libicing.so from appsearch-local-storage which has 16 KB
+		// ELF alignment issues on Android 14+. The LocalStorage code path
+		// is never executed (AppSearch indexing is dead code), so this is safe.
+		exclude "lib/arm64-v8a/libicing.so"
+		exclude "lib/x86_64/libicing.so"
+		exclude "lib/armeabi-v7a/libicing.so"
+		exclude "lib/x86/libicing.so"
+	}
+
 	defaultConfig {
 		minSdk = 23
 		targetSdk = 34
