@@ -368,13 +368,6 @@
                 android:resource="@xml/almanac_widget_info" />
         </receiver>
 
-        <receiver android:name="com.android.calendar.search.AppSearchDiagnosticReceiver"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="com.android.calendar.action.RUN_APPSEARCH_DIAG" />
-            </intent-filter>
-        </receiver>
-
         <service android:name="com.android.calendar.AsyncQueryServiceHelper" />
 
     </application>
