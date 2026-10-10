@@ -22,6 +22,7 @@ import android.os.Build
 import android.provider.CalendarContract.Events
 import android.util.Log
 import androidx.appsearch.app.AppSearchSession
+import androidx.appsearch.exceptions.AppSearchException
 import androidx.appsearch.platformstorage.PlatformStorage
 import androidx.appsearch.app.Features
 import androidx.appsearch.app.GenericDocument
@@ -42,6 +43,20 @@ private const val PREFS_KEY_INDEXED_IDS = "indexed_event_ids"
 
 /** FULL: write the probe event, verify schema/write/search/reopen. SYNC: reconcile with provider. */
 internal enum class DiagMode { FULL, SYNC, CONSUMERS }
+
+/**
+ * Maps the broadcast `mode` extra. Absent or "full" -> FULL, "sync" -> SYNC, "consumers" -> CONSUMERS.
+ * Any other value returns null; the caller must abort without performing any write.
+ */
+internal fun parseDiagMode(raw: String?): DiagMode? = when (raw) {
+    null, "full" -> DiagMode.FULL
+    "sync" -> DiagMode.SYNC
+    "consumers" -> DiagMode.CONSUMERS
+    else -> null
+}
+
+/** Outcome of the read-only consumer survey. Decided only by what the query actually returned. */
+internal enum class ConsumerSurvey { FOUND, NONE_VISIBLE, ERROR, TRUNCATED }
 
 /** Read-only consumer survey: lists GlobalSearchApplicationInfo metadata only. */
 private const val GSAI_SCHEMA = "builtin:GlobalSearchApplicationInfo"
@@ -178,34 +193,46 @@ internal class CalendarAppSearchDiagnostic(private val context: Context) {
 
     /**
      * Read-only survey of builtin:GlobalSearchApplicationInfo documents visible to this package.
-     * Logs only owning package, database, applicationType and schemaTypes. Never reads or logs
-     * other documents' properties, and never writes, removes or changes schema.
+     *
+     * VERBATIM_SEARCH is recorded as a capability but does NOT short-circuit the survey: the
+     * general query (empty query string + schema filter) is always attempted, and the outcome
+     * is decided by what that query returns. Logs only owning package, database,
+     * applicationType and schemaTypes. Never writes, removes or changes schema.
      */
     private suspend fun runConsumers() {
-        val session = PlatformStorage.createGlobalSearchSessionAsync(
-            PlatformStorage.GlobalSearchContext.Builder(context).build()
-        ).await()
+        var stage = "createSession"
+        var pages = 0
+        var entries = 0
+        var truncated = false
+        val session = try {
+            PlatformStorage.createGlobalSearchSessionAsync(
+                PlatformStorage.GlobalSearchContext.Builder(context).build()
+            ).await()
+        } catch (t: Throwable) {
+            log("consumers: result=${ConsumerSurvey.ERROR} stage=$stage error=${describe(t)}")
+            return
+        }
         try {
-            if (!session.features.isFeatureSupported(Features.VERBATIM_SEARCH)) {
-                log("consumers: result=unknown reason=VERBATIM_SEARCH unsupported on this backend")
-                return
-            }
+            stage = "features"
+            val verbatim = session.features.isFeatureSupported(Features.VERBATIM_SEARCH)
+            log("consumers: capability VERBATIM_SEARCH=$verbatim (recorded; general query attempted regardless)")
+
+            stage = "query"
             val spec = SearchSpec.Builder()
                 .addFilterSchemas(GSAI_SCHEMA)
                 .setResultCountPerPage(CONSUMER_PAGE_SIZE)
                 .build()
             val results = session.search("", spec)
-            var pages = 0
-            var entries = 0
             try {
                 while (true) {
+                    stage = "page"
                     val page = results.getNextPageAsync().await()
                     if (page.isEmpty()) break
-                    pages++
-                    if (pages > CONSUMER_MAX_PAGES) {
-                        log("consumers: stopped at CONSUMER_MAX_PAGES=$CONSUMER_MAX_PAGES (truncated)")
+                    if (pages >= CONSUMER_MAX_PAGES) {
+                        truncated = true
                         break
                     }
+                    pages++
                     for (result in page) {
                         entries++
                         val doc = result.genericDocument
@@ -226,14 +253,28 @@ internal class CalendarAppSearchDiagnostic(private val context: Context) {
             } finally {
                 results.close()
             }
-            log("consumers: pages=$pages entries=$entries")
-            if (entries == 0) {
+
+            val outcome = when {
+                truncated -> ConsumerSurvey.TRUNCATED
+                entries > 0 -> ConsumerSurvey.FOUND
+                else -> ConsumerSurvey.NONE_VISIBLE
+            }
+            log("consumers: result=$outcome pages=$pages entries=$entries verbatimSearch=$verbatim" +
+                if (outcome == ConsumerSurvey.TRUNCATED) " maxPages=$CONSUMER_MAX_PAGES" else "")
+            if (outcome == ConsumerSurvey.NONE_VISIBLE) {
                 log("consumers: none visible to this package. This does NOT prove the reader is unsupported.")
             }
+        } catch (t: Throwable) {
+            log("consumers: result=${ConsumerSurvey.ERROR} stage=$stage error=${describe(t)} " +
+                "pagesRead=$pages entriesLogged=$entries")
         } finally {
             session.close()
         }
     }
+
+    private fun describe(t: Throwable): String =
+        if (t is AppSearchException) "AppSearchException(resultCode=${t.resultCode})"
+        else t.javaClass.simpleName
 
     private suspend fun putDocuments(
         session: AppSearchSession,

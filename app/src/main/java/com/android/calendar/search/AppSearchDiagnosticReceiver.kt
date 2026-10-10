@@ -32,6 +32,7 @@ import kotlinx.coroutines.launch
  *   adb shell am broadcast -a com.android.calendar.action.RUN_APPSEARCH_DIAG
  *   adb shell am broadcast -a com.android.calendar.action.RUN_APPSEARCH_DIAG --es mode sync
  *   adb shell am broadcast -a com.android.calendar.action.RUN_APPSEARCH_DIAG --es mode consumers  (read-only)
+ *   Modes: absent or "full" -> FULL, "sync", "consumers". Any other value is rejected without action.
  *
  * Visibility experiments (debug only; default is on/on, the shipped configuration):
  *   --es home off        do not request READ_HOME_APP_SEARCH_DATA on the probe schema
@@ -46,17 +47,25 @@ class AppSearchDiagnosticReceiver : BroadcastReceiver() {
             Log.w(CalendarAppSearchIndexer.LOG_TAG, "diag ignored: build is not debuggable")
             return
         }
-        val mode = when (intent.getStringExtra("mode")) {
-            "sync" -> DiagMode.SYNC
-            "consumers" -> DiagMode.CONSUMERS
-            else -> DiagMode.FULL
+        // Strict parsing: an unknown or malformed extra aborts before any work or write.
+        val rawMode = intent.getStringExtra("mode")
+        val mode = if (intent.hasExtra("mode") && rawMode == null) null else parseDiagMode(rawMode)
+        if (mode == null) {
+            Log.e(CalendarAppSearchIndexer.LOG_TAG, "diag rejected: unknown mode; no action taken")
+            return
+        }
+        val homeExtra = intent.getStringExtra("home")
+        val displayedExtra = intent.getStringExtra("displayed")
+        if (!isOnOff(homeExtra) || !isOnOff(displayedExtra)) {
+            Log.e(CalendarAppSearchIndexer.LOG_TAG, "diag rejected: home/displayed must be on, off or absent; no action taken")
+            return
         }
         val policy = CalendarAppSearchIndexer.VisibilityPolicy(
-            homeRoleRead = intent.getStringExtra("home") != "off",
-            displayedBySystem = intent.getStringExtra("displayed") != "off",
+            homeRoleRead = homeExtra != "off",
+            displayedBySystem = displayedExtra != "off",
         )
-        val appContext = context.applicationContext
         val pending = goAsync()
+        val appContext = context.applicationContext
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
                 CalendarAppSearchDiagnostic(appContext).run(mode, policy)
@@ -70,5 +79,8 @@ class AppSearchDiagnosticReceiver : BroadcastReceiver() {
 
     companion object {
         const val ACTION_RUN_DIAGNOSTIC = "com.android.calendar.action.RUN_APPSEARCH_DIAG"
+
+        /** Absent, "on" or "off" only; anything else is rejected before any work. */
+        private fun isOnOff(value: String?): Boolean = value == null || value == "on" || value == "off"
     }
 }
