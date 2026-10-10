@@ -17,166 +17,201 @@
 package com.android.calendar.search
 
 import android.content.Context
-import android.content.Context.MODE_PRIVATE
+import android.database.Cursor
+import android.net.Uri
 import android.os.Build
 import android.provider.CalendarContract.Events
 import android.util.Log
-import androidx.appsearch.app.AppSearchSession
-import androidx.appsearch.app.GenericDocument
-import androidx.appsearch.app.PutDocumentsRequest
-import androidx.appsearch.app.RemoveByDocumentIdRequest
-import androidx.appsearch.app.SearchSpec
 import com.android.calendar.Utils
+import androidx.appsearch.app.AppSearchSchema
+import androidx.appsearch.app.GenericDocument
+import androidx.appsearch.app.SearchResult
+import androidx.appsearch.app.SearchSpec
+import androidx.appsearch.app.SetSchemaRequest
+import androidx.appsearch.app.SetSchemaResponse
+import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
+import com.google.common.util.concurrent.ListeningExecutorService
 import com.google.common.util.concurrent.MoreExecutors
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
-import kotlinx.coroutines.suspendCancellableCoroutine
+import java.util.concurrent.Executors
 
-/** Title of the manually created probe event. Only events with this exact title are touched. */
-private const val PROBE_TITLE = "ZXCalProbe2026"
-private const val PREFS_NAME = "calendar_appsearch_diag"
-private const val PREFS_KEY_INDEXED_IDS = "indexed_event_ids"
-
-/** FULL: write the probe event, verify schema/write/search/reopen. SYNC: reconcile with provider. */
-internal enum class DiagMode { FULL, SYNC }
+private const val TAG = "CalAppSearchDiag"
+private const val TEST_EVENT_TITLE = "ZXCalProbe2026"
+private const val INDEXING_SCOPE_DAYS = 365
 
 /**
- * Debug-only diagnostic for the PlatformStorage contributor side (phase 1).
- * Reads and contributes ONLY events whose title equals [PROBE_TITLE].
- * Logs under tag [CalendarAppSearchIndexer.LOG_TAG]; never logs titles, descriptions or accounts.
+ * Diagnostic entry point for AppSearch PlatformStorage indexing.
+ * Only indexes the test event "ZXCalProbe2026" by default.
+ * Call from a debug tile, ADB shell, or unit test.
  */
-internal class CalendarAppSearchDiagnostic(private val context: Context) {
+class CalendarAppSearchDiagnostic private constructor(
+    private val context: Context,
+    private val executor: ListeningExecutorService
+) {
 
-    suspend fun run(mode: DiagMode) {
-        log("run mode=$mode pkg=${context.packageName} backend=PlatformStorage " +
-            "db=${CalendarAppSearchIndexer.DATABASE_NAME} sdk=${Build.VERSION.SDK_INT}")
-        if (!CalendarAppSearchIndexer.isPlatformStorageSupported()) {
-            log("skip: PlatformStorage requires API 31+")
-            return
-        }
-        if (!Utils.isCalendarPermissionGranted(context, true)) {
-            log("skip: READ_CALENDAR not granted")
-            return
-        }
-        val events = queryProbeEvents()
-        log("provider: probeEvents=${events.size} eventIds=${events.map { it.eventId }}")
-        when (mode) {
-            DiagMode.FULL -> runFull(events)
-            DiagMode.SYNC -> runSync(events)
+    fun runDiagnostic(): ListenableFuture<DiagnosticResult> {
+        return if (!CalendarAppSearchIndexer.isPlatformStorageSupported()) {
+            Log.w(TAG, "PlatformStorage not supported (API < 31)")
+            Futures.immediateFuture(DiagnosticResult(
+                success = false,
+                message = "PlatformStorage requires Android 12+ (API 31)"
+            ))
+        } else if (!Utils.isCalendarPermissionGranted(context, true)) {
+            Log.w(TAG, "READ_CALENDAR permission not granted")
+            Futures.immediateFuture(DiagnosticResult(
+                success = false,
+                message = "READ_CALENDAR permission not granted"
+            ))
+        } else {
+            Futures.transformAsync(
+                CalendarAppSearchIndexer.openSession(context),
+                { session -> runDiagnosticWithSession(session) },
+                executor
+            )
         }
     }
 
-    private suspend fun runFull(events: List<CalendarEventDocument>) {
-        if (events.isEmpty()) {
-            log("skip: no non-deleted provider event titled as probe; create it in the calendar first")
-            return
-        }
-        val expectedIds = events.map { it.documentId() }.toSet()
-
-        val first = CalendarAppSearchIndexer.openSession(context).await()
-        log("session#1 opened")
-        try {
-            setSchemaAndReadBack(first)
-            // Write twice on purpose: a repeated write must not create a second document.
-            putDocuments(first, events, attempts = 2)
-            verifySearch("session#1", search(first), expectedIds)
-        } finally {
-            first.close()
-            log("session#1 closed")
-        }
-
-        val second = CalendarAppSearchIndexer.openSession(context).await()
-        log("session#2 reopened")
-        try {
-            verifySearch("session#2 (reopened)", search(second), expectedIds)
-        } finally {
-            second.close()
-            log("session#2 closed")
-        }
-        saveIndexedIds(expectedIds)
+    private fun runDiagnosticWithSession(session: AppSearchSession): ListenableFuture<DiagnosticResult> {
+        return Futures.transformAsync(
+            setSchema(session),
+            { setSchemaResponse ->
+                if (!setSchemaResponse.succeeded) {
+                    Log.e(TAG, "Schema registration failed: ${setSchemaResponse.errorMessage}")
+                    closeSession(session)
+                    Futures.immediateFuture(DiagnosticResult(
+                        success = false,
+                        message = "Schema registration failed: ${setSchemaResponse.errorMessage ?: "unknown"}"
+                    ))
+                } else {
+                    Log.d(TAG, "Schema registered successfully, reading back...")
+                    Futures.transformAsync(
+                        readBackSchema(session),
+                        { schema ->
+                            verifySchema(schema)
+                            Futures.transformAsync(
+                                findAndIndexTestEvent(session),
+                                { indexResult ->
+                                    Futures.transformAsync(
+                                        searchTestEvent(session),
+                                        { searchResult ->
+                                            closeSession(session)
+                                            Futures.transformAsync(
+                                                CalendarAppSearchIndexer.openSession(context),
+                                                { newSession ->
+                                                    Futures.transformAsync(
+                                                        searchTestEvent(newSession),
+                                                        { reopenedSearchResult ->
+                                                            closeSession(newSession)
+                                                            buildFinalResult(indexResult, searchResult, reopenedSearchResult)
+                                                        },
+                                                        executor
+                                                    )
+                                                },
+                                                executor
+                                            )
+                                        },
+                                        executor
+                                    )
+                                },
+                                executor
+                            )
+                        },
+                        executor
+                    )
+                }
+            },
+            executor
+        )
     }
 
-    private suspend fun runSync(events: List<CalendarEventDocument>) {
-        val currentIds = events.map { it.documentId() }.toSet()
-        val previousIds = loadIndexedIds()
-        val toRemove = previousIds - currentIds
-        log("sync: previouslyIndexed=${previousIds.size} currentProvider=${currentIds.size} toRemove=${toRemove.size}")
+    private fun setSchema(session: AppSearchSession): ListenableFuture<SetSchemaResponse> {
+        val request = CalendarAppSearchIndexer.buildInitialSchemaRequest()
+        return Futures.transform(
+            session.setSchema(request),
+            { it },
+            executor
+        )
+    }
 
-        val session = CalendarAppSearchIndexer.openSession(context).await()
-        try {
-            setSchemaAndReadBack(session)
-            if (events.isNotEmpty()) {
-                putDocuments(session, events, attempts = 1)
+    private fun readBackSchema(session: AppSearchSession): ListenableFuture<AppSearchSchema?> {
+        return Futures.transformAsync(
+            session.getSchema(CalendarAppSearchIndexer.EVENTS_SCHEMA_TYPE),
+            { schema ->
+                if (schema != null) {
+                    Log.d(TAG, "Read back schema: ${schema.schemaType}, properties: ${schema.propertyConfigMap?.size ?: 0}")
+                } else {
+                    Log.w(TAG, "Schema not found after registration")
+                }
+                Futures.immediateFuture(schema)
+            },
+            executor
+        )
+    }
+
+    private fun verifySchema(schema: AppSearchSchema?) {
+        if (schema == null) {
+            Log.e(TAG, "Schema verification failed: schema is null")
+            return
+        }
+        val expectedProps = setOf("id", "namespace", "title", "description", "location", "startMillis", "endMillis", "allDay")
+        val actualProps = schema.propertyConfigMap?.keys?.toSet() ?: emptySet()
+        val missing = expectedProps - actualProps
+        if (missing.isNotEmpty()) {
+            Log.e(TAG, "Schema missing properties: $missing")
+        } else {
+            Log.d(TAG, "Schema verification passed: all ${expectedProps.size} properties present")
+        }
+    }
+
+    private fun findAndIndexTestEvent(session: AppSearchSession): ListenableFuture<IndexResult> {
+        val cursor = findTestEventCursor()
+        return if (cursor == null || cursor.count == 0) {
+            Log.w(TAG, "Test event '$TEST_EVENT_TITLE' not found in CalendarProvider")
+            Futures.immediateFuture(IndexResult(0, 0, "Test event not found"))
+        } else {
+            val docs = mutableListOf<GenericDocument>()
+            try {
+                while (cursor.moveToNext()) {
+                    val doc = buildDocumentFromCursor(cursor)
+                    docs.add(doc)
+                    Log.d(TAG, "Built document for event: id=${doc.id}, title=${doc.getPropertyString("title")}")
+                }
+            } finally {
+                cursor.close()
             }
-            if (toRemove.isNotEmpty()) {
-                val result = session.remove(
-                    RemoveByDocumentIdRequest.Builder(CalendarAppSearchIndexer.EVENTS_NAMESPACE)
-                        .addIds(toRemove)
-                        .build()
-                ).await()
-                log("remove: successes=${result.successes.size} failures=${result.failures.size}")
-                result.failures.forEach { (id, r) -> log("remove failure id=$id result=$r") }
+
+            if (docs.isEmpty()) {
+                Futures.immediateFuture(IndexResult(0, 0, "No documents built"))
+            } else {
+                val futures = docs.map { doc ->
+                    Futures.transformAsync(
+                        session.put(doc),
+                        { _ ->
+                            Log.d(TAG, "Put result for ${doc.id}: success")
+                            IndexResult(1, 0, doc.id)
+                        },
+                        executor
+                    )
+                }
+                Futures.transform(
+                    Futures.allAsList(*futures.toTypedArray()),
+                    { results ->
+                        val success = results.count { it.successes > 0 }
+                        val failure = results.count { it.failures > 0 }
+                        val ids = results.map { it.documentId }.joinToString(", ")
+                        IndexResult(success, failure, ids)
+                    },
+                    executor
+                )
             }
-            val hits = search(session)
-            verifySearch("sync-search", hits, currentIds)
-            val staleHits = hits.map { it.id }.filter { it in toRemove }
-            log("sync: staleHitsForRemovedEvents=${staleHits.size} (expected 0)")
-        } finally {
-            session.close()
-        }
-        saveIndexedIds(currentIds)
-    }
-
-    private suspend fun setSchemaAndReadBack(session: AppSearchSession) {
-        val setResponse = session.setSchema(CalendarAppSearchIndexer.buildInitialSchemaRequest()).await()
-        log("schema: setSchema completed response=$setResponse")
-        val schemaTypes = session.getSchema().await().schemas.map { it.schemaType }
-        log("schema readback: types=$schemaTypes " +
-            "calendarEventRegistered=${CalendarAppSearchIndexer.EVENTS_SCHEMA_TYPE in schemaTypes}")
-    }
-
-    private suspend fun putDocuments(
-        session: AppSearchSession,
-        events: List<CalendarEventDocument>,
-        attempts: Int,
-    ) {
-        val docs: List<GenericDocument> = events.map { it.toGenericDocument() }
-        repeat(attempts) { index ->
-            val result = session.put(
-                PutDocumentsRequest.Builder().addGenericDocuments(docs).build()
-            ).await()
-            log("put attempt=${index + 1} docs=${docs.size} successes=${result.successes.size} " +
-                "failures=${result.failures.size}")
-            result.failures.forEach { (id, r) -> log("put failure id=$id result=$r") }
         }
     }
 
-    private suspend fun search(session: AppSearchSession): List<GenericDocument> {
-        val spec = SearchSpec.Builder()
-            .addFilterSchemas(CalendarAppSearchIndexer.EVENTS_SCHEMA_TYPE)
-            .setResultCountPerPage(20)
-            .build()
-        val results = session.search(PROBE_TITLE, spec)
-        try {
-            return results.getNextPage().await().map { it.genericDocument }
-        } finally {
-            results.close()
-        }
-    }
+    private fun findTestEventCursor(): Cursor? {
+        val now = System.currentTimeMillis()
+        val start = now - (INDEXING_SCOPE_DAYS * 24 * 60 * 60 * 1000L)
+        val end = now + (INDEXING_SCOPE_DAYS * 24 * 60 * 60 * 1000L)
 
-    private fun verifySearch(label: String, hits: List<GenericDocument>, expectedIds: Set<String>) {
-        val distinctIds = hits.map { it.id }.toSet()
-        val matched = expectedIds.count { it in distinctIds }
-        val hitEventIds = hits.map { it.getPropertyLong(CalendarAppSearchIndexer.PROP_EVENT_ID) }
-        log("$label: hits=${hits.size} distinctDocs=${distinctIds.size} " +
-            "expectedMatched=$matched/${expectedIds.size} hitEventIds=$hitEventIds")
-        if (hits.size != distinctIds.size) {
-            log("$label: DUPLICATE documents detected")
-        }
-    }
-
-    private fun queryProbeEvents(): List<CalendarEventDocument> {
         val projection = arrayOf(
             Events._ID,
             Events.TITLE,
@@ -185,59 +220,125 @@ internal class CalendarAppSearchDiagnostic(private val context: Context) {
             Events.DTSTART,
             Events.DTEND,
             Events.ALL_DAY,
+            Events.EVENT_TIMEZONE,
+            Events.RRULE,
+            Events.STATUS,
+            Events.CALENDAR_ID,
+            Events.CUSTOM_APP_URI
         )
-        val selection = "${Events.TITLE}=? AND ${Events.DELETED}=0"
-        val out = mutableListOf<CalendarEventDocument>()
-        context.contentResolver.query(
-            Events.CONTENT_URI, projection, selection, arrayOf(PROBE_TITLE), null
-        )?.use { cursor ->
-            val idxId = cursor.getColumnIndexOrThrow(Events._ID)
-            val idxTitle = cursor.getColumnIndexOrThrow(Events.TITLE)
-            val idxDesc = cursor.getColumnIndexOrThrow(Events.DESCRIPTION)
-            val idxLoc = cursor.getColumnIndexOrThrow(Events.EVENT_LOCATION)
-            val idxStart = cursor.getColumnIndexOrThrow(Events.DTSTART)
-            val idxEnd = cursor.getColumnIndexOrThrow(Events.DTEND)
-            val idxAllDay = cursor.getColumnIndexOrThrow(Events.ALL_DAY)
-            while (cursor.moveToNext()) {
-                val start = cursor.getLong(idxStart)
-                // DTEND is null for recurring events; fall back to start.
-                val end = if (cursor.isNull(idxEnd)) start else cursor.getLong(idxEnd)
-                out += CalendarEventDocument(
-                    eventId = cursor.getLong(idxId),
-                    title = cursor.getString(idxTitle) ?: "",
-                    description = cursor.getString(idxDesc) ?: "",
-                    location = cursor.getString(idxLoc) ?: "",
-                    startMillis = start,
-                    endMillis = end,
-                    allDay = cursor.getInt(idxAllDay) == 1,
-                )
+
+        val selection = "${Events.VISIBLE}=1 AND ${Events.TITLE}=? AND ${Events.DTSTART} BETWEEN ? AND ?"
+        val selectionArgs = arrayOf(TEST_EVENT_TITLE, start.toString(), end.toString())
+
+        return try {
+            context.contentResolver.query(
+                Events.CONTENT_URI,
+                projection,
+                selection,
+                selectionArgs,
+                null
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Error querying test event", e)
+            null
+        }
+    }
+
+    private fun buildDocumentFromCursor(cursor: Cursor): GenericDocument {
+        val id = cursor.getLong(cursor.getColumnIndexOrThrow(Events._ID))
+        val title = cursor.getString(cursor.getColumnIndexOrThrow(Events.TITLE)) ?: ""
+        val description = cursor.getString(cursor.getColumnIndexOrThrow(Events.DESCRIPTION)) ?: ""
+        val location = cursor.getString(cursor.getColumnIndexOrThrow(Events.EVENT_LOCATION)) ?: ""
+        val dtstart = cursor.getLong(cursor.getColumnIndexOrThrow(Events.DTSTART))
+        val dtend = cursor.getLong(cursor.getColumnIndexOrThrow(Events.DTEND))
+        val allDay = cursor.getInt(cursor.getColumnIndexOrThrow(Events.ALL_DAY)) == 1
+        val calendarId = cursor.getLong(cursor.getColumnIndexOrThrow(Events.CALENDAR_ID))
+        val eventTimezone = cursor.getString(cursor.getColumnIndexOrThrow(Events.EVENT_TIMEZONE)) ?: "UTC"
+        val rrule = cursor.getString(cursor.getColumnIndexOrThrow(Events.RRULE))
+        val status = cursor.getInt(cursor.getColumnIndexOrThrow(Events.STATUS))
+        val customAppUri = cursor.getString(cursor.getColumnIndexOrThrow(Events.CUSTOM_APP_URI))
+
+        val docId = "${context.packageName}#$calendarId#$id"
+
+        val builder = GenericDocument.Builder(docId, CalendarAppSearchIndexer.EVENTS_SCHEMA_TYPE)
+            .setNamespace(CalendarAppSearchIndexer.EVENTS_NAMESPACE)
+            .putString(CalendarAppSearchIndexer.PROP_ID, id.toString())
+            .putString(CalendarAppSearchIndexer.PROP_NAMESPACE, CalendarAppSearchIndexer.EVENTS_NAMESPACE)
+            .putString(CalendarAppSearchIndexer.PROP_TITLE, title)
+            .putString(CalendarAppSearchIndexer.PROP_DESCRIPTION, description)
+            .putString(CalendarAppSearchIndexer.PROP_LOCATION, location)
+            .putLong(CalendarAppSearchIndexer.PROP_START_MILLIS, dtstart)
+            .putLong(CalendarAppSearchIndexer.PROP_END_MILLIS, dtend)
+            .putBoolean(CalendarAppSearchIndexer.PROP_ALL_DAY, allDay)
+
+        return builder.build()
+    }
+
+    private fun searchTestEvent(session: AppSearchSession): ListenableFuture<SearchResult> {
+        val spec = SearchSpec.Builder()
+            .addFilterSchemas(CalendarAppSearchIndexer.EVENTS_SCHEMA_TYPE)
+            .setResultCountPerPage(10)
+            .build()
+
+        return Futures.transformAsync(
+            session.search(TEST_EVENT_TITLE, spec),
+            { it },
+            executor
+        )
+    }
+
+    private fun closeSession(session: AppSearchSession?) {
+        if (session != null) {
+            try {
+                session.close()
+                Log.d(TAG, "Session closed")
+            } catch (e: Exception) {
+                Log.w(TAG, "Error closing session", e)
             }
         }
-        return out
     }
 
-    private fun loadIndexedIds(): Set<String> =
-        context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-            .getStringSet(PREFS_KEY_INDEXED_IDS, emptySet()) ?: emptySet()
+    private fun buildFinalResult(
+        indexResult: IndexResult,
+        searchResult: SearchResult,
+        reopenedSearchResult: SearchResult
+    ): ListenableFuture<DiagnosticResult> {
+        val hitCount = searchResult.matchInfos?.size ?: 0
+        val reopenedHitCount = reopenedSearchResult.matchInfos?.size ?: 0
 
-    private fun saveIndexedIds(ids: Set<String>) {
-        context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-            .edit().putStringSet(PREFS_KEY_INDEXED_IDS, ids).apply()
+        val matchedEventIds = searchResult.matchInfos?.map { it.document.id }.joinToString(", ") ?: ""
+        val reopenedMatchedIds = reopenedSearchResult.matchInfos?.map { it.document.id }.joinToString(", ") ?: ""
+
+        val success = indexResult.successes > 0 && hitCount > 0 && reopenedHitCount > 0
+        val message = if (success) {
+            "Diagnostic PASSED: indexed=${indexResult.successes}, searchHits=$hitCount, reopenedHits=$reopenedHitCount, matchedIds=[$matchedEventIds]"
+        } else {
+            "Diagnostic FAILED: indexed=${indexResult.successes}, failures=${indexResult.failures}, searchHits=$hitCount, reopenedHits=$reopenedHitCount, matchedIds=[$matchedEventIds]"
+        }
+
+        Log.i(TAG, message)
+        Futures.immediateFuture(DiagnosticResult(success, message))
     }
 
-    private fun log(message: String) {
-        Log.i(CalendarAppSearchIndexer.LOG_TAG, "diag: $message")
+    companion object {
+        fun create(context: Context): CalendarAppSearchDiagnostic {
+            val executor = MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor())
+            return CalendarAppSearchDiagnostic(context.applicationContext, executor)
+        }
+
+        fun triggerFromBroadcast(context: Context): ListenableFuture<DiagnosticResult> {
+            return create(context).runDiagnostic()
+        }
     }
 }
 
-/** Bridges a Guava future to a suspending call without blocking the calling thread. */
-internal suspend fun <T> ListenableFuture<T>.await(): T =
-    suspendCancellableCoroutine { cont ->
-        addListener({
-            try {
-                cont.resume(get())
-            } catch (t: Throwable) {
-                cont.resumeWithException(t.cause ?: t)
-            }
-        }, MoreExecutors.directExecutor())
-    }
+data class DiagnosticResult(
+    val success: Boolean,
+    val message: String
+)
+
+data class IndexResult(
+    val successes: Int,
+    val failures: Int,
+    val documentIds: String
+)
