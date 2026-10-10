@@ -21,6 +21,7 @@ import android.os.Build
 import android.util.Log
 import androidx.appsearch.app.AppSearchSchema
 import androidx.appsearch.app.AppSearchSession
+import androidx.appsearch.app.Features
 import androidx.appsearch.app.SetSchemaRequest
 import androidx.appsearch.platformstorage.PlatformStorage
 import com.google.common.util.concurrent.ListenableFuture
@@ -68,7 +69,7 @@ internal object CalendarAppSearchIndexer {
     fun openSession(context: Context): ListenableFuture<AppSearchSession> {
         return if (isPlatformStorageSupported()) {
             Log.d(LOG_TAG, "open session: backend=PlatformStorage db=$DATABASE_NAME")
-            PlatformStorage.createSearchSession(
+            PlatformStorage.createSearchSessionAsync(
                 PlatformStorage.SearchContext.Builder(context, DATABASE_NAME).build()
             )
         } else {
@@ -105,10 +106,21 @@ internal object CalendarAppSearchIndexer {
     /**
      * Returns a SetSchemaRequest for the CalendarEvent schema.
      * forceOverride is NOT set: incompatible changes fail instead of wiping the index.
+     *
+     * When the session supports ADD_PERMISSIONS_AND_GET_VISIBILITY (AppSearch 1.1.0+ on
+     * Android 13+), the schema is readable by the HOME role holder via
+     * android.permission.READ_HOME_APP_SEARCH_DATA. No other app is granted access, and
+     * no visibility is granted to READ_CALENDAR or any package.
      */
     @JvmStatic
-    fun buildInitialSchemaRequest(): SetSchemaRequest =
-        SetSchemaRequest.Builder()
-            .addSchemas(buildEventSchema())
-            .build()
+    fun buildSchemaRequest(features: Features): SetSchemaRequest {
+        val builder = SetSchemaRequest.Builder().addSchemas(buildEventSchema())
+        if (features.isFeatureSupported(Features.ADD_PERMISSIONS_AND_GET_VISIBILITY)) {
+            builder.addRequiredPermissionsForSchemaTypeVisibility(
+                EVENTS_SCHEMA_TYPE,
+                setOf(SetSchemaRequest.READ_HOME_APP_SEARCH_DATA),
+            )
+        }
+        return builder.build()
+    }
 }

@@ -22,6 +22,7 @@ import android.os.Build
 import android.provider.CalendarContract.Events
 import android.util.Log
 import androidx.appsearch.app.AppSearchSession
+import androidx.appsearch.app.Features
 import androidx.appsearch.app.GenericDocument
 import androidx.appsearch.app.PutDocumentsRequest
 import androidx.appsearch.app.RemoveByDocumentIdRequest
@@ -110,7 +111,7 @@ internal class CalendarAppSearchDiagnostic(private val context: Context) {
                 putDocuments(session, events, attempts = 1)
             }
             if (toRemove.isNotEmpty()) {
-                val result = session.remove(
+                val result = session.removeAsync(
                     RemoveByDocumentIdRequest.Builder(CalendarAppSearchIndexer.EVENTS_NAMESPACE)
                         .addIds(toRemove)
                         .build()
@@ -129,11 +130,19 @@ internal class CalendarAppSearchDiagnostic(private val context: Context) {
     }
 
     private suspend fun setSchemaAndReadBack(session: AppSearchSession) {
-        val setResponse = session.setSchema(CalendarAppSearchIndexer.buildInitialSchemaRequest()).await()
+        val hasHomeGrant = session.features.isFeatureSupported(Features.ADD_PERMISSIONS_AND_GET_VISIBILITY)
+        log("features: ADD_PERMISSIONS_AND_GET_VISIBILITY=$hasHomeGrant")
+        val setResponse = session.setSchemaAsync(
+            CalendarAppSearchIndexer.buildSchemaRequest(session.features)
+        ).await()
         log("schema: setSchema completed response=$setResponse")
-        val schemaTypes = session.getSchema().await().schemas.map { it.schemaType }
+        val readBack = session.getSchemaAsync().await()
+        val schemaTypes = readBack.schemas.map { it.schemaType }
         log("schema readback: types=$schemaTypes " +
             "calendarEventRegistered=${CalendarAppSearchIndexer.EVENTS_SCHEMA_TYPE in schemaTypes}")
+        // Permission sets are reported only as the constant ids (e.g. [5] = HOME), never document data.
+        log("schema readback: homeGrantPermissions=" +
+            "${readBack.requiredPermissionsForSchemaTypeVisibility[CalendarAppSearchIndexer.EVENTS_SCHEMA_TYPE]}")
     }
 
     private suspend fun putDocuments(
@@ -143,7 +152,7 @@ internal class CalendarAppSearchDiagnostic(private val context: Context) {
     ) {
         val docs: List<GenericDocument> = events.map { it.toGenericDocument() }
         repeat(attempts) { index ->
-            val result = session.put(
+            val result = session.putAsync(
                 PutDocumentsRequest.Builder().addGenericDocuments(docs).build()
             ).await()
             log("put attempt=${index + 1} docs=${docs.size} successes=${result.successes.size} " +
@@ -159,7 +168,7 @@ internal class CalendarAppSearchDiagnostic(private val context: Context) {
             .build()
         val results = session.search(PROBE_TITLE, spec)
         try {
-            return results.getNextPage().await().map { it.genericDocument }
+            return results.getNextPageAsync().await().map { it.genericDocument }
         } finally {
             results.close()
         }
