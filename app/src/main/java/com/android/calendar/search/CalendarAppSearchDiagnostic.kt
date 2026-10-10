@@ -22,6 +22,7 @@ import android.os.Build
 import android.provider.CalendarContract.Events
 import android.util.Log
 import androidx.appsearch.app.AppSearchSession
+import androidx.appsearch.platformstorage.PlatformStorage
 import androidx.appsearch.app.Features
 import androidx.appsearch.app.GenericDocument
 import androidx.appsearch.app.PutDocumentsRequest
@@ -40,7 +41,12 @@ private const val PREFS_NAME = "calendar_appsearch_diag"
 private const val PREFS_KEY_INDEXED_IDS = "indexed_event_ids"
 
 /** FULL: write the probe event, verify schema/write/search/reopen. SYNC: reconcile with provider. */
-internal enum class DiagMode { FULL, SYNC }
+internal enum class DiagMode { FULL, SYNC, CONSUMERS }
+
+/** Read-only consumer survey: lists GlobalSearchApplicationInfo metadata only. */
+private const val GSAI_SCHEMA = "builtin:GlobalSearchApplicationInfo"
+private const val CONSUMER_PAGE_SIZE = 50
+private const val CONSUMER_MAX_PAGES = 1000
 
 /**
  * Debug-only diagnostic for the PlatformStorage contributor side (phase 1).
@@ -59,6 +65,10 @@ internal class CalendarAppSearchDiagnostic(private val context: Context) {
             log("skip: PlatformStorage requires API 31+")
             return
         }
+        if (mode == DiagMode.CONSUMERS) {
+            runConsumers()
+            return
+        }
         if (!Utils.isCalendarPermissionGranted(context, true)) {
             log("skip: READ_CALENDAR not granted")
             return
@@ -68,6 +78,7 @@ internal class CalendarAppSearchDiagnostic(private val context: Context) {
         when (mode) {
             DiagMode.FULL -> runFull(events, policy)
             DiagMode.SYNC -> runSync(events, policy)
+            DiagMode.CONSUMERS -> Unit
         }
     }
 
@@ -137,9 +148,10 @@ internal class CalendarAppSearchDiagnostic(private val context: Context) {
         policy: CalendarAppSearchIndexer.VisibilityPolicy,
     ) {
         val hasVisibilityFeature = session.features.isFeatureSupported(Features.ADD_PERMISSIONS_AND_GET_VISIBILITY)
-        // Effective home grant is only applied when the backend supports it.
-        val effectiveHome = policy.homeRoleRead && hasVisibilityFeature
-        log("visibility: requested=[$policy] featureSupported=$hasVisibilityFeature effectiveHome=$effectiveHome")
+        // Requested != effective: the HOME grant is only *requested* here; the readback below is
+        // the only evidence of what the backend stored.
+        val homeRequested = policy.homeRoleRead && hasVisibilityFeature
+        log("visibility: requested=[$policy] featureSupported=$hasVisibilityFeature homeGrantRequested=$homeRequested")
         val setResponse = session.setSchemaAsync(
             CalendarAppSearchIndexer.buildSchemaRequest(session.features, policy)
         ).await()
@@ -148,14 +160,78 @@ internal class CalendarAppSearchDiagnostic(private val context: Context) {
         val schemaTypes = readBack.schemas.map { it.schemaType }
         log("schema readback: types=$schemaTypes " +
             "calendarEventRegistered=${CalendarAppSearchIndexer.EVENTS_SCHEMA_TYPE in schemaTypes}")
-        // Permission sets are reported only as constant ids (e.g. [5] = HOME), never document data.
-        val homeGrant = readBack.requiredPermissionsForSchemaTypeVisibility[CalendarAppSearchIndexer.EVENTS_SCHEMA_TYPE]
-        log("schema readback: homeGrantPermissions=$homeGrant (expected HOME=[[5]] only when effectiveHome)")
-        if (hasVisibilityFeature) {
-            val notDisplayed = readBack.schemaTypesNotDisplayedBySystem
-            log("schema readback: displayedBySystem=${CalendarAppSearchIndexer.EVENTS_SCHEMA_TYPE !in notDisplayed}")
+        // Feature-guarded readbacks: unsupported backends report "unknown", never a guessed value.
+        val homeReadback = if (hasVisibilityFeature) {
+            readBack.requiredPermissionsForSchemaTypeVisibility[CalendarAppSearchIndexer.EVENTS_SCHEMA_TYPE]
+                ?.toString() ?: "none"
         } else {
-            log("schema readback: displayedBySystem=unknown (feature unsupported)")
+            "unknown"
+        }
+        log("schema readback: homeGrantPermissions=$homeReadback (ids: 5=HOME)")
+        val displayedReadback = if (hasVisibilityFeature) {
+            (CalendarAppSearchIndexer.EVENTS_SCHEMA_TYPE !in readBack.schemaTypesNotDisplayedBySystem).toString()
+        } else {
+            "unknown"
+        }
+        log("schema readback: displayedBySystem=$displayedReadback")
+    }
+
+    /**
+     * Read-only survey of builtin:GlobalSearchApplicationInfo documents visible to this package.
+     * Logs only owning package, database, applicationType and schemaTypes. Never reads or logs
+     * other documents' properties, and never writes, removes or changes schema.
+     */
+    private suspend fun runConsumers() {
+        val session = PlatformStorage.createGlobalSearchSessionAsync(
+            PlatformStorage.GlobalSearchContext.Builder(context).build()
+        ).await()
+        try {
+            if (!session.features.isFeatureSupported(Features.VERBATIM_SEARCH)) {
+                log("consumers: result=unknown reason=VERBATIM_SEARCH unsupported on this backend")
+                return
+            }
+            val spec = SearchSpec.Builder()
+                .addFilterSchemas(GSAI_SCHEMA)
+                .setResultCountPerPage(CONSUMER_PAGE_SIZE)
+                .build()
+            val results = session.search("", spec)
+            var pages = 0
+            var entries = 0
+            try {
+                while (true) {
+                    val page = results.getNextPageAsync().await()
+                    if (page.isEmpty()) break
+                    pages++
+                    if (pages > CONSUMER_MAX_PAGES) {
+                        log("consumers: stopped at CONSUMER_MAX_PAGES=$CONSUMER_MAX_PAGES (truncated)")
+                        break
+                    }
+                    for (result in page) {
+                        entries++
+                        val doc = result.genericDocument
+                        val typeLabel = if (doc.getProperty("applicationType") == null) {
+                            "MISSING"
+                        } else {
+                            when (doc.getPropertyLong("applicationType")) {
+                                0L -> "PRODUCER"
+                                1L -> "CONSUMER"
+                                else -> "UNKNOWN"
+                            }
+                        }
+                        val schemaTypes = doc.getPropertyStringArray("schemaTypes")?.toList() ?: emptyList()
+                        log("consumers: pkg=${result.packageName} db=${result.databaseName} " +
+                            "applicationType=$typeLabel schemaTypes=$schemaTypes")
+                    }
+                }
+            } finally {
+                results.close()
+            }
+            log("consumers: pages=$pages entries=$entries")
+            if (entries == 0) {
+                log("consumers: none visible to this package. This does NOT prove the reader is unsupported.")
+            }
+        } finally {
+            session.close()
         }
     }
 
