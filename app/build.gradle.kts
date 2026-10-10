@@ -182,8 +182,6 @@ dependencies {
 	// LocalStorage backend: in-app private index, works on every Android
 	// version this module supports. Used as the fallback on pre-S devices.
 	implementation(libs.androidx.appsearch.local.storage)
-
-
 }
 
 kapt {
