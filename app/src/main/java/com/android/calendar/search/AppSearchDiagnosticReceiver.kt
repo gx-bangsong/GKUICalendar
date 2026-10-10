@@ -31,6 +31,11 @@ import kotlinx.coroutines.launch
  *
  *   adb shell am broadcast -a com.android.calendar.action.RUN_APPSEARCH_DIAG
  *   adb shell am broadcast -a com.android.calendar.action.RUN_APPSEARCH_DIAG --es mode sync
+ *
+ * Visibility experiments (debug only; default is on/on, the shipped configuration):
+ *   --es home off        do not request READ_HOME_APP_SEARCH_DATA on the probe schema
+ *   --es displayed off   setSchemaTypeDisplayedBySystem(CalendarEvent, false)
+ * Every run re-applies the policy, so the last run defines the device state.
  */
 class AppSearchDiagnosticReceiver : BroadcastReceiver() {
 
@@ -41,11 +46,15 @@ class AppSearchDiagnosticReceiver : BroadcastReceiver() {
             return
         }
         val mode = if (intent.getStringExtra("mode") == "sync") DiagMode.SYNC else DiagMode.FULL
+        val policy = CalendarAppSearchIndexer.VisibilityPolicy(
+            homeRoleRead = intent.getStringExtra("home") != "off",
+            displayedBySystem = intent.getStringExtra("displayed") != "off",
+        )
         val appContext = context.applicationContext
         val pending = goAsync()
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
-                CalendarAppSearchDiagnostic(appContext).run(mode)
+                CalendarAppSearchDiagnostic(appContext).run(mode, policy)
             } catch (t: Throwable) {
                 Log.e(CalendarAppSearchIndexer.LOG_TAG, "diag failed: ${t.javaClass.name}", t)
             } finally {

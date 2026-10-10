@@ -49,9 +49,12 @@ internal enum class DiagMode { FULL, SYNC }
  */
 internal class CalendarAppSearchDiagnostic(private val context: Context) {
 
-    suspend fun run(mode: DiagMode) {
+    suspend fun run(
+        mode: DiagMode,
+        policy: CalendarAppSearchIndexer.VisibilityPolicy = CalendarAppSearchIndexer.VisibilityPolicy(),
+    ) {
         log("run mode=$mode pkg=${context.packageName} backend=PlatformStorage " +
-            "db=${CalendarAppSearchIndexer.DATABASE_NAME} sdk=${Build.VERSION.SDK_INT}")
+            "db=${CalendarAppSearchIndexer.DATABASE_NAME} sdk=${Build.VERSION.SDK_INT} requested=[$policy]")
         if (!CalendarAppSearchIndexer.isPlatformStorageSupported()) {
             log("skip: PlatformStorage requires API 31+")
             return
@@ -63,12 +66,12 @@ internal class CalendarAppSearchDiagnostic(private val context: Context) {
         val events = queryProbeEvents()
         log("provider: probeEvents=${events.size} eventIds=${events.map { it.eventId }}")
         when (mode) {
-            DiagMode.FULL -> runFull(events)
-            DiagMode.SYNC -> runSync(events)
+            DiagMode.FULL -> runFull(events, policy)
+            DiagMode.SYNC -> runSync(events, policy)
         }
     }
 
-    private suspend fun runFull(events: List<CalendarEventDocument>) {
+    private suspend fun runFull(events: List<CalendarEventDocument>, policy: CalendarAppSearchIndexer.VisibilityPolicy) {
         if (events.isEmpty()) {
             log("skip: no non-deleted provider event titled as probe; create it in the calendar first")
             return
@@ -78,7 +81,7 @@ internal class CalendarAppSearchDiagnostic(private val context: Context) {
         val first = CalendarAppSearchIndexer.openSession(context).await()
         log("session#1 opened")
         try {
-            setSchemaAndReadBack(first)
+            setSchemaAndReadBack(first, policy)
             // Write twice on purpose: a repeated write must not create a second document.
             putDocuments(first, events, attempts = 2)
             verifySearch("session#1", search(first), expectedIds)
@@ -98,7 +101,7 @@ internal class CalendarAppSearchDiagnostic(private val context: Context) {
         saveIndexedIds(expectedIds)
     }
 
-    private suspend fun runSync(events: List<CalendarEventDocument>) {
+    private suspend fun runSync(events: List<CalendarEventDocument>, policy: CalendarAppSearchIndexer.VisibilityPolicy) {
         val currentIds = events.map { it.documentId() }.toSet()
         val previousIds = loadIndexedIds()
         val toRemove = previousIds - currentIds
@@ -106,7 +109,7 @@ internal class CalendarAppSearchDiagnostic(private val context: Context) {
 
         val session = CalendarAppSearchIndexer.openSession(context).await()
         try {
-            setSchemaAndReadBack(session)
+            setSchemaAndReadBack(session, policy)
             if (events.isNotEmpty()) {
                 putDocuments(session, events, attempts = 1)
             }
@@ -129,20 +132,31 @@ internal class CalendarAppSearchDiagnostic(private val context: Context) {
         saveIndexedIds(currentIds)
     }
 
-    private suspend fun setSchemaAndReadBack(session: AppSearchSession) {
-        val hasHomeGrant = session.features.isFeatureSupported(Features.ADD_PERMISSIONS_AND_GET_VISIBILITY)
-        log("features: ADD_PERMISSIONS_AND_GET_VISIBILITY=$hasHomeGrant")
+    private suspend fun setSchemaAndReadBack(
+        session: AppSearchSession,
+        policy: CalendarAppSearchIndexer.VisibilityPolicy,
+    ) {
+        val hasVisibilityFeature = session.features.isFeatureSupported(Features.ADD_PERMISSIONS_AND_GET_VISIBILITY)
+        // Effective home grant is only applied when the backend supports it.
+        val effectiveHome = policy.homeRoleRead && hasVisibilityFeature
+        log("visibility: requested=[$policy] featureSupported=$hasVisibilityFeature effectiveHome=$effectiveHome")
         val setResponse = session.setSchemaAsync(
-            CalendarAppSearchIndexer.buildSchemaRequest(session.features)
+            CalendarAppSearchIndexer.buildSchemaRequest(session.features, policy)
         ).await()
         log("schema: setSchema completed response=$setResponse")
         val readBack = session.getSchemaAsync().await()
         val schemaTypes = readBack.schemas.map { it.schemaType }
         log("schema readback: types=$schemaTypes " +
             "calendarEventRegistered=${CalendarAppSearchIndexer.EVENTS_SCHEMA_TYPE in schemaTypes}")
-        // Permission sets are reported only as the constant ids (e.g. [5] = HOME), never document data.
-        log("schema readback: homeGrantPermissions=" +
-            "${readBack.requiredPermissionsForSchemaTypeVisibility[CalendarAppSearchIndexer.EVENTS_SCHEMA_TYPE]}")
+        // Permission sets are reported only as constant ids (e.g. [5] = HOME), never document data.
+        val homeGrant = readBack.requiredPermissionsForSchemaTypeVisibility[CalendarAppSearchIndexer.EVENTS_SCHEMA_TYPE]
+        log("schema readback: homeGrantPermissions=$homeGrant (expected HOME=[[5]] only when effectiveHome)")
+        if (hasVisibilityFeature) {
+            val notDisplayed = readBack.schemaTypesNotDisplayedBySystem
+            log("schema readback: displayedBySystem=${CalendarAppSearchIndexer.EVENTS_SCHEMA_TYPE !in notDisplayed}")
+        } else {
+            log("schema readback: displayedBySystem=unknown (feature unsupported)")
+        }
     }
 
     private suspend fun putDocuments(

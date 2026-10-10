@@ -104,23 +104,46 @@ internal object CalendarAppSearchIndexer {
             .build()
 
     /**
+     * Single source of truth for CalendarEvent visibility. Every setSchema call goes through
+     * [buildSchemaRequest] with a policy, so a later FULL/SYNC run cannot silently drop the
+     * settings applied by an earlier run.
+     *
+     * Defaults match the shipped configuration. Non-default values exist only for controlled
+     * debug experiments (see AppSearchDiagnosticReceiver extras).
+     */
+    data class VisibilityPolicy(
+        /** Grant read to the HOME role holder via READ_HOME_APP_SEARCH_DATA. */
+        val homeRoleRead: Boolean = true,
+        /** Framework default is true (system UI may display); false hides docs from system UI. */
+        val displayedBySystem: Boolean = true,
+    ) {
+        override fun toString(): String = "homeRoleRead=$homeRoleRead,displayedBySystem=$displayedBySystem"
+    }
+
+    /**
      * Returns a SetSchemaRequest for the CalendarEvent schema.
      * forceOverride is NOT set: incompatible changes fail instead of wiping the index.
      *
-     * When the session supports ADD_PERMISSIONS_AND_GET_VISIBILITY (AppSearch 1.1.0+ on
-     * Android 13+), the schema is readable by the HOME role holder via
-     * android.permission.READ_HOME_APP_SEARCH_DATA. No other app is granted access, and
-     * no visibility is granted to READ_CALENDAR or any package.
+     * The HOME grant is added only when the session reports ADD_PERMISSIONS_AND_GET_VISIBILITY.
+     * It grants nothing to READ_CALENDAR, ASSISTANT or any package.
      */
     @JvmStatic
-    fun buildSchemaRequest(features: Features): SetSchemaRequest {
+    @JvmOverloads
+    fun buildSchemaRequest(
+        features: Features,
+        policy: VisibilityPolicy = VisibilityPolicy(),
+    ): SetSchemaRequest {
         val builder = SetSchemaRequest.Builder().addSchemas(buildEventSchema())
-        if (features.isFeatureSupported(Features.ADD_PERMISSIONS_AND_GET_VISIBILITY)) {
+        if (policy.homeRoleRead &&
+            features.isFeatureSupported(Features.ADD_PERMISSIONS_AND_GET_VISIBILITY)
+        ) {
             builder.addRequiredPermissionsForSchemaTypeVisibility(
                 EVENTS_SCHEMA_TYPE,
                 setOf(SetSchemaRequest.READ_HOME_APP_SEARCH_DATA),
             )
         }
+        // Explicit on every call: this setting does not persist across setSchema calls.
+        builder.setSchemaTypeDisplayedBySystem(EVENTS_SCHEMA_TYPE, policy.displayedBySystem)
         return builder.build()
     }
 }
