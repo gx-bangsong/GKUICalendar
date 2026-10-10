@@ -24,7 +24,6 @@ import androidx.appsearch.app.AppSearchSchema
 import androidx.appsearch.app.AppSearchSession
 import androidx.appsearch.app.SetSchemaRequest
 import androidx.appsearch.platformstorage.PlatformStorage
-import androidx.concurrent.futures.CallbackToFutureAdapter
 import com.google.common.util.concurrent.ListenableFuture
 
 private const val TAG = "CalendarAppSearchIndexer"
@@ -98,10 +97,9 @@ internal object CalendarAppSearchIndexer {
             // 3. The legacy in-app search uses SearchManager + CalendarContract,
             //    not AppSearch.
             Log.d(TAG, "PlatformStorage unavailable (API < 31); skipping AppSearch indexing")
-            CallbackToFutureAdapter.getFuture<AppSearchSession> { completer ->
-                completer.setException(UnsupportedOperationException("AppSearch PlatformStorage requires Android 12+ (API 31)"))
-                "AppSearch PlatformStorage unavailable on API < 31"
-            }
+            com.google.common.util.concurrent.Futures.immediateFailedFuture(
+                UnsupportedOperationException("AppSearch PlatformStorage requires Android 12+ (API 31)")
+            )
         }
     }
 
