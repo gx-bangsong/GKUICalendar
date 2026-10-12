@@ -100,6 +100,11 @@ public class CalendarToolbarHandler {
                 mToolbar.setSubtitle(buildDayOfWeek());
                 mToolbar.setTitle(buildFullDate());
                 break;
+            case CalendarController.ViewType.HOME:
+                // The month header is drawn inside the home screen itself.
+                mToolbar.setSubtitle("");
+                mToolbar.setTitle(R.string.home_view_title);
+                break;
         }
     }
 

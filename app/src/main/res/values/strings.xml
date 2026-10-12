@@ -953,4 +953,19 @@
     <string name="reschedule_move_to_today">Move to today</string>
     <string name="reschedule_done">Event moved</string>
     <string name="reschedule_unchanged">Event is already on that day</string>
+    <!-- Month-and-day home screen -->
+    <string name="home_view_title">Month and day</string>
+    <string name="home_layout_title">Home layout</string>
+    <string name="home_layout_classic">Classic</string>
+    <string name="home_layout_month_day">Month and day</string>
+    <string name="home_prev_month">Previous month</string>
+    <string name="home_next_month">Next month</string>
+    <string name="home_today">Today</string>
+    <string name="home_toggle_month">Show or hide month grid</string>
+    <string name="home_no_events">No events on this day</string>
+    <string name="home_all_day">All day</string>
+    <plurals name="home_events_count">
+        <item quantity="one">%d event</item>
+        <item quantity="other">%d events</item>
+    </plurals>
 </resources>

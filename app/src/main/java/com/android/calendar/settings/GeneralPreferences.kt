@@ -66,6 +66,7 @@ class GeneralPreferences : PreferenceFragmentCompat(),
     private lateinit var pureBlackNightModePref: SwitchPreference
     private lateinit var doNotCheckBatteryOptimizationPref: SwitchPreference
     private lateinit var defaultStartPref: ListPreference
+    private lateinit var homeLayoutPref: ListPreference
     private lateinit var hideDeclinedPref: SwitchPreference
     private lateinit var weekStartPref: ListPreference
     private lateinit var dayWeekPref: ListPreference
@@ -111,6 +112,7 @@ class GeneralPreferences : PreferenceFragmentCompat(),
         pureBlackNightModePref = preferenceScreen.findPreference(KEY_PURE_BLACK_NIGHT_MODE)!!
         doNotCheckBatteryOptimizationPref = preferenceScreen.findPreference(KEY_DO_NOT_CHECK_BATTERY_OPTIMIZATION)!!
         defaultStartPref = preferenceScreen.findPreference(KEY_DEFAULT_START)!!
+        homeLayoutPref = preferenceScreen.findPreference(KEY_HOME_LAYOUT)!!
         hideDeclinedPref = preferenceScreen.findPreference(KEY_HIDE_DECLINED)!!
         weekStartPref = preferenceScreen.findPreference(KEY_WEEK_START_DAY)!!
         dayWeekPref = preferenceScreen.findPreference(KEY_DAYS_PER_WEEK)!!
@@ -164,6 +166,7 @@ class GeneralPreferences : PreferenceFragmentCompat(),
         defaultReminderPref.summary = defaultReminderPref.entry
         snoozeDelayPref.summary = snoozeDelayPref.entry
         defaultStartPref.summary = defaultStartPref.entry
+        homeLayoutPref.summary = homeLayoutPref.entry
         skipRemindersPref.summary = skipRemindersPref.entry
 
         // This triggers an asynchronous call to the provider to refresh the data in shared pref
@@ -222,6 +225,7 @@ class GeneralPreferences : PreferenceFragmentCompat(),
         pureBlackNightModePref.onPreferenceChangeListener = listener
         doNotCheckBatteryOptimizationPref.onPreferenceChangeListener = listener
         defaultStartPref.onPreferenceChangeListener = listener
+        homeLayoutPref.onPreferenceChangeListener = listener
         hideDeclinedPref.onPreferenceChangeListener = listener
         weekStartPref.onPreferenceChangeListener = listener
         dayWeekPref.onPreferenceChangeListener = listener
@@ -332,6 +336,11 @@ class GeneralPreferences : PreferenceFragmentCompat(),
             defaultStartPref -> {
                 val i = defaultStartPref.findIndexOfValue(newValue as String)
                 defaultStartPref.summary = defaultStartPref.entries[i]
+                return true
+            }
+            homeLayoutPref -> {
+                val i = homeLayoutPref.findIndexOfValue(newValue as String)
+                homeLayoutPref.summary = homeLayoutPref.entries[i]
                 return true
             }
             skipRemindersPref -> {
@@ -487,6 +496,7 @@ class GeneralPreferences : PreferenceFragmentCompat(),
         const val KEY_DO_NOT_CHECK_BATTERY_OPTIMIZATION = "pref_do_not_check_battery_optimization"
         const val KEY_PURE_BLACK_NIGHT_MODE = "pref_pure_black_night_mode"
         const val KEY_DEFAULT_START = "preferences_default_start"
+        const val KEY_HOME_LAYOUT = "preferences_home_layout"
         const val KEY_HIDE_DECLINED = "preferences_hide_declined"
         const val KEY_WEEK_START_DAY = "preferences_week_start_day"
         const val KEY_SHOW_WEEK_NUM = "preferences_show_week_num"

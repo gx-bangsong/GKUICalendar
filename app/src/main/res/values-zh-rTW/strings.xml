@@ -320,4 +320,18 @@
     <string name="chips_action_copy" msgid="6984158516334578792">"複製"</string>
     <string name="chips_action_cancel" msgid="2582257014578396781">"取消"</string>
     <string name="chips_permission_text" msgid="5601284803674008863">"允許聯絡人建議"</string>
+    <!-- Month-and-day home screen -->
+    <string name="home_view_title">月曆＋當日行程</string>
+    <string name="home_layout_title">首頁版面</string>
+    <string name="home_layout_classic">經典檢視</string>
+    <string name="home_layout_month_day">月曆＋當日行程</string>
+    <string name="home_prev_month">上個月</string>
+    <string name="home_next_month">下個月</string>
+    <string name="home_today">今天</string>
+    <string name="home_toggle_month">顯示或隱藏月曆</string>
+    <string name="home_no_events">這一天沒有行程</string>
+    <string name="home_all_day">全天</string>
+    <plurals name="home_events_count">
+        <item quantity="other">%d 個行程</item>
+    </plurals>
 </resources>

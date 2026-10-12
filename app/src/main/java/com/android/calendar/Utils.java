@@ -65,6 +65,7 @@ import com.android.calendar.CalendarEventModel.ReminderEntry;
 import com.android.calendar.CalendarUtils.TimeZoneUtils;
 import com.android.calendar.lunar.LunarHelper;
 import com.android.calendar.lunar.LunarMode;
+import com.android.calendar.home.HomeLaunchRules;
 import com.android.calendar.settings.GeneralPreferences;
 import com.android.calendar.settings.LunarPreferences;
 import com.android.calendar.widget.CalendarAppWidgetProvider;
@@ -289,9 +290,20 @@ public class Utils {
         int defaultStart = Integer.parseInt(prefs.getString(GeneralPreferences.KEY_DEFAULT_START,
                 GeneralPreferences.DEFAULT_DEFAULT_START));
         if (defaultStart == -2) {
+            boolean newHomeSelected = HomeLaunchRules.isNewHomeSelected(
+                    prefs.getString(GeneralPreferences.KEY_HOME_LAYOUT, null));
+            // Only a plain launch (no action target, data or extras) opens the new home.
+            // Notifications, widgets and external event Intents keep their own target.
+            int extrasCount = extras == null ? 0 : extras.size();
+            if (newHomeSelected && HomeLaunchRules.isPlainLaunch(
+                    intent.getAction(), intent.getData() != null, extrasCount)) {
+                return ViewType.HOME;
+            }
             // Return the last view used
-            return prefs.getInt(
+            int lastView = prefs.getInt(
                     GeneralPreferences.KEY_START_VIEW, GeneralPreferences.DEFAULT_START_VIEW);
+            return HomeLaunchRules.resolveLastView(lastView, ViewType.HOME, newHomeSelected,
+                    GeneralPreferences.DEFAULT_START_VIEW);
         } else {
             // Return the default view
             return defaultStart;

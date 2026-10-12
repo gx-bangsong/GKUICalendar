@@ -524,4 +524,12 @@
         <item>@drawable/logo_calendar_30_adaptive</item>
         <item>@drawable/logo_calendar_31_adaptive</item>
     </array>
+    <string-array name="home_layout_entries">
+        <item>@string/home_layout_classic</item>
+        <item>@string/home_layout_month_day</item>
+    </string-array>
+    <string-array name="home_layout_values">
+        <item>classic</item>
+        <item>new</item>
+    </string-array>
 </resources>

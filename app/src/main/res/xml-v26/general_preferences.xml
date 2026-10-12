@@ -32,6 +32,12 @@
             app:defaultValue="false"
             app:title="@string/preferences_real_event_colors" />
         <ListPreference
+            app:key="preferences_home_layout"
+            app:defaultValue="classic"
+            app:title="@string/home_layout_title"
+            app:entries="@array/home_layout_entries"
+            app:entryValues="@array/home_layout_values" />
+        <ListPreference
             app:key="preferences_default_start"
             app:defaultValue="-2"
             app:title="@string/default_start_title"

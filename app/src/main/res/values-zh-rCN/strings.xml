@@ -400,4 +400,18 @@
     <string name="countdown_preview_event_2">结婚纪念日</string>
     <string name="countdown_preview_date_2">第 7 年 · 9月2日</string>
     <string name="countdown_preview_days_2">51</string>
+    <!-- Month-and-day home screen -->
+    <string name="home_view_title">月历＋当天日程</string>
+    <string name="home_layout_title">首页布局</string>
+    <string name="home_layout_classic">经典视图</string>
+    <string name="home_layout_month_day">月历＋当天日程</string>
+    <string name="home_prev_month">上个月</string>
+    <string name="home_next_month">下个月</string>
+    <string name="home_today">今天</string>
+    <string name="home_toggle_month">显示或隐藏月历</string>
+    <string name="home_no_events">这一天没有日程</string>
+    <string name="home_all_day">全天</string>
+    <plurals name="home_events_count">
+        <item quantity="other">%d 个日程</item>
+    </plurals>
 </resources>

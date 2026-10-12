@@ -82,6 +82,7 @@ import com.android.calendar.CalendarController.EventType;
 import com.android.calendar.CalendarController.ViewType;
 import com.android.calendar.agenda.AgendaFragment;
 import com.android.calendar.alerts.AlertService;
+import com.android.calendar.home.HomeMonthDayFragment;
 import com.android.calendar.month.MonthByWeekFragment;
 import com.android.calendar.selectcalendars.SelectVisibleCalendarsFragment;
 import com.android.calendar.settings.GeneralPreferences;
@@ -117,6 +118,7 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
     private static final String BUNDLE_KEY_RESTORE_TIME = "key_restore_time";
     private static final String BUNDLE_KEY_EVENT_ID = "key_event_id";
     private static final String BUNDLE_KEY_RESTORE_VIEW = "key_restore_view";
+    private static final String BUNDLE_KEY_HOME_STATE = "key_home_state";
     private static final int HANDLER_KEY = 0;
     private static final int PERMISSIONS_REQUEST_WRITE_CALENDAR = 0;
     private static final int PERMISSIONS_REQUEST_POST_NOTIFICATIONS = 1;
@@ -153,6 +155,8 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
     private ContentResolver mContentResolver;
     private int mPreviousView;
     private int mCurrentView;
+    // Home-screen state restored after recreation, consumed by setMainPane once.
+    private Bundle mPendingHomeState;
     private boolean mPaused = true;
     private boolean mUpdateOnResume = false;
     private boolean mHideControls = false;
@@ -285,6 +289,7 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
         if (icicle != null) {
             timeMillis = icicle.getLong(BUNDLE_KEY_RESTORE_TIME);
             viewType = icicle.getInt(BUNDLE_KEY_RESTORE_VIEW, -1);
+            mPendingHomeState = icicle.getBundle(BUNDLE_KEY_HOME_STATE);
         } else {
             String action = intent.getAction();
             if (Intent.ACTION_VIEW.equals(action)) {
@@ -700,6 +705,12 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
         outState.putInt(BUNDLE_KEY_RESTORE_VIEW, mCurrentView);
         if (mCurrentView == ViewType.EDIT) {
             outState.putLong(BUNDLE_KEY_EVENT_ID, mController.getEventId());
+        } else if (mCurrentView == ViewType.HOME) {
+            Fragment f = getSupportFragmentManager().findFragmentById(R.id.main_pane);
+            if (f instanceof HomeMonthDayFragment) {
+                outState.putBundle(BUNDLE_KEY_HOME_STATE,
+                        ((HomeMonthDayFragment) f).saveHomeState());
+            }
         } else if (mCurrentView == ViewType.AGENDA) {
             FragmentManager fm = getSupportFragmentManager();
             Fragment f = fm.findFragmentById(R.id.main_pane);
@@ -956,7 +967,11 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
         final int itemId = item.getItemId();
-        if (itemId == R.id.day_menu_item) {
+        if (itemId == R.id.home_menu_item) {
+            if (mCurrentView != ViewType.HOME) {
+                mController.sendEvent(this, EventType.GO_TO, null, null, -1, ViewType.HOME);
+            }
+        } else if (itemId == R.id.day_menu_item) {
             if (mCurrentView != ViewType.DAY) {
                 mController.sendEvent(this, EventType.GO_TO, null, null, -1, ViewType.DAY);
             }
@@ -1078,6 +1093,13 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
                     mToolbar.setTitle(R.string.month_view);
                 }
                 break;
+            case ViewType.HOME:
+                mNavigationView.getMenu().findItem(R.id.home_menu_item).setChecked(true);
+                frag = HomeMonthDayFragment.newInstance(timeMillis, takePendingHomeState());
+                if (mIsTabletConfig) {
+                    mToolbar.setTitle(R.string.home_view_title);
+                }
+                break;
             case ViewType.WEEK:
             default:
                 mNavigationView.getMenu().findItem(R.id.week_menu_item).setChecked(true);
@@ -1155,6 +1177,12 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
             }
             ft.commit();
         }
+    }
+
+    private Bundle takePendingHomeState() {
+        Bundle state = mPendingHomeState;
+        mPendingHomeState = null;
+        return state;
     }
 
     private void refreshActionbarTitle(long timeMillis) {
@@ -1325,7 +1353,8 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
             if (mShowCalendarControls) {
                 int animationSize = (mOrientation == Configuration.ORIENTATION_LANDSCAPE) ?
                         mControlsAnimateWidth : mControlsAnimateHeight;
-                boolean noControlsView = event.viewType == ViewType.MONTH || event.viewType == ViewType.AGENDA;
+                boolean noControlsView = event.viewType == ViewType.MONTH
+                        || event.viewType == ViewType.AGENDA || event.viewType == ViewType.HOME;
                 if (mControlsMenu != null) {
                     mControlsMenu.setVisible(!noControlsView);
                     mControlsMenu.setEnabled(!noControlsView);
@@ -1404,7 +1433,8 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
                 int response = event.getResponse();
                 if ((mCurrentView == ViewType.AGENDA && mShowEventInfoFullScreenAgenda) ||
                         ((mCurrentView == ViewType.DAY || (mCurrentView == ViewType.WEEK) ||
-                                mCurrentView == ViewType.MONTH) && mShowEventInfoFullScreen)){
+                                mCurrentView == ViewType.MONTH || mCurrentView == ViewType.HOME)
+                                && mShowEventInfoFullScreen)){
                     // start event info as activity
                     Intent intent = new Intent(Intent.ACTION_VIEW);
                     Uri eventUri = ContentUris.withAppendedId(Events.CONTENT_URI, event.id);

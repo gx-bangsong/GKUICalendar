@@ -145,4 +145,12 @@
     <item msgid="1465164631761814300">"库拉索"</item>
     <item msgid="8972081011408691260">"南苏丹"</item>
   </string-array>
+    <string-array name="home_layout_entries">
+        <item>@string/home_layout_classic</item>
+        <item>@string/home_layout_month_day</item>
+    </string-array>
+    <string-array name="home_layout_values">
+        <item>classic</item>
+        <item>new</item>
+    </string-array>
 </resources>
