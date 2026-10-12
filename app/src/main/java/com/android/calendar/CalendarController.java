@@ -735,9 +735,7 @@ public class CalendarController {
         final int WEEK = 3;
         final int MONTH = 4;
         final int EDIT = 5;
-        // Month grid plus the selected day's schedule (see home/HomeMonthDayFragment).
-        final int HOME = 6;
-        final int MAX_VALUE = 6;
+        final int MAX_VALUE = 5;
     }
 
     public interface EventHandler {

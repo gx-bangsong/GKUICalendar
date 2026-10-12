@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2026 The Etar Calendar Authors
  */
-package com.android.calendar.home
+package com.android.calendar.monthagenda
 
 import android.content.Context
 import android.os.Handler
@@ -19,7 +19,7 @@ import java.util.concurrent.Executors
  * Event.loadEvents path (Instances query, visible calendars, declined filter).
  * Results are delivered on the main thread, and superseded requests are dropped.
  */
-class HomeDataLoader(context: Context) {
+class MonthAgendaLoader(context: Context) {
 
     /** Per-day markers for one month grid, keyed by Julian day. */
     class MonthData(
@@ -31,7 +31,7 @@ class HomeDataLoader(context: Context) {
 
     private val appContext = context.applicationContext
     private val executor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
-        Thread(runnable, "HomeDataLoader").apply { isDaemon = true }
+        Thread(runnable, "MonthAgendaLoader").apply { isDaemon = true }
     }
     private val mainHandler = Handler(Looper.getMainLooper())
     private val monthGate = RequestGate()
@@ -84,5 +84,4 @@ class HomeDataLoader(context: Context) {
         }
         return MonthData(firstJulian, markers.colors, markers.counts, lunar)
     }
-
 }

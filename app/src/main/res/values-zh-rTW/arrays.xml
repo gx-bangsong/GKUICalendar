@@ -145,12 +145,12 @@
     <item msgid="1465164631761814300">"庫拉索"</item>
     <item msgid="8972081011408691260">"南蘇丹"</item>
   </string-array>
-    <string-array name="home_layout_entries">
-        <item>@string/home_layout_classic</item>
-        <item>@string/home_layout_month_day</item>
+    <string-array name="month_layout_entries">
+        <item>@string/month_layout_classic</item>
+        <item>@string/month_layout_agenda</item>
     </string-array>
-    <string-array name="home_layout_values">
+    <string-array name="month_layout_values">
         <item>classic</item>
-        <item>new</item>
+        <item>agenda</item>
     </string-array>
 </resources>

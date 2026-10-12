@@ -15,7 +15,7 @@
     android:paddingBottom="8dp">
 
     <View
-        android:id="@+id/home_event_color"
+        android:id="@+id/agenda_event_color"
         android:layout_width="4dp"
         android:layout_height="40dp"
         android:layout_marginEnd="12dp" />
@@ -27,7 +27,7 @@
         android:orientation="vertical">
 
         <TextView
-            android:id="@+id/home_event_title"
+            android:id="@+id/agenda_event_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ellipsize="end"
@@ -36,7 +36,7 @@
             android:textColor="?attr/colorOnSurface" />
 
         <TextView
-            android:id="@+id/home_event_time"
+            android:id="@+id/agenda_event_time"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:maxLines="1"
@@ -45,7 +45,7 @@
             android:textColor="?attr/colorOnSurfaceVariant" />
 
         <TextView
-            android:id="@+id/home_event_location"
+            android:id="@+id/agenda_event_location"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:maxLines="1"

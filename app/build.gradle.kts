@@ -212,7 +212,7 @@ if (System.getenv("CI") != null) {
 	tasks.withType<Test>().configureEach {
 		filter.includeTestsMatching("com.android.calendar.lunar.*")
 		filter.includeTestsMatching("com.android.calendar.subscription.*")
-		filter.includeTestsMatching("com.android.calendar.home.*")
+		filter.includeTestsMatching("com.android.calendar.monthagenda.*")
 		// List every passing lunar test in the Actions log so the runs are
 		// auditable there directly.
 		testLogging.events(TestLogEvent.PASSED)

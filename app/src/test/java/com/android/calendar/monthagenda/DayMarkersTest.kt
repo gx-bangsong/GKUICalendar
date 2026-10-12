@@ -1,9 +1,9 @@
 /*
  * Copyright (C) 2026 The Etar Calendar Authors
  */
-package com.android.calendar.home
+package com.android.calendar.monthagenda
 
-import com.android.calendar.home.DayMarkers.Span
+import com.android.calendar.monthagenda.DayMarkers.Span
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

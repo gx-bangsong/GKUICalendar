@@ -2,10 +2,6 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <group android:checkableBehavior="single">
         <item
-            android:id="@+id/home_menu_item"
-            android:icon="@drawable/ic_baseline_calendar_today"
-            android:title="@string/home_view_title" />
-        <item
             android:id="@+id/day_menu_item"
             android:checked="true"
             android:icon="@drawable/outline_calendar_view_day"

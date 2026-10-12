@@ -82,7 +82,8 @@ import com.android.calendar.CalendarController.EventType;
 import com.android.calendar.CalendarController.ViewType;
 import com.android.calendar.agenda.AgendaFragment;
 import com.android.calendar.alerts.AlertService;
-import com.android.calendar.home.HomeMonthDayFragment;
+import com.android.calendar.monthagenda.MonthAgendaFragment;
+import com.android.calendar.monthagenda.MonthLayoutRules;
 import com.android.calendar.month.MonthByWeekFragment;
 import com.android.calendar.selectcalendars.SelectVisibleCalendarsFragment;
 import com.android.calendar.settings.GeneralPreferences;
@@ -118,7 +119,7 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
     private static final String BUNDLE_KEY_RESTORE_TIME = "key_restore_time";
     private static final String BUNDLE_KEY_EVENT_ID = "key_event_id";
     private static final String BUNDLE_KEY_RESTORE_VIEW = "key_restore_view";
-    private static final String BUNDLE_KEY_HOME_STATE = "key_home_state";
+    private static final String BUNDLE_KEY_MONTH_AGENDA_STATE = "key_month_agenda_state";
     private static final int HANDLER_KEY = 0;
     private static final int PERMISSIONS_REQUEST_WRITE_CALENDAR = 0;
     private static final int PERMISSIONS_REQUEST_POST_NOTIFICATIONS = 1;
@@ -155,8 +156,10 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
     private ContentResolver mContentResolver;
     private int mPreviousView;
     private int mCurrentView;
-    // Home-screen state restored after recreation, consumed by setMainPane once.
-    private Bundle mPendingHomeState;
+    // True while the month entry shows 月历＋日程 instead of the classic grid.
+    private boolean mMonthAgendaInUse = false;
+    // Month-agenda state restored after recreation or a layout change, consumed once.
+    private Bundle mPendingMonthAgendaState;
     private boolean mPaused = true;
     private boolean mUpdateOnResume = false;
     private boolean mHideControls = false;
@@ -286,10 +289,15 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
         long timeMillis = -1;
         int viewType = -1;
         final Intent intent = getIntent();
+        // Migrate the round-1 HOME preference and saved value once, before any view is chosen.
+        SharedPreferences layoutPrefs = GeneralPreferences.Companion.getSharedPreferences(this);
+        MonthLayoutRules.migrate(layoutPrefs, layoutPrefs.getInt(
+                GeneralPreferences.KEY_START_VIEW, GeneralPreferences.DEFAULT_START_VIEW));
         if (icicle != null) {
             timeMillis = icicle.getLong(BUNDLE_KEY_RESTORE_TIME);
-            viewType = icicle.getInt(BUNDLE_KEY_RESTORE_VIEW, -1);
-            mPendingHomeState = icicle.getBundle(BUNDLE_KEY_HOME_STATE);
+            viewType = MonthLayoutRules.normalizeViewType(
+                    icicle.getInt(BUNDLE_KEY_RESTORE_VIEW, -1));
+            mPendingMonthAgendaState = icicle.getBundle(BUNDLE_KEY_MONTH_AGENDA_STATE);
         } else {
             String action = intent.getAction();
             if (Intent.ACTION_VIEW.equals(action)) {
@@ -610,6 +618,17 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
         mController.registerFirstEventHandler(HANDLER_KEY, this);
         mOnSaveInstanceStateCalled = false;
 
+        // 月视图布局 may have changed in settings. Refresh the month entry and keep the date.
+        if (mCurrentView == ViewType.MONTH && mMonthAgendaInUse != isMonthAgendaLayout()) {
+            Bundle state = null;
+            Fragment f = getSupportFragmentManager().findFragmentById(R.id.main_pane);
+            if (f instanceof MonthAgendaFragment) {
+                state = ((MonthAgendaFragment) f).saveState();
+            }
+            mPendingMonthAgendaState = isMonthAgendaLayout() ? state : null;
+            setMainPane(null, R.id.main_pane, ViewType.MONTH, mController.getTime(), true);
+        }
+
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
             if (!Utils.canScheduleAlarms(this)) {
                 Intent intent = new Intent();
@@ -705,11 +724,11 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
         outState.putInt(BUNDLE_KEY_RESTORE_VIEW, mCurrentView);
         if (mCurrentView == ViewType.EDIT) {
             outState.putLong(BUNDLE_KEY_EVENT_ID, mController.getEventId());
-        } else if (mCurrentView == ViewType.HOME) {
+        } else if (mCurrentView == ViewType.MONTH && mMonthAgendaInUse) {
             Fragment f = getSupportFragmentManager().findFragmentById(R.id.main_pane);
-            if (f instanceof HomeMonthDayFragment) {
-                outState.putBundle(BUNDLE_KEY_HOME_STATE,
-                        ((HomeMonthDayFragment) f).saveHomeState());
+            if (f instanceof MonthAgendaFragment) {
+                outState.putBundle(BUNDLE_KEY_MONTH_AGENDA_STATE,
+                        ((MonthAgendaFragment) f).saveState());
             }
         } else if (mCurrentView == ViewType.AGENDA) {
             FragmentManager fm = getSupportFragmentManager();
@@ -967,11 +986,7 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
         final int itemId = item.getItemId();
-        if (itemId == R.id.home_menu_item) {
-            if (mCurrentView != ViewType.HOME) {
-                mController.sendEvent(this, EventType.GO_TO, null, null, -1, ViewType.HOME);
-            }
-        } else if (itemId == R.id.day_menu_item) {
+        if (itemId == R.id.day_menu_item) {
             if (mCurrentView != ViewType.DAY) {
                 mController.sendEvent(this, EventType.GO_TO, null, null, -1, ViewType.DAY);
             }
@@ -1039,6 +1054,8 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
         if (mOnSaveInstanceStateCalled) {
             return;
         }
+        // Round-1 HOME ids are shown as the month entry.
+        viewType = MonthLayoutRules.normalizeViewType(viewType);
         if (!force && mCurrentView == viewType) {
             return;
         }
@@ -1068,6 +1085,7 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
         // Create new fragment
         Fragment frag = null;
         Fragment secFrag = null;
+        mMonthAgendaInUse = false;
         switch (viewType) {
             case ViewType.AGENDA:
                 mNavigationView.getMenu().findItem(R.id.agenda_menu_item).setChecked(true);
@@ -1085,19 +1103,18 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
                 break;
             case ViewType.MONTH:
                 mNavigationView.getMenu().findItem(R.id.month_menu_item).setChecked(true);
-                frag = new MonthByWeekFragment(timeMillis, false);
-                if (mShowAgendaWithMonth) {
-                    secFrag = new AgendaFragment(timeMillis, false);
-                }
-                if (mIsTabletConfig) {
-                    mToolbar.setTitle(R.string.month_view);
-                }
-                break;
-            case ViewType.HOME:
-                mNavigationView.getMenu().findItem(R.id.home_menu_item).setChecked(true);
-                frag = HomeMonthDayFragment.newInstance(timeMillis, takePendingHomeState());
-                if (mIsTabletConfig) {
-                    mToolbar.setTitle(R.string.home_view_title);
+                if (isMonthAgendaLayout()) {
+                    // 月历＋日程: the same month entry with the day list under the grid.
+                    mMonthAgendaInUse = true;
+                    frag = MonthAgendaFragment.newInstance(timeMillis, takePendingMonthAgendaState());
+                } else {
+                    frag = new MonthByWeekFragment(timeMillis, false);
+                    if (mShowAgendaWithMonth) {
+                        secFrag = new AgendaFragment(timeMillis, false);
+                    }
+                    if (mIsTabletConfig) {
+                        mToolbar.setTitle(R.string.month_view);
+                    }
                 }
                 break;
             case ViewType.WEEK:
@@ -1179,10 +1196,21 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
         }
     }
 
-    private Bundle takePendingHomeState() {
-        Bundle state = mPendingHomeState;
-        mPendingHomeState = null;
+    private boolean isMonthAgendaLayout() {
+        return MonthLayoutRules.isAgendaLayout(GeneralPreferences.Companion
+                .getSharedPreferences(this)
+                .getString(MonthLayoutRules.KEY_MONTH_LAYOUT, MonthLayoutRules.LAYOUT_CLASSIC));
+    }
+
+    private Bundle takePendingMonthAgendaState() {
+        Bundle state = mPendingMonthAgendaState;
+        mPendingMonthAgendaState = null;
         return state;
+    }
+
+    /** Called by the month-agenda layout when the browsing month or selected date changes. */
+    public void onMonthAgendaTitleChanged(long timeMillis) {
+        refreshActionbarTitle(timeMillis);
     }
 
     private void refreshActionbarTitle(long timeMillis) {
@@ -1353,8 +1381,7 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
             if (mShowCalendarControls) {
                 int animationSize = (mOrientation == Configuration.ORIENTATION_LANDSCAPE) ?
                         mControlsAnimateWidth : mControlsAnimateHeight;
-                boolean noControlsView = event.viewType == ViewType.MONTH
-                        || event.viewType == ViewType.AGENDA || event.viewType == ViewType.HOME;
+                boolean noControlsView = event.viewType == ViewType.MONTH || event.viewType == ViewType.AGENDA;
                 if (mControlsMenu != null) {
                     mControlsMenu.setVisible(!noControlsView);
                     mControlsMenu.setEnabled(!noControlsView);
@@ -1433,8 +1460,7 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
                 int response = event.getResponse();
                 if ((mCurrentView == ViewType.AGENDA && mShowEventInfoFullScreenAgenda) ||
                         ((mCurrentView == ViewType.DAY || (mCurrentView == ViewType.WEEK) ||
-                                mCurrentView == ViewType.MONTH || mCurrentView == ViewType.HOME)
-                                && mShowEventInfoFullScreen)){
+                                mCurrentView == ViewType.MONTH) && mShowEventInfoFullScreen)){
                     // start event info as activity
                     Intent intent = new Intent(Intent.ACTION_VIEW);
                     Uri eventUri = ContentUris.withAppendedId(Events.CONTENT_URI, event.id);

@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2026 The Etar Calendar Authors
  */
-package com.android.calendar.home
+package com.android.calendar.monthagenda
 
 /**
  * Turns instance spans into per-day counts and colors for the month grid.
