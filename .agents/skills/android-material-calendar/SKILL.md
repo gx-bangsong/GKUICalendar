@@ -1,6 +1,6 @@
 ---
 name: android-material-calendar
-description: Use for GKUICalendar View/XML UI work on the month view, the 月历＋日程 schedule area, the drag handle, the Toolbar month title, day cells, subscription cards, Material 1.x theming, AMOLED colours, and TalkBack/large-font checks. Read docs/design/month-view-contract.md before editing these areas.
+description: 为GKUICalendar的View/XML界面应用Android Material 3与Expressive设计原则，处理月视图、手柄、主题、动效、无障碍及自适应布局。
 ---
 
 # android-material-calendar
@@ -9,31 +9,39 @@ Project skill for the GKUICalendar Android app (View and XML only, no Compose).
 
 ## Read first, every UI task
 
-1. `docs/design/month-view-contract.md` — the project constraints for navigation, layout, the handle, the Toolbar, and accessibility.
-2. `references/official-sources.md` — links and summaries of the official rules, plus items still to verify.
+This platform does not guarantee that a skill is loaded automatically. Having this file in the
+repository is not proof that it was used. At the start of every UI task, read explicitly:
 
-Report the paths you read in the task summary. If the platform does not load this skill automatically, read both files explicitly at the start of every UI task.
+1. `.agents/skills/android-material-calendar/SKILL.md` (this file)
+2. `docs/design/month-view-contract.md` — the project constraints for navigation, layout, the handle, the Toolbar, and accessibility.
+3. `.agents/skills/android-material-calendar/references/official-sources.md` — links and summaries of the official rules, plus items still to verify.
+
+State the paths you read in the task summary.
 
 ## Hard rules
 
 - View and XML only. No Compose, no new UI framework.
-- Do not upgrade Material Components, do not raise targetSdk, do not add Expressive, do not add native libraries.
+- Do not upgrade Material Components, do not raise targetSdk, do not add native libraries.
+- Not upgrading Material and not adopting Expressive are limits of the current round's scope. They are not permanent prohibitions. A later round may change them with an explicit decision.
 - Month navigation has exactly one 月 entry (日、周、月、议程). The 月视图布局 setting chooses 经典月历 or 月历＋日程 inside MONTH. It is never a separate nav entry or a new home mode.
 - Keep external values stable: DAY/WEEK/MONTH/AGENDA are not renumbered. Legacy HOME(6) maps to MONTH plus 月历＋日程.
 - The Toolbar shows the browsing year-month and exactly one 今天. No in-page month header and no fixed caption.
 - The handle never opens a modal or scrim, never covers the Toolbar, and never switches views.
-- Store the user's expand choice and the automatic collapse state separately. Recompute the automatic state on every layout pass.
+- Store the user's expand choice and the automatic downgrade state separately. Recompute the automatic state on every layout pass.
 - Tap on a date only selects it. Event creation goes through the FAB or an explicit button.
 - Events come from `Event.loadEvents`/`EventLoader` on a background thread. Discard stale results.
 - Subscription daily content (birthdays, shifts, rest days) appears as cards in the schedule area. It does not open the subscription management page.
 - Classic view, mini-month clicks, notifications, widgets, and external Intents must keep their current behaviour.
+- minSdk stays at its current value. Do not call APIs newer than minSdk without a version guard.
 
 ## Material guidance vs project choice
 
-Material guidance is in `references/official-sources.md`. Project decisions (for example the 560dp automatic collapse threshold, the 24dp edge exclusion, and the 64dp swipe distance) are project choices, not Material mandates. Keep them in `docs/design/month-view-contract.md` and label them as such.
+Material guidance is in `references/official-sources.md`. Project decisions (for example the
+list minimum height, the edge exclusion, the swipe distance, and the degradation order) are
+project choices, not Material mandates. They are recorded in `docs/design/month-view-contract.md`.
 
 ## Verification
 
 - Compile status is established only by CI results. Do not report static reading or syntax checks as compile success.
-- Pure logic goes into JVM unit tests (for example `PanelMath`, `MonthLayoutRules`).
-- Device checks (phone and tablet, portrait and landscape, large font, TalkBack, AMOLED) are reported separately from static and CI results.
+- Pure logic goes into JVM unit tests under the packages that CI runs (see `app/build.gradle.kts`).
+- Device checks (phone and tablet, portrait and landscape, font 1.0/1.3/2.0, TalkBack, AMOLED, API 23–28) are reported separately from static and CI results.

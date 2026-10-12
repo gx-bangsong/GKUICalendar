@@ -1,6 +1,6 @@
 # Month view contract (GKUICalendar)
 
-Status: project constraints for the 月历＋日程 work. These are project decisions. They are not claimed as Material mandates. Where a rule comes from official guidance, `references/official-sources.md` says so.
+Status: project constraints for the 月历＋日程 work. These are project decisions. They are not claimed as Material mandates. Where a rule comes from official guidance, `.agents/skills/android-material-calendar/references/official-sources.md` says so.
 
 ## 1. Navigation
 
@@ -14,12 +14,12 @@ Status: project constraints for the 月历＋日程 work. These are project deci
 - 月历＋日程 is a layout inside MONTH. It is not a separate view or home mode.
 - Layout choice and expand state are separate states. Expanding or collapsing never changes the layout value.
 - Changing the layout while in 月 refreshes the layout and keeps the browse month, the selected date, and the list position.
-- The default for new users is unchanged in this round. The Chinese new-user default is a later, separate change.
+- The default for new users is unchanged. The Chinese new-user default is a separate, later change.
 
 ## 3. Legacy HOME values
 
 - Legacy HOME(6), in saved state and in the local `preferences_home_layout` value `new`, maps to MONTH plus 月历＋日程.
-- A legacy value must never fall back to week, crash, or lose an explicit choice.
+- A legacy value never falls back to week, never crashes, and never loses an explicit choice.
 - The migration reads the old key and does not clear other preferences.
 - Notifications, widgets, and external Intents are not rewritten. Their target events are kept.
 
@@ -32,8 +32,8 @@ Status: project constraints for the 月历＋日程 work. These are project deci
 ## 5. Month swipe
 
 - Left and right swipes on the month grid change the month.
-- A swipe needs horizontal dominance over vertical movement and a touch slop. It also needs at least 64dp of travel (project choice).
-- Touches within 24dp of either screen edge are ignored so the drawer edge gesture keeps working (project choice).
+- A swipe needs horizontal dominance over vertical movement, a touch slop, and at least 64dp of travel (project choice).
+- Touches within 24dp of either edge of the window are ignored, so the drawer edge gesture keeps working (project choice). The edges are the window's, not the screen's, so split-screen is handled.
 - A second pointer cancels the swipe.
 - Cell taps still select the date.
 
@@ -42,29 +42,31 @@ Status: project constraints for the 月历＋日程 work. These are project deci
 - The selected-date title sits in the schedule area and names the day the list belongs to.
 - The handle is a small rounded bar at the top centre of the schedule area. Its touch target is at least 48dp.
 - Drag up collapses the grid to the selected week. Drag down expands it. On release the state snaps by position (halfway) or by fling velocity (800 px/s).
-- A tap on the handle toggles the state.
-- No long-press is required.
+- A tap on the handle toggles the state. No long-press is required.
+- A press during an animation takes over at the current visual position. An animation that was cancelled cannot jump to its old target.
 - No modal, no scrim, no covering of the Toolbar, and no jump to agenda, week, or day.
 - The collapsed state keeps the handle and the selected-date title usable.
 - Vertical list scrolling never collapses the month.
-- Touch handling uses touch slop, and it handles pointer cancel and multi-touch.
+- Touch handling uses touch slop, handles pointer cancel and multi-touch, and converts coordinates without `MotionEvent.getRawX(int)`, which needs API 29 (minSdk is 23).
 - Keyboard: DPAD up collapses, DPAD down expands, and Enter or Space toggles.
-- Accessibility: the handle has a state description (English: "Month shown" / "Month hidden"; Chinese locales use their own translations), a named toggle action, and a click equivalent. The grid has previous-month and next-month accessibility actions.
+- Accessibility: the handle has a state description (English "Month shown" / "Month hidden"; Chinese locales use their own translations), a named toggle action, and a click equivalent. The grid has previous-month and next-month accessibility actions.
 
-### Why BottomSheetBehavior is not used (round 2 evaluation)
+### Why the handle is a custom view (round 2 evaluation)
 
-- `BottomSheetBehavior` treats the whole sheet as one child of a CoordinatorLayout. Its collapsed height is a fixed peek height in pixels. This project's collapsed height is "one week row plus the title", which changes with row count, font scale, and the selected week.
-- The Behavior owns nested scrolling and drag for the whole sheet. That would compete with the month swipe handled by the grid and with the day list's own scroll.
-- `BottomSheetDragHandleView` is tied to the sheet. It does not work without the Behavior.
-- The wide (tablet and landscape) layout places the grid and list side by side. A bottom sheet would copy the phone shape there, which the product does not want.
+- `BottomSheetBehavior` supports dynamic peek heights. The collapsed height could therefore be "one week row plus the title". That is not the reason it is not used.
+- The reasons are structural. The Behavior owns the drag and nested scroll of the whole sheet. That would compete with the month swipe on the grid and with the day list's own scroll. The wide (tablet and landscape) layout places the grid and list side by side, which the sheet does not model.
+- `BottomSheetDragHandleView` is designed for the Behavior and is not used.
 
-So the handle is a custom View linked to a plain layout, with its drag math in `PanelMath` (pure Kotlin, unit tested). This is a project decision. It needs device confirmation.
+This is a project decision made in this round. It has not been checked on device. Revisit it if device results show the custom handle fails TalkBack, keyboard, or smoothness checks.
 
-## 7. Automatic collapse
+## 7. Automatic collapse (measured, not a fixed threshold)
 
-- On a short body (below 560dp, project choice) the grid is auto-collapsed.
-- The user's expand choice is stored separately and is never overwritten by the automatic state.
-- The automatic state is recomputed on every layout pass (rotation, split screen, font change). An expired auto-collapse is never reused.
+- The automatic state is a space downgrade. It is not a user choice and it is not a Material rule.
+- The check uses the real numbers for this window: the measured weekday row, the 48dp handle, the measured day title, the measured row height at the current font scale, and six rows. The schedule list keeps at least 120dp (experimental parameter).
+- If the expanded grid does not fit, lunar labels are hidden first, because they are secondary text. If it still does not fit, the grid is auto-collapsed.
+- The user's choice and the automatic state are stored separately. An explicit "expanded" stays stored during a downgrade and applies again once there is room. An explicit "collapsed" always holds.
+- The automatic state is recomputed on every layout pass (rotation, split-screen, size change). An expired downgrade is never reused.
+- A normal window with room for six rows and the list minimum is not collapsed.
 
 ## 8. Phone and tablet
 
@@ -73,19 +75,27 @@ So the handle is a custom View linked to a plain layout, with its drag math in `
 
 ## 9. Cells, markers, and cards
 
-- Each day cell has three fixed slots: the day number, the lunar label (when lunar display is on), and a dot row. A lunar label never covers the day number, and dots never cover the lunar label.
-- Text uses auto-size. Row height never drops below the font-scaled minimum, so large text grows the rows instead of clipping.
-- Multiple events show as dots in the dot row.
+- Each day cell has three slots from top to bottom: the day number (a square of at least 28dp, larger at large font), the lunar label (only when shown), and a dot row (5dp, after a 2dp margin).
+- Every slot is sized from the same formulas that the grid uses for the row height. Slots never overlap. The day number and the dots do not shrink.
+- Large font grows the row, up to the room the layout allows. When the room is not enough, the lunar slot is hidden before the grid is collapsed. The schedule list is never squeezed below its minimum.
+- The lunar label may shrink its width (one line) to fit a cell. That is a width fallback, not evidence of large-font support.
+- Multiple events show as dots in the dot row, up to three.
 - Enabled subscription daily content (birthdays, work shifts, rest days) appears as cards in the schedule area. Every matching birthday and rest day is shown. The cards do not open the subscription management page.
+- When the user returns from another screen (settings, subscriptions, birthdays, shifts), the lunar labels, the month markers, and the day list are reloaded. The month, the selection, and the list position are kept.
 
-## 10. Colour and AMOLED
+## 10. Lifecycle
+
+- The loader is created with the view and shut down when the view is destroyed. Results from a destroyed view are discarded.
+- A new view reloads normally.
+- View references are cleared when the view is destroyed. Touch and layout listeners and animations are removed.
+
+## 11. Colour and AMOLED
 
 - Use theme roles only (`colorSurface`, `colorSurfaceVariant`, `colorOnSurface`, and similar).
 - Pure-black themes set `colorSurfaceContainer` to the background. Cards therefore use `colorSurfaceVariant` so they keep a visible level above the background.
 - The background stays consistent across the grid, the schedule area, and the list.
 
-## 11. Out of scope for this contract
+## 12. Round scope limits (not permanent)
 
-- Todo data, statutory holidays, and the legacy dialog refactor.
-- Classic view behaviour, mini-month clicks, and external Intents. They must not change.
-- Compose, Material upgrades, Expressive, and native libraries.
+- Not in this round: Material upgrade, Expressive, Compose, native libraries, targetSdk changes, holiday data, todo data, and the legacy dialog refactor.
+- Classic view behaviour, mini-month clicks, and external Intents must not change.
