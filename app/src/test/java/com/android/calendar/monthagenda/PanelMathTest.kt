@@ -38,8 +38,11 @@ class PanelMathTest {
     }
 
     @Test
-    fun userChoiceOverridesAutoRule() {
-        assertTrue(PanelMath.isExpanded(true, autoCollapsed = true))
+    fun userChoiceIsKeptButAutoDowngradeWins() {
+        // An explicit "expanded" survives a small window, but the downgrade is applied for as
+        // long as the window is small. An explicit "collapsed" always holds.
+        assertFalse(PanelMath.isExpanded(true, autoCollapsed = true))
+        assertTrue(PanelMath.isExpanded(true, autoCollapsed = false))
         assertFalse(PanelMath.isExpanded(false, autoCollapsed = false))
     }
 
@@ -50,13 +53,65 @@ class PanelMathTest {
     }
 
     @Test
-    fun autoRuleIsRecomputedFromTheCurrentHeight() {
-        // An expired auto-collapse must not stick: the same user-less state becomes expanded
-        // again once the window is tall enough.
-        val threshold = 560
-        assertTrue(PanelMath.isAutoCollapsed(400, threshold))
-        assertFalse(PanelMath.isAutoCollapsed(700, threshold))
-        assertTrue(PanelMath.isExpanded(null, PanelMath.isAutoCollapsed(700, threshold)))
+    fun autoCollapseIsRecomputedOnResizeAndNeverReused() {
+        // Chrome 124, list minimum 120, six rows: the expanded grid needs 6 * row + 244 px.
+        val chrome = 124
+        val list = 120
+        val lunarRow = 56
+        val plainRow = 50
+        val tall = PanelMath.planLayout(800, chrome, list, 6, lunarRow, plainRow, lunarWanted = true)
+        assertEquals(PanelMath.LayoutPlan(lunarShown = true, autoCollapsed = false), tall)
+
+        val medium = PanelMath.planLayout(560, chrome, list, 6, lunarRow, plainRow, lunarWanted = true)
+        assertEquals(PanelMath.LayoutPlan(lunarShown = false, autoCollapsed = false), medium)
+
+        val short = PanelMath.planLayout(400, chrome, list, 6, lunarRow, plainRow, lunarWanted = true)
+        assertTrue(short.autoCollapsed)
+        assertFalse(PanelMath.isExpanded(null, short.autoCollapsed))
+
+        // The window grows again: the same state, recomputed, expands. The old downgrade is not reused.
+        val back = PanelMath.planLayout(800, chrome, list, 6, lunarRow, plainRow, lunarWanted = true)
+        assertTrue(PanelMath.isExpanded(null, back.autoCollapsed))
+    }
+
+    @Test
+    fun expandedGridNeverSqueezesTheListBelowItsMinimum() {
+        // Property over body heights: whenever the grid is not auto-collapsed, six rows at the
+        // chosen row height plus the chrome leave at least the list minimum.
+        val chrome = 124
+        val list = 120
+        for (body in 200..1200 step 5) {
+            for (lunarWanted in listOf(true, false)) {
+                val plan = PanelMath.planLayout(body, chrome, list, 6, 79, 50, lunarWanted)
+                val rowUsed = if (plan.lunarShown) 79 else 50
+                if (!plan.autoCollapsed) {
+                    assertTrue("body=$body", 6 * rowUsed + chrome + list <= body)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun largeFontHidesLunarBeforeCollapsing() {
+        // Lunar row too tall for the window, plain row fits: lunar goes, the grid stays expanded.
+        val plan = PanelMath.planLayout(640, 124, 120, 6, lunarRow = 90, plainRow = 50, lunarWanted = true)
+        assertEquals(PanelMath.LayoutPlan(lunarShown = false, autoCollapsed = false), plan)
+    }
+
+    @Test
+    fun maxProgressBlocksExpansionWhileAutoCollapsed() {
+        assertEquals(0f, PanelMath.maxProgress(autoCollapsed = true), eps)
+        assertEquals(1f, PanelMath.maxProgress(autoCollapsed = false), eps)
+    }
+
+    @Test
+    fun rawCoordinateIsTheScreenPositionOfEachPointer() {
+        // Primary pointer: local 10 at raw 110, so the view sits 100 px from the screen origin.
+        assertEquals(110f, PanelMath.rawCoordinate(10f, rawPrimary = 110f, localPrimary = 10f), eps)
+        // A second pointer in the same event shares that offset.
+        assertEquals(150f, PanelMath.rawCoordinate(50f, rawPrimary = 110f, localPrimary = 10f), eps)
+        // The view has moved, so local values change. The raw value of the same finger does not.
+        assertEquals(130f, PanelMath.rawCoordinate(-10f, rawPrimary = 110f, localPrimary = -30f), eps)
     }
 
     @Test

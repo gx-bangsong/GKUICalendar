@@ -40,16 +40,52 @@ object PanelMath {
     }
 
     /**
-     * Effective expanded state. A choice the user made stays in effect. Without one,
-     * the window-size rule decides, and that rule is recomputed on every layout pass.
+     * Expanded state from the user's choice and the automatic downgrade. An explicit
+     * "collapsed" always wins. An automatic downgrade also wins over an explicit "expanded",
+     * but the choice stays stored, so the grid expands again once there is room.
      */
     @JvmStatic
     fun isExpanded(userExpanded: Boolean?, autoCollapsed: Boolean): Boolean =
-        userExpanded ?: !autoCollapsed
+        userExpanded != false && !autoCollapsed
 
-    /** Auto rule: a body shorter than the threshold starts collapsed. */
+    /** Largest progress the layout can show: 0 while the grid is auto-collapsed for lack of room. */
     @JvmStatic
-    fun isAutoCollapsed(bodyHeightPx: Int, thresholdPx: Int): Boolean = bodyHeightPx < thresholdPx
+    fun maxProgress(autoCollapsed: Boolean): Float = if (autoCollapsed) 0f else 1f
+
+    /**
+     * Screen coordinate of pointer N, derived from its view-local coordinate and the same
+     * event's primary raw/local pair. The offset between raw and local space is shared by
+     * all pointers of one event, so this works below API 29, where MotionEvent.getRawX(int)
+     * does not exist. The result stays in screen space, so moving the handle does not feed back.
+     */
+    @JvmStatic
+    fun rawCoordinate(localPointer: Float, rawPrimary: Float, localPrimary: Float): Float =
+        localPointer + (rawPrimary - localPrimary)
+
+    /** Result of [planLayout]. */
+    data class LayoutPlan(val lunarShown: Boolean, val autoCollapsed: Boolean)
+
+    /**
+     * Degradation order for the narrow layout. The expanded grid (all [rows] rows) must leave
+     * [listMinPx] for the schedule list below the fixed chrome. Lunar labels are hidden first,
+     * because they are secondary text. If the grid still does not fit, it is auto-collapsed.
+     * This is a space downgrade, not a user choice.
+     */
+    @JvmStatic
+    fun planLayout(
+        bodyPx: Int,
+        chromePx: Int,
+        listMinPx: Int,
+        rows: Int,
+        lunarRowPx: Int,
+        plainRowPx: Int,
+        lunarWanted: Boolean
+    ): LayoutPlan {
+        val room = bodyPx - chromePx - listMinPx
+        if (lunarWanted && rows * lunarRowPx <= room) return LayoutPlan(lunarShown = true, autoCollapsed = false)
+        if (rows * plainRowPx <= room) return LayoutPlan(lunarShown = false, autoCollapsed = false)
+        return LayoutPlan(lunarShown = false, autoCollapsed = true)
+    }
 
     /** Height of the grid viewport at [progress]: one row when collapsed, all rows when expanded. */
     @JvmStatic

@@ -22,6 +22,8 @@ import android.view.ViewGroup
 import android.view.animation.PathInterpolator
 import android.widget.LinearLayout
 import android.widget.TextView
+import kotlin.properties.ReadWriteProperty
+import kotlin.reflect.KProperty
 import androidx.core.view.ViewCompat
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.GridLayoutManager
@@ -31,9 +33,10 @@ import com.android.calendar.AllInOneActivity
 import com.android.calendar.CalendarController
 import com.android.calendar.CalendarController.EventType
 import com.android.calendar.Event
+import com.android.calendar.lunar.LunarCache
 import com.android.calendar.Utils
 import com.android.calendar.lunar.LunarMode
-import com.android.calendar.month.MonthDayCellView
+import com.android.calendar.month.CellSlotMath
 import com.android.calendar.month.MonthGridAdapter
 import com.google.android.material.color.MaterialColors
 import java.text.SimpleDateFormat
@@ -62,7 +65,7 @@ import ws.xsoh.etar.R
 class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
 
     private lateinit var controller: CalendarController
-    private lateinit var loader: MonthAgendaLoader
+    private var loader: MonthAgendaLoader? = null
     private lateinit var zone: TimeZone
     private var firstDayOfWeek = Calendar.SUNDAY
 
@@ -91,20 +94,34 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
     // 0 = collapsed (one row, the selected week), 1 = expanded (all rows).
     private var progress = 1f
     private var expandAnimator: ValueAnimator? = null
+    private val animationGate = RequestGate()
 
-    private lateinit var body: LinearLayout
-    private lateinit var gridColumn: LinearLayout
-    private lateinit var dayColumn: LinearLayout
-    private lateinit var gridClip: View
-    private lateinit var handle: View
-    private lateinit var dayTitle: TextView
-    private lateinit var weekdayRow: LinearLayout
-    private lateinit var gridView: RecyclerView
-    private lateinit var listView: RecyclerView
-    private lateinit var emptyView: TextView
-    private lateinit var gridAdapter: MonthGridAdapter
-    private lateinit var listAdapter: MonthAgendaAdapter
+    // Views are held through viewRef(). onDestroyView clears every one of them, so the fragment
+    // never keeps a destroyed view, and an access while no view is attached fails loudly.
+    private val viewRefs = ArrayList<ViewRef<*>>()
+    private var viewBound = false
+    private var viewGeneration = 0
+    private var contentStale = false
+    private var lunarShown = false
+
+    private var body: LinearLayout by viewRef()
+    private var gridColumn: LinearLayout by viewRef()
+    private var dayColumn: LinearLayout by viewRef()
+    private var gridClip: View by viewRef()
+    private var handle: View by viewRef()
+    private var dayTitle: TextView by viewRef()
+    private var weekdayRow: LinearLayout by viewRef()
+    private var gridView: RecyclerView by viewRef()
+    private var listView: RecyclerView by viewRef()
+    private var emptyView: TextView by viewRef()
+    private var gridAdapter: MonthGridAdapter by viewRef()
+    private var listAdapter: MonthAgendaAdapter by viewRef()
     private var touchSlopPx = 0
+    private val layoutListener = View.OnLayoutChangeListener { _, left, top, right, bottom, _, _, _, _ ->
+        val width = right - left
+        val height = bottom - top
+        if (width != lastWidth || height != lastHeight) applyAdaptiveLayout(width, height)
+    }
 
     // Handle gesture state. Coordinates are raw screen values, so moving the handle does not feed back.
     private var handleActive = false
@@ -122,7 +139,6 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
         controller = CalendarController.getInstance(context)
         zone = TimeZone.getTimeZone(Utils.getTimeZone(context, null))
         firstDayOfWeek = Utils.getFirstDayOfWeekAsCalendar(context)
-        loader = MonthAgendaLoader(context)
         lunarOn = Utils.getLunarMode(context) != LunarMode.OFF
 
         val args = requireArguments()
@@ -159,6 +175,8 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        viewGeneration++
+        loader = MonthAgendaLoader(requireContext())
         body = view.findViewById(R.id.agenda_body)
         gridColumn = view.findViewById(R.id.agenda_grid_column)
         dayColumn = view.findViewById(R.id.agenda_day_column)
@@ -170,6 +188,7 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
         listView = view.findViewById(R.id.agenda_list)
         emptyView = view.findViewById(R.id.agenda_empty)
         touchSlopPx = ViewConfiguration.get(requireContext()).scaledTouchSlop
+        viewBound = true
 
         gridAdapter = MonthGridAdapter { julian -> applySelection(julian, true) }
         gridView.layoutManager = GridLayoutManager(requireContext(), 7)
@@ -197,41 +216,67 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
 
         setUpHandle()
         buildWeekdayHeader()
-        body.addOnLayoutChangeListener { _, left, top, right, bottom, _, _, _, _ ->
-            val width = right - left
-            val height = bottom - top
-            if (width != lastWidth || height != lastHeight) {
-                applyAdaptiveLayout(width, height)
-            }
-        }
+        body.addOnLayoutChangeListener(layoutListener)
         refreshMonth(reload = true)
         loadDay()
     }
 
     override fun onResume() {
         super.onResume()
-        // The lunar setting can change in Settings while this view is away.
+        // Only a return from another screen triggers a reload (the first resume after the view was
+        // created is already loaded). Nothing is rebuilt: the month, the selection and the list
+        // position stay as they are, and only data that can change is read again.
+        if (!isViewReady() || !contentStale) return
+        contentStale = false
+        LunarCache.evictAll()
         val lunarNow = Utils.getLunarMode(requireContext()) != LunarMode.OFF
-        if (lunarNow != lunarOn && isViewReady()) {
+        if (lunarNow != lunarOn) {
             lunarOn = lunarNow
-            lastWidth = -1
-            lastHeight = -1
-            applyAdaptiveLayout(body.width, body.height)
+            relayout()
         }
+        loadMonth()
+        pendingListPosition = (listView.layoutManager as? LinearLayoutManager)
+            ?.findFirstVisibleItemPosition()?.coerceAtLeast(0) ?: 0
+        loadDay(keepVisible = true)
     }
 
     override fun onPause() {
         // Finish an expand or collapse that is still running, so the saved state matches the screen.
         expandAnimator?.end()
+        contentStale = true
         super.onPause()
     }
 
-    override fun onDestroy() {
-        expandAnimator?.cancel()
-        expandAnimator = null
+    override fun onDestroyView() {
+        cancelExpandAnimation()
         handleVelocity?.recycle()
         handleVelocity = null
-        if (::loader.isInitialized) loader.shutdown()
+        handleActive = false
+        handleDragging = false
+        monthSwipe.reset()
+        // Results still in flight belong to this view. Bumping the generation drops them, and
+        // shutting the loader down stops its worker and pending deliveries.
+        viewGeneration++
+        loader?.shutdown()
+        loader = null
+        if (viewBound) {
+            gridView.removeOnItemTouchListener(monthSwipe)
+            gridView.adapter = null
+            listView.adapter = null
+            body.removeOnLayoutChangeListener(layoutListener)
+            handle.setOnTouchListener(null)
+            handle.setOnClickListener(null)
+            handle.setOnKeyListener(null)
+        }
+        viewBound = false
+        viewRefs.forEach { it.clear() }
+        super.onDestroyView()
+    }
+
+    override fun onDestroy() {
+        cancelExpandAnimation()
+        handleVelocity?.recycle()
+        handleVelocity = null
         super.onDestroy()
     }
 
@@ -273,7 +318,7 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
         )
         val position = if (pendingListPosition >= 0) {
             pendingListPosition
-        } else if (::listView.isInitialized) {
+        } else if (isViewReady()) {
             (listView.layoutManager as? LinearLayoutManager)?.findFirstVisibleItemPosition() ?: 0
         } else {
             0
@@ -282,7 +327,7 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
         return bundle
     }
 
-    private fun isViewReady(): Boolean = isAdded && view != null && ::gridView.isInitialized
+    private fun isViewReady(): Boolean = isAdded && view != null && viewBound
 
     /** Selects [julian]; moves the displayed month when needed. */
     private fun applySelection(julian: Int, notifyController: Boolean) {
@@ -336,22 +381,27 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
     private fun loadMonth() {
         prepareMonth()
         val first = monthFirstCell
-        loader.loadMonth(first, rowCount * 7) { data ->
-            if (isViewReady() && data.firstJulian == monthFirstCell) {
+        val generation = viewGeneration
+        loader?.loadMonth(first, rowCount * 7) { data ->
+            if (generation == viewGeneration && isViewReady() && data.firstJulian == monthFirstCell) {
                 monthData = data
                 renderGrid()
             }
         }
     }
 
-    private fun loadDay() {
+    /** Loads the schedule of the selected day. [keepVisible] keeps the current cards until the new ones arrive. */
+    private fun loadDay(keepVisible: Boolean = false) {
         if (!isViewReady()) return
         val julian = selectedJulian
+        val generation = viewGeneration
         dayTitle.text = dayTitleText(julian)
-        listAdapter.submit(emptyList())
-        emptyView.visibility = View.GONE
-        loader.loadDay(julian) { items ->
-            if (isViewReady() && julian == selectedJulian) {
+        if (!keepVisible) {
+            listAdapter.submit(emptyList())
+            emptyView.visibility = View.GONE
+        }
+        loader?.loadDay(julian) { items ->
+            if (generation == viewGeneration && isViewReady() && julian == selectedJulian) {
                 listAdapter.submit(items)
                 emptyView.visibility = if (items.isEmpty()) View.VISIBLE else View.GONE
                 if (pendingListPosition >= 0 && items.isNotEmpty()) {
@@ -389,7 +439,7 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
                     lunarText = data?.lunarText?.get(julian),
                     eventColors = data?.dayColors?.get(julian).orEmpty(),
                     description = describeDay(ymd, count),
-                    lunarEnabled = lunarOn
+                    lunarEnabled = lunarShown
                 )
             )
         }
@@ -454,6 +504,21 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
      * the device or orientation. The narrow layout has the handle; the wide layout does not,
      * because the month is always fully shown there. The auto rule is recomputed here.
      */
+    /** Re-runs the layout from the current body size, for example after a setting changed. */
+    private fun relayout() {
+        lastWidth = -1
+        lastHeight = -1
+        applyAdaptiveLayout(body.width, body.height)
+    }
+
+    /**
+     * Chooses the wide (side-by-side) or narrow (stacked) layout from the window size, not from
+     * the device or orientation. The narrow layout has the handle; the wide layout does not,
+     * because the month is always fully shown there. The row height is never below what the
+     * slots need at this font scale. When the expanded grid would leave the schedule list too
+     * little room, lunar labels are hidden first, then the grid is auto-collapsed. The user's
+     * choice is not changed by either degradation.
+     */
     private fun applyAdaptiveLayout(width: Int, height: Int) {
         if (!isViewReady() || body.width <= 0 || body.height <= 0) return
         lastWidth = width
@@ -463,13 +528,18 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
         wideLayout = width / density >= WIDE_MIN_WIDTH_DP && width > height
         val bodyWidth = body.width
         val bodyHeight = body.height
-        val minRow = MonthDayCellView.minRowHeightPx(density, fontScale, lunarOn)
         val maxCell = dp(MAX_CELL_DP)
         val matchParent = LinearLayout.LayoutParams.MATCH_PARENT
-        val weekdayPx = dp(WEEKDAY_HEIGHT_DP)
+        // Fixed chrome is measured where it has text, so a large font is counted.
+        val weekdayPx = weekdayRow.height.takeIf { it > 0 } ?: dp(WEEKDAY_HEIGHT_DP)
+        val lunarRow = CellSlotMath.minRowHeightPx(density, fontScale, true)
+        val plainRow = CellSlotMath.minRowHeightPx(density, fontScale, false)
 
         if (wideLayout) {
             cancelExpandAnimation()
+            val plan = PanelMath.planLayout(bodyHeight, weekdayPx, 0, ROWS, lunarRow, plainRow, lunarOn)
+            lunarShown = plan.lunarShown
+            val rowMin = if (lunarShown) lunarRow else plainRow
             body.orientation = LinearLayout.HORIZONTAL
             body.layoutParams = (body.layoutParams as LinearLayout.LayoutParams).apply {
                 this.width = matchParent
@@ -480,7 +550,8 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
             )
             dayColumn.layoutParams = LinearLayout.LayoutParams(0, matchParent, 1f)
             handle.visibility = View.GONE
-            cellHeightPx = ((bodyHeight - weekdayPx) / 6).coerceIn(minRow, maxOf(minRow, maxCell))
+            autoCollapsed = false
+            cellHeightPx = ((bodyHeight - weekdayPx) / ROWS).coerceIn(rowMin, maxOf(rowMin, maxCell))
             progress = 1f
         } else {
             body.orientation = LinearLayout.VERTICAL
@@ -493,9 +564,16 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
             )
             dayColumn.layoutParams = LinearLayout.LayoutParams(matchParent, 0, 1f)
             handle.visibility = View.VISIBLE
-            autoCollapsed = PanelMath.isAutoCollapsed(bodyHeight, dp(AUTO_COLLAPSE_BELOW_DP))
-            cellHeightPx = ((bodyHeight * 0.5f - weekdayPx) / 6).toInt()
-                .coerceIn(minRow, maxOf(minRow, maxCell))
+            val titlePx = dayTitle.height.takeIf { it > 0 } ?: dp(TITLE_HEIGHT_DP)
+            val chromePx = weekdayPx + dp(HANDLE_DP) + titlePx
+            val listMinPx = dp(LIST_MIN_DP)
+            val plan = PanelMath.planLayout(bodyHeight, chromePx, listMinPx, ROWS, lunarRow, plainRow, lunarOn)
+            lunarShown = plan.lunarShown
+            autoCollapsed = plan.autoCollapsed
+            val rowMin = if (lunarShown) lunarRow else plainRow
+            // Half of the body, but never more than what the list leaves over.
+            val gridCap = minOf(bodyHeight * 0.5f, (bodyHeight - chromePx - listMinPx).toFloat())
+            cellHeightPx = ((gridCap - weekdayPx) / ROWS).toInt().coerceIn(rowMin, maxOf(rowMin, maxCell))
             cancelExpandAnimation()
             progress = if (PanelMath.isExpanded(userExpanded, autoCollapsed)) 1f else 0f
         }
@@ -542,8 +620,8 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
         when (e.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 // A new touch takes over a running animation at its current position.
-                expandAnimator?.cancel()
-                expandAnimator = null
+                // Takes over at the current visual position; the cancelled animation cannot jump.
+                cancelExpandAnimation()
                 handleActive = true
                 handlePointerId = e.getPointerId(0)
                 handleDownRawY = e.rawY
@@ -558,7 +636,7 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
                 handleVelocity?.addMovement(e)
                 val index = e.findPointerIndex(handlePointerId)
                 if (index < 0) return true
-                val dy = e.getRawY(index) - handleDownRawY
+                val dy = rawY(e, index) - handleDownRawY
                 if (!handleDragging && abs(dy) > touchSlopPx.toFloat()) {
                     handleDragging = true
                     v.parent?.requestDisallowInterceptTouchEvent(true)
@@ -623,9 +701,9 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
         updateHandleSemantics()
     }
 
-    private fun animateProgress(target: Float) {
-        expandAnimator?.cancel()
-        expandAnimator = null
+    private fun animateProgress(requested: Float) {
+        val target = minOf(requested, PanelMath.maxProgress(autoCollapsed))
+        cancelExpandAnimation()
         val startValue = progress
         if (startValue == target) return
         val animationsOn = Build.VERSION.SDK_INT < Build.VERSION_CODES.O || ValueAnimator.areAnimatorsEnabled()
@@ -633,34 +711,45 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
             setProgress(target)
             return
         }
+        val token = animationGate.begin()
         expandAnimator = ValueAnimator.ofFloat(startValue, target).apply {
             duration = (EXPAND_MS * abs(target - startValue)).toLong().coerceAtLeast(MIN_EXPAND_MS)
             interpolator = PathInterpolator(0.05f, 0.7f, 0.1f, 1f)
-            addUpdateListener { setProgress(it.animatedValue as Float) }
+            addUpdateListener { anim ->
+                if (animationGate.isCurrent(token)) setProgress(anim.animatedValue as Float)
+            }
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
-                    setProgress(target)
+                    // Only the current animator may finish. A cancelled or replaced one returns here,
+                    // so it cannot jump to its old target or clear a newer reference.
+                    if (!animationGate.isCurrent(token) || expandAnimator !== animation) return
                     expandAnimator = null
+                    setProgress(target)
                 }
             })
             start()
         }
     }
 
+    /**
+     * Stops the running animation and keeps the current visual progress. The gate is advanced
+     * before cancelling, because a cancelled animator still reports onAnimationEnd.
+     */
     private fun cancelExpandAnimation() {
+        animationGate.begin()
         expandAnimator?.cancel()
         expandAnimator = null
     }
 
     private fun setProgress(value: Float) {
-        progress = PanelMath.clamp01(value)
+        progress = minOf(PanelMath.clamp01(value), PanelMath.maxProgress(autoCollapsed))
         applyPanelProgress()
         updateHandleSemantics()
     }
 
     /** Grid viewport height and offset for the current progress. */
     private fun applyPanelProgress() {
-        if (!::gridClip.isInitialized || cellHeightPx <= 0) return
+        if (!viewBound || cellHeightPx <= 0) return
         gridClip.layoutParams = gridClip.layoutParams.apply {
             height = PanelMath.gridHeightPx(progress, cellHeightPx, rowCount)
         }
@@ -671,7 +760,7 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
     private fun panelSpanPx(): Float = maxOf(1, (rowCount - 1) * cellHeightPx).toFloat()
 
     private fun updateHandleSemantics() {
-        if (!::handle.isInitialized) return
+        if (!viewBound) return
         val expanded = progress >= 0.5f
         ViewCompat.setStateDescription(
             handle,
@@ -700,9 +789,13 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
             when (e.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     reset()
+                    // Edges of the window, not of the screen: in split-screen the drawer edge is the window's.
                     val edge = dp(EDGE_EXCLUDE_DP)
-                    val screenWidth = rv.resources.displayMetrics.widthPixels
-                    if (e.rawX < edge || e.rawX > screenWidth - edge) return false
+                    val root = rv.rootView
+                    val location = IntArray(2)
+                    root.getLocationOnScreen(location)
+                    val windowLeft = location[0]
+                    if (e.rawX < windowLeft + edge || e.rawX > windowLeft + root.width - edge) return false
                     tracking = true
                     pointerId = e.getPointerId(0)
                     downRawX = e.rawX
@@ -719,8 +812,8 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
                     velocity?.addMovement(e)
                     val index = e.findPointerIndex(pointerId)
                     if (index < 0) return false
-                    val dx = e.getRawX(index) - downRawX
-                    val dy = e.getRawY(index) - downRawY
+                    val dx = rawX(e, index) - downRawX
+                    val dy = rawY(e, index) - downRawY
                     if (PanelMath.isHorizontalSwipe(dx, dy, touchSlopPx.toFloat())) {
                         swiping = true
                         return true
@@ -740,7 +833,7 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
                     velocity?.addMovement(e)
                     velocity?.computeCurrentVelocity(1000)
                     val index = e.findPointerIndex(pointerId)
-                    val dx = if (index >= 0) e.getRawX(index) - downRawX else 0f
+                    val dx = if (index >= 0) rawX(e, index) - downRawX else 0f
                     val vx = velocity?.getXVelocity(pointerId) ?: 0f
                     val delta = if (multiTouch) {
                         0
@@ -756,7 +849,7 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
 
         override fun onRequestDisallowInterceptTouchEvent(disallowIntercept: Boolean) {}
 
-        private fun reset() {
+        fun reset() {
             tracking = false
             swiping = false
             multiTouch = false
@@ -810,6 +903,33 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density + .5f).toInt()
 
+    /**
+     * Screen coordinates of pointer [index]. MotionEvent.getRawX(int) and getRawY(int) need
+     * API 29, and minSdk is 23, so they are derived from the view-local value and the event's
+     * raw/local pair. The result is in screen space, so a moving handle does not feed back.
+     */
+    private fun rawX(e: MotionEvent, index: Int): Float = PanelMath.rawCoordinate(e.getX(index), e.rawX, e.x)
+
+    private fun rawY(e: MotionEvent, index: Int): Float = PanelMath.rawCoordinate(e.getY(index), e.rawY, e.y)
+
+    /** Delegate for a view reference that onDestroyView can clear. */
+    private fun <T : Any> viewRef(): ReadWriteProperty<Any?, T> = ViewRef<T>().also { viewRefs.add(it) }
+
+    private class ViewRef<T : Any> : ReadWriteProperty<Any?, T> {
+        private var value: T? = null
+
+        override fun getValue(thisRef: Any?, property: KProperty<*>): T =
+            value ?: throw IllegalStateException("${property.name} is not attached to a view")
+
+        override fun setValue(thisRef: Any?, property: KProperty<*>, value: T) {
+            this.value = value
+        }
+
+        fun clear() {
+            value = null
+        }
+    }
+
     companion object {
         const val ARG_TIME = "month_agenda_time"
         const val ARG_STATE = "month_agenda_state"
@@ -822,7 +942,11 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
         private const val MAX_CELL_DP = 64
         private const val WEEKDAY_HEIGHT_DP = 28
         private const val MAX_GRID_WIDTH_DP = 560
-        private const val AUTO_COLLAPSE_BELOW_DP = 560
+        private const val HANDLE_DP = 48
+        private const val TITLE_HEIGHT_DP = 48
+        /** Experimental: the least room the schedule list keeps when the grid is expanded. */
+        private const val LIST_MIN_DP = 120
+        private const val ROWS = 6
         private const val EDGE_EXCLUDE_DP = 24
         private const val SWIPE_MIN_DP = 64
         private const val FLING_DP = 800
