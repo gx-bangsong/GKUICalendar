@@ -104,18 +104,18 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
     private var contentStale = false
     private var lunarShown = false
 
-    private var body: LinearLayout by viewRef()
-    private var gridColumn: LinearLayout by viewRef()
-    private var dayColumn: LinearLayout by viewRef()
-    private var gridClip: View by viewRef()
-    private var handle: View by viewRef()
-    private var dayTitle: TextView by viewRef()
-    private var weekdayRow: LinearLayout by viewRef()
-    private var gridView: RecyclerView by viewRef()
-    private var listView: RecyclerView by viewRef()
-    private var emptyView: TextView by viewRef()
-    private var gridAdapter: MonthGridAdapter by viewRef()
-    private var listAdapter: MonthAgendaAdapter by viewRef()
+    private var body: LinearLayout by viewRef<LinearLayout>()
+    private var gridColumn: LinearLayout by viewRef<LinearLayout>()
+    private var dayColumn: LinearLayout by viewRef<LinearLayout>()
+    private var gridClip: View by viewRef<View>()
+    private var handle: View by viewRef<View>()
+    private var dayTitle: TextView by viewRef<TextView>()
+    private var weekdayRow: LinearLayout by viewRef<LinearLayout>()
+    private var gridView: RecyclerView by viewRef<RecyclerView>()
+    private var listView: RecyclerView by viewRef<RecyclerView>()
+    private var emptyView: TextView by viewRef<TextView>()
+    private var gridAdapter: MonthGridAdapter by viewRef<MonthGridAdapter>()
+    private var listAdapter: MonthAgendaAdapter by viewRef<MonthAgendaAdapter>()
     private var touchSlopPx = 0
     private val layoutListener = View.OnLayoutChangeListener { _, left, top, right, bottom, _, _, _, _ ->
         val width = right - left
@@ -499,11 +499,6 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
         }
     }
 
-    /**
-     * Chooses the wide (side-by-side) or narrow (stacked) layout from the window size, not from
-     * the device or orientation. The narrow layout has the handle; the wide layout does not,
-     * because the month is always fully shown there. The auto rule is recomputed here.
-     */
     /** Re-runs the layout from the current body size, for example after a setting changed. */
     private fun relayout() {
         lastWidth = -1
