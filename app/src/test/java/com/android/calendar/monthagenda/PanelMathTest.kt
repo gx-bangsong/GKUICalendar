@@ -94,7 +94,7 @@ class PanelMathTest {
     @Test
     fun largeFontHidesLunarBeforeCollapsing() {
         // Lunar row too tall for the window, plain row fits: lunar goes, the grid stays expanded.
-        val plan = PanelMath.planLayout(640, 124, 120, 6, lunarRow = 90, plainRow = 50, lunarWanted = true)
+        val plan = PanelMath.planLayout(640, 124, 120, 6, lunarRowPx = 90, plainRowPx = 50, lunarWanted = true)
         assertEquals(PanelMath.LayoutPlan(lunarShown = false, autoCollapsed = false), plan)
     }
 
