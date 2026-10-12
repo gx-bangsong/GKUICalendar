@@ -7,7 +7,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 
 /**
- * Adapter for the seven-column month grid used by the month-and-day home screen.
+ * Adapter for the seven-column month grid used by the month-and-agenda layout of the month entry.
  * The adapter owns cell geometry; each cell renders itself in [MonthDayCellView].
  * Event details are shown in the companion day list, so cells only carry colors.
  */
@@ -23,7 +23,9 @@ class MonthGridAdapter(
         val selected: Boolean,
         val lunarText: String?,
         val eventColors: List<Int>,
-        val description: String
+        val description: String,
+        /** True when the lunar row is shown, so it keeps its space even while the text loads. */
+        val lunarEnabled: Boolean = false
     )
 
     class CellHolder(val view: MonthDayCellView) : RecyclerView.ViewHolder(view)

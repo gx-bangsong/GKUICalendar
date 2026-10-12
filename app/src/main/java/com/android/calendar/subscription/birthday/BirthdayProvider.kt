@@ -40,28 +40,36 @@ object BirthdayProvider : SubscriptionProvider {
 
     override fun isEnabled(ctx: Context): Boolean = prefs(ctx).getBoolean(KEY_ENABLED, false)
 
-    override fun getCellInfo(ctx: Context, julianDay: Int): CellInfo? {
+    /** Month grid badge: the first birthday of the day, as before. */
+    override fun getCellInfo(ctx: Context, julianDay: Int): CellInfo? =
+        getDayItems(ctx, julianDay).firstOrNull()
+
+    /** Every birthday that falls on the day, so several people on one day are all listed. */
+    override fun getDayItems(ctx: Context, julianDay: Int): List<CellInfo> {
         val items = getBirthdays(ctx)
-        if (items.isEmpty()) return null
+        if (items.isEmpty()) return emptyList()
         val t = Time(TimeZone.getDefault().id)
         t.setJulianDay(julianDay)
         t.normalize()
         val lunar = Solar.fromYmd(t.getYear(), t.getMonth() + 1, t.getDay()).getLunar()
         val lunarMonth = Math.abs(lunar.getMonth())
         val lunarDay = lunar.getDay()
+        val out = ArrayList<CellInfo>()
         for (b in items) {
             if (b.lunarMonth == lunarMonth && b.lunarDay == lunarDay) {
                 val text = ctx.getString(R.string.sub_birthday_badge_fmt, b.name)
-                return CellInfo(
-                    providerId = id,
-                    primaryText = text,
-                    badgeColor = COLOR_BIRTHDAY,
-                    backgroundStyle = BgStyle.NONE,
-                    contentDescription = text
+                out.add(
+                    CellInfo(
+                        providerId = id,
+                        primaryText = text,
+                        badgeColor = COLOR_BIRTHDAY,
+                        backgroundStyle = BgStyle.NONE,
+                        contentDescription = text
+                    )
                 )
             }
         }
-        return null
+        return out
     }
 
     override fun getSettingsFragmentClass(): Class<out Fragment> =

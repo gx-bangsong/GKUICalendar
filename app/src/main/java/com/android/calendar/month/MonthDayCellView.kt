@@ -14,28 +14,33 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import androidx.core.widget.TextViewCompat
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.color.MaterialColors
 
 /**
- * One day cell of the month grid. Shows the day number, an optional lunar label
- * and up to three event color dots. Event titles are not drawn here.
+ * One day cell of the month grid. Three fixed slots, top to bottom: the day number,
+ * the lunar label (when lunar display is on) and a dedicated row for event dots.
+ * Each slot keeps its own space, so a lunar label never covers the day number and
+ * the dots never cover the lunar label. Text uses auto-size, so it shrinks instead
+ * of clipping at large font scales.
  */
 class MonthDayCellView(context: Context) : MaterialCardView(context) {
+
     private val column = LinearLayout(context).apply {
         orientation = LinearLayout.VERTICAL
-        gravity = Gravity.CENTER_HORIZONTAL
+        gravity = Gravity.CENTER_HORIZONTAL or Gravity.CENTER_VERTICAL
         setPadding(dp(2), dp(3), dp(2), dp(3))
     }
     private val dayLabel = TextView(context).apply {
         gravity = Gravity.CENTER
-        textSize = 14f
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, DAY_TEXT_SP)
         includeFontPadding = false
         maxLines = 1
     }
     private val lunarLabel = TextView(context).apply {
         gravity = Gravity.CENTER
-        textSize = 10f
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, LUNAR_TEXT_SP)
         includeFontPadding = false
         maxLines = 1
         ellipsize = TextUtils.TruncateAt.END
@@ -55,10 +60,13 @@ class MonthDayCellView(context: Context) : MaterialCardView(context) {
         if (context.theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)) {
             foreground = ContextCompat.getDrawable(context, outValue.resourceId)
         }
-        column.addView(
-            dayLabel,
-            LinearLayout.LayoutParams(dp(28), dp(28))
+        TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(
+            dayLabel, DAY_MIN_SP.toInt(), DAY_TEXT_SP.toInt(), 1, TypedValue.COMPLEX_UNIT_SP
         )
+        TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(
+            lunarLabel, LUNAR_MIN_SP.toInt(), LUNAR_TEXT_SP.toInt(), 1, TypedValue.COMPLEX_UNIT_SP
+        )
+        column.addView(dayLabel, LinearLayout.LayoutParams(dp(DAY_SLOT_DP), dp(DAY_SLOT_DP)))
         column.addView(
             lunarLabel,
             LinearLayout.LayoutParams(
@@ -70,8 +78,8 @@ class MonthDayCellView(context: Context) : MaterialCardView(context) {
             dotRow,
             LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
+                dp(DOT_SLOT_DP)
+            ).apply { topMargin = dp(2) }
         )
         addView(
             column,
@@ -82,7 +90,7 @@ class MonthDayCellView(context: Context) : MaterialCardView(context) {
         )
     }
 
-    /** Binds [cell]. The lunar label is hidden when the row is too short for it. */
+    /** Binds [cell] to a row that is [cellHeightPx] tall. */
     fun bind(cell: MonthGridAdapter.Cell, cellHeightPx: Int) {
         val surface = MaterialColors.getColor(this, com.google.android.material.R.attr.colorSurface, Color.WHITE)
         val onSurface = MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurface, Color.BLACK)
@@ -111,19 +119,20 @@ class MonthDayCellView(context: Context) : MaterialCardView(context) {
             else -> null
         }
 
-        val showLunar = cellHeightPx >= dp(60) && !cell.lunarText.isNullOrEmpty()
-        lunarLabel.visibility = if (showLunar) View.VISIBLE else View.GONE
-        lunarLabel.text = if (showLunar) cell.lunarText else null
+        // The lunar slot is reserved whenever lunar display is on, so rows do not change height
+        // while the text loads.
+        lunarLabel.visibility = if (cell.lunarEnabled) View.VISIBLE else View.GONE
+        lunarLabel.text = if (cell.lunarEnabled) cell.lunarText.orEmpty() else null
         lunarLabel.setTextColor(onSurfaceVariant)
 
         dotRow.removeAllViews()
         cell.eventColors.take(MAX_DOTS).forEach { color ->
             val dot = View(context).apply { background = circle(color, Color.TRANSPARENT, 0) }
-            val lp = LinearLayout.LayoutParams(dp(5), dp(5))
-            lp.setMargins(dp(1), dp(2), dp(1), 0)
+            val lp = LinearLayout.LayoutParams(dp(DOT_DP), dp(DOT_DP))
+            lp.setMargins(dp(1), 0, dp(1), 0)
             dotRow.addView(dot, lp)
         }
-        // Keep the dot row height constant so cells do not shift when counts change.
+        // The dot slot keeps its height even without events, so cells do not shift.
         dotRow.visibility = if (cell.eventColors.isEmpty()) View.INVISIBLE else View.VISIBLE
         contentDescription = cell.description
     }
@@ -139,5 +148,28 @@ class MonthDayCellView(context: Context) : MaterialCardView(context) {
 
     companion object {
         private const val MAX_DOTS = 3
+        private const val DAY_SLOT_DP = 28
+        private const val DOT_SLOT_DP = 5
+        private const val DOT_DP = 5
+        private const val DAY_TEXT_SP = 14f
+        private const val DAY_MIN_SP = 9f
+        private const val LUNAR_TEXT_SP = 11f
+        private const val LUNAR_MIN_SP = 7f
+
+        /**
+         * Smallest row height (px) that shows every slot without clipping at this font scale.
+         * The grid never uses a shorter row, so large text grows the row instead of clipping.
+         */
+        @JvmStatic
+        fun minRowHeightPx(density: Float, fontScale: Float, lunarEnabled: Boolean): Int {
+            val scale = maxOf(1f, fontScale)
+            val padding = 6 * density
+            val day = maxOf(DAY_SLOT_DP * density, DAY_TEXT_SP * scale * density * LINE_FACTOR)
+            val lunar = if (lunarEnabled) LUNAR_TEXT_SP * scale * density * LINE_FACTOR else 0f
+            val dots = (2 + DOT_SLOT_DP) * density
+            return Math.ceil((padding + day + lunar + dots).toDouble()).toInt()
+        }
+
+        private const val LINE_FACTOR = 1.3f
     }
 }

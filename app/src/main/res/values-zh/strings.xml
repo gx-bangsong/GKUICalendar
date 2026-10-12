@@ -32,9 +32,16 @@
     <string name="month_layout_classic">经典月历</string>
     <string name="month_layout_agenda">月历＋日程</string>
     <string name="agenda_no_events">这一天没有日程</string>
+    <string name="agenda_rest_day">休息日</string>
     <string name="agenda_all_day">全天</string>
     <plurals name="agenda_events_count">
         <item quantity="one">%d 项日程</item>
         <item quantity="other">%d 项日程</item>
     </plurals>
+    <string name="agenda_handle_description">拖动或点按以展开或收起月历</string>
+    <string name="agenda_handle_toggle_action">展开或收起月历</string>
+    <string name="agenda_state_expanded">月历已展开</string>
+    <string name="agenda_state_collapsed">月历已收起</string>
+    <string name="agenda_previous_month">上个月</string>
+    <string name="agenda_next_month">下个月</string>
 </resources>

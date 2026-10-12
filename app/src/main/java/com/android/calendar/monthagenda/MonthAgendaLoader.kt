@@ -10,6 +10,7 @@ import com.android.calendar.Event
 import com.android.calendar.Utils
 import com.android.calendar.lunar.LunarHelper
 import com.android.calendar.lunar.LunarMode
+import com.android.calendar.subscription.SubscriptionRegistry
 import java.util.ArrayList
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -50,8 +51,12 @@ class MonthAgendaLoader(context: Context) {
         }
     }
 
-    /** Loads events that overlap [julianDay], sorted with all-day events first. */
-    fun loadDay(julianDay: Int, callback: (List<Event>) -> Unit) {
+    /**
+     * Loads the schedule of [julianDay]: enabled subscription cards first, then events that
+     * overlap the day, with all-day events before timed ones. Subscription data is read here,
+     * on the background thread, because some providers query storage.
+     */
+    fun loadDay(julianDay: Int, callback: (List<AgendaItem>) -> Unit) {
         val token = dayGate.begin()
         executor.execute {
             val events = ArrayList<Event>()
@@ -62,11 +67,24 @@ class MonthAgendaLoader(context: Context) {
                     else -> a.startMillis.compareTo(b.startMillis)
                 }
             })
-            val result: List<Event>? = if (dayGate.isCurrent(token)) events else null
+            val items = ArrayList<AgendaItem>(events.size + 4)
+            items.addAll(loadCards(julianDay))
+            for (event in events) items.add(AgendaItem.Entry(event))
+            val result: List<AgendaItem>? = if (dayGate.isCurrent(token)) items else null
             mainHandler.post {
                 if (result != null && dayGate.isCurrent(token)) callback(result)
             }
         }
+    }
+
+    private fun loadCards(julianDay: Int): List<AgendaItem.Card> {
+        val cards = ArrayList<AgendaItem.Card>()
+        for ((provider, info) in SubscriptionRegistry.getEnabledDayItems(appContext, julianDay)) {
+            val text = info.primaryText ?: continue
+            val source = appContext.getString(provider.displayNameRes)
+            cards.add(AgendaItem.Card(text, source, info.badgeColor, provider.iconRes))
+        }
+        return cards
     }
 
     fun shutdown() {

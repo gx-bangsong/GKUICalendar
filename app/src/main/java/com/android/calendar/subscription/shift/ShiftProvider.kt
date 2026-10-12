@@ -43,6 +43,7 @@ object ShiftProvider : SubscriptionProvider {
 
     override fun isEnabled(ctx: Context): Boolean = prefs(ctx).getBoolean(KEY_ENABLED, false)
 
+    /** Month grid badge: rest days are not badged in the grid, as before. */
     override fun getCellInfo(ctx: Context, julianDay: Int): CellInfo? {
         val (cycle, anchor) = loadState(ctx) ?: return null
         val type = ShiftEngine.typeFor(cycle, anchor, julianDay)
@@ -52,6 +53,26 @@ object ShiftProvider : SubscriptionProvider {
             primaryText = ShiftEngine.labelFor(type),
             badgeColor = ShiftPresets.badgeColor(type),
             backgroundStyle = BgStyle.NONE
+        )
+    }
+
+    /** Day list: work shifts and rest days, so a rest day is not dropped from the schedule. */
+    override fun getDayItems(ctx: Context, julianDay: Int): List<CellInfo> {
+        val (cycle, anchor) = loadState(ctx) ?: return emptyList()
+        val type = ShiftEngine.typeFor(cycle, anchor, julianDay)
+        if (type < 0) return emptyList()
+        val text = if (type == ShiftType.REST) {
+            ctx.getString(R.string.agenda_rest_day)
+        } else {
+            ShiftEngine.labelFor(type)
+        }
+        return listOf(
+            CellInfo(
+                providerId = id,
+                primaryText = text,
+                badgeColor = ShiftPresets.badgeColor(type),
+                backgroundStyle = BgStyle.NONE
+            )
         )
     }
 

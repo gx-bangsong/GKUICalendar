@@ -23,6 +23,13 @@ interface SubscriptionProvider {
 
     fun isEnabled(ctx: Context): Boolean
     fun getCellInfo(ctx: Context, julianDay: Int): CellInfo?
+
+    /**
+     * Every item for the day, for the month-and-schedule list. Month grid badges keep
+     * using [getCellInfo]. Providers that can have several items per day override this.
+     */
+    fun getDayItems(ctx: Context, julianDay: Int): List<CellInfo> =
+        listOfNotNull(getCellInfo(ctx, julianDay))
     fun getSettingsFragmentClass(): Class<out Fragment>
     fun onEnabled(ctx: Context) {}
     fun onDisabled(ctx: Context) {}

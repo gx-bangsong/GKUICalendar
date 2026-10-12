@@ -15,6 +15,30 @@ object SubscriptionRegistry {
     @JvmStatic
     fun getAll(): List<SubscriptionProvider> = listOf(LunarProvider, ShiftProvider, TrafficProvider, PeriodProvider, BirthdayProvider)
 
+    /**
+     * Day-list items of every enabled provider, in provider order. A provider that fails
+     * is skipped so one broken subscription does not hide the others.
+     */
+    @JvmStatic
+    fun getEnabledDayItems(ctx: Context, julianDay: Int): List<Pair<SubscriptionProvider, CellInfo>> {
+        val out = ArrayList<Pair<SubscriptionProvider, CellInfo>>()
+        for (p in getAll()) {
+            val enabled = try {
+                p.isEnabled(ctx)
+            } catch (e: Exception) {
+                false
+            }
+            if (!enabled) continue
+            val items = try {
+                p.getDayItems(ctx, julianDay)
+            } catch (e: Exception) {
+                emptyList()
+            }
+            for (info in items) out.add(p to info)
+        }
+        return out
+    }
+
     @JvmStatic
     fun getEnabledCellInfos(ctx: Context, julianDay: Int): List<CellInfo> {
         val all = getAll()
