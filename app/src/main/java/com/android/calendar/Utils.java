@@ -1834,6 +1834,9 @@ public class Utils {
     }
 
     public static void clearTimeChangesReceiver(Context c, BroadcastReceiver r) {
+        if (r == null) {
+            return;
+        }
         c.unregisterReceiver(r);
     }
 

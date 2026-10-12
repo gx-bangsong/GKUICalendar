@@ -702,6 +702,9 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
         mController.deregisterEventHandler(HANDLER_KEY);
         mPaused = true;
         mHomeTime.removeCallbacks(mHomeTimeUpdater);
+        // Unregister before any early return, and clear the field, so a receiver is removed exactly
+        // once. A theme recreate runs onPause again after a return that did not register it.
+        clearTimeChangesReceiver();
 
         if (!Utils.isCalendarPermissionGranted(this, false)) {
             //If permission is not granted then just return.
@@ -720,7 +723,13 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
             Utils.setDefaultView(this, mController.getViewType());
         }
         Utils.resetMidnightUpdater(mHandler, mTimeChangesUpdater);
-        Utils.clearTimeChangesReceiver(this, mCalIntentReceiver);
+    }
+
+    private void clearTimeChangesReceiver() {
+        if (mCalIntentReceiver != null) {
+            Utils.clearTimeChangesReceiver(this, mCalIntentReceiver);
+            mCalIntentReceiver = null;
+        }
     }
 
     @Override
