@@ -49,7 +49,7 @@ Status: project constraints for the 月历＋日程 work. These are project deci
 - Vertical list scrolling never collapses the month.
 - Touch handling uses touch slop, and it handles pointer cancel and multi-touch.
 - Keyboard: DPAD up collapses, DPAD down expands, and Enter or Space toggles.
-- Accessibility: the handle has a state description ("展开" / "收起"), a named toggle action, and a click equivalent. The grid has previous-month and next-month accessibility actions.
+- Accessibility: the handle has a state description (English: "Month shown" / "Month hidden"; Chinese locales use their own translations), a named toggle action, and a click equivalent. The grid has previous-month and next-month accessibility actions.
 
 ### Why BottomSheetBehavior is not used (round 2 evaluation)
 
