@@ -11,7 +11,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.android.calendar.Event
-import com.android.calendar.R
+import ws.xsoh.etar.R
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale

@@ -21,7 +21,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.android.calendar.CalendarController
 import com.android.calendar.CalendarController.EventType
 import com.android.calendar.Event
-import com.android.calendar.R
+import ws.xsoh.etar.R
 import com.android.calendar.Utils
 import com.android.calendar.month.MonthGridAdapter
 import com.google.android.material.color.MaterialColors
