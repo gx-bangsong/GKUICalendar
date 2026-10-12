@@ -91,6 +91,7 @@ import com.android.calendar.settings.SettingsActivity;
 import com.android.calendar.settings.SettingsActivityKt;
 import com.android.calendar.settings.ViewDetailsPreferences;
 import com.android.calendar.theme.DynamicThemeKt;
+import com.android.calendar.theme.ThemeUtils;
 import com.android.calendar.calendarcommon2.Time;
 import com.google.android.material.datepicker.CalendarConstraints;
 import com.google.android.material.datepicker.MaterialDatePicker;
@@ -160,6 +161,8 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
     private boolean mMonthAgendaInUse = false;
     // Month-agenda state restored after recreation or a layout change, consumed once.
     private Bundle mPendingMonthAgendaState;
+    // Theme key this instance was created with (see ThemeUtils.effectiveThemeKey).
+    private String mThemeKey;
     private boolean mPaused = true;
     private boolean mUpdateOnResume = false;
     private boolean mHideControls = false;
@@ -275,6 +278,7 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
     protected void onCreate(Bundle icicle) {
         super.onCreate(icicle);
         DynamicThemeKt.applyThemeAndPrimaryColor(this);
+        mThemeKey = ThemeUtils.INSTANCE.effectiveThemeKey(this);
         mActivity = this;
         // This needs to be created before setContentView
         mController = CalendarController.getInstance(this);
@@ -608,6 +612,15 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
     @Override
     protected void onResume() {
         super.onResume();
+
+        // The theme may have changed on another screen (for example the pure black switch in
+        // settings). Theme attributes are resolved when views are inflated, so this screen is
+        // recreated once. The new instance takes the new key in onCreate, so this does not repeat.
+        // The month state is kept through onSaveInstanceState.
+        if (mThemeKey != null && !mThemeKey.equals(ThemeUtils.INSTANCE.effectiveThemeKey(this))) {
+            recreate();
+            return;
+        }
 
         // Check if the upgrade code has ever been run. If not, force a sync just this one time.
         Utils.trySyncAndDisableUpgradeReceiver(this);
