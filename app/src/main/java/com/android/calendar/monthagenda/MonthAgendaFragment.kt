@@ -19,9 +19,9 @@ import android.view.VelocityTracker
 import android.view.View
 import android.view.ViewConfiguration
 import android.view.ViewGroup
+import android.view.animation.PathInterpolator
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.core.graphics.PathInterpolatorCompat
 import androidx.core.view.ViewCompat
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.GridLayoutManager
@@ -635,7 +635,7 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
         }
         expandAnimator = ValueAnimator.ofFloat(startValue, target).apply {
             duration = (EXPAND_MS * abs(target - startValue)).toLong().coerceAtLeast(MIN_EXPAND_MS)
-            interpolator = PathInterpolatorCompat.create(0.05f, 0.7f, 0.1f, 1f)
+            interpolator = PathInterpolator(0.05f, 0.7f, 0.1f, 1f)
             addUpdateListener { setProgress(it.animatedValue as Float) }
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
