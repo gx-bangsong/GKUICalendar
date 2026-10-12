@@ -45,7 +45,10 @@ Status: project constraints for the 月历＋日程 work. These are project deci
 - A tap on the handle toggles the state. No long-press is required.
 - A press during an animation takes over at the current visual position. An animation that was cancelled cannot jump to its old target.
 - No modal, no scrim, no covering of the Toolbar, and no jump to agenda, week, or day.
-- The collapsed state keeps the handle and the selected-date title usable.
+- The collapsed state keeps the handle and the selected-date title usable. It is the 周历＋当天日程 state: the selected week and the day list (project choice, not a new view or nav entry).
+- While collapsed, a left or right swipe, and the TalkBack previous and next actions, move the selection by one week on the same weekday. The step uses civil days, so month, year and leap-day boundaries are handled. The browse month follows the selected day, so the collapsed grid always shows the selected week, and expanding shows the month of the selected day.
+- While expanded, the same swipe and actions move by month. A day tap in the collapsed week only updates the list, the FAB date and the selection.
+- The Toolbar keeps one month title and one 今天 in both states.
 - Vertical list scrolling never collapses the month.
 - Touch handling uses touch slop, handles pointer cancel and multi-touch, and converts coordinates without `MotionEvent.getRawX(int)`, which needs API 29 (minSdk is 23).
 - Keyboard: DPAD up collapses, DPAD down expands, and Enter or Space toggles.
@@ -76,6 +79,7 @@ This is a project decision made in this round. It has not been checked on device
 ## 9. Cells, markers, and cards
 
 - Each day cell has three slots from top to bottom: the day number (a square of at least 28dp, larger at large font), the lunar label (only when shown), and a dot row (5dp, after a 2dp margin).
+- Lunar text follows `pref_lunar_mode` per day, using the same rule as the classic month view (`LunarHelper.getLunarInfo`). OFF shows nothing. CONTEXTUAL (臨近節日) shows text only inside a festival window. ALWAYS shows text on every day. A festival or solar-term day is bold in the primary colour. Both enabled modes reserve the lunar slot, so the row height does not change with the day content. A day with no text has an empty label, never old text. A change of any lunar setting drops the old labels at once and reloads the month.
 - Every slot is sized from the same formulas that the grid uses for the row height. Slots never overlap. The day number and the dots do not shrink.
 - Large font grows the row, up to the room the layout allows. When the room is not enough, the lunar slot is hidden before the grid is collapsed. The schedule list is never squeezed below its minimum.
 - The lunar label may shrink its width (one line) to fit a cell. That is a width fallback, not evidence of large-font support.
@@ -93,6 +97,8 @@ This is a project decision made in this round. It has not been checked on device
 
 - Use theme roles only (`colorSurface`, `colorSurfaceVariant`, `colorOnSurface`, and similar).
 - Pure-black themes set `colorSurfaceContainer` to the background. Cards therefore use `colorSurfaceVariant` so they keep a visible level above the background.
+- The black background (`colorBackgroundBlack`) applies to the Black theme, to Dark with pure black on, and to System with a dark system and pure black on. It also sets the window background. The rule is in `ThemeRules`.
+- Theme changes apply on return. The month screen keeps the effective theme key from its creation. When the key differs in `onResume` (for example the pure black switch changed in settings), the screen is recreated once. The month state (browse month, selection, expand state, list position) is kept.
 - The background stays consistent across the grid, the schedule area, and the list.
 
 ## 12. Round scope limits (not permanent)
