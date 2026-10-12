@@ -14,11 +14,15 @@ import com.android.calendar.subscription.SubscriptionRegistry
 import java.util.ArrayList
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.RejectedExecutionException
 
 /**
  * Reads events and lunar labels on a background thread through the existing
  * Event.loadEvents path (Instances query, visible calendars, declined filter).
  * Results are delivered on the main thread, and superseded requests are dropped.
+ *
+ * One loader serves one fragment view. [shutdown] is called when that view is destroyed;
+ * a shut-down loader accepts no new work, and a new view creates a new loader.
  */
 class MonthAgendaLoader(context: Context) {
 
@@ -41,7 +45,7 @@ class MonthAgendaLoader(context: Context) {
     /** Loads markers for [days] consecutive cells starting at [firstJulian]. */
     fun loadMonth(firstJulian: Int, days: Int, callback: (MonthData) -> Unit) {
         val token = monthGate.begin()
-        executor.execute {
+        runOnWorker {
             val events = ArrayList<Event>()
             Event.loadEvents(appContext, events, firstJulian, days, token, monthGate.counter)
             val data = if (monthGate.isCurrent(token)) buildMonthData(firstJulian, days, events) else null
@@ -58,7 +62,7 @@ class MonthAgendaLoader(context: Context) {
      */
     fun loadDay(julianDay: Int, callback: (List<AgendaItem>) -> Unit) {
         val token = dayGate.begin()
-        executor.execute {
+        runOnWorker {
             val events = ArrayList<Event>()
             Event.loadEvents(appContext, events, julianDay, 1, token, dayGate.counter)
             events.sortWith(Comparator { a, b ->
@@ -87,8 +91,23 @@ class MonthAgendaLoader(context: Context) {
         return cards
     }
 
+    /**
+     * Stops the worker and drops callbacks that were posted but not yet delivered. Results that
+     * arrive later are also rejected by the fragment, which checks its view generation.
+     */
     fun shutdown() {
+        mainHandler.removeCallbacksAndMessages(null)
         executor.shutdownNow()
+    }
+
+    /** Runs [task] unless the loader has been shut down. */
+    private fun runOnWorker(task: () -> Unit) {
+        if (executor.isShutdown) return
+        try {
+            executor.execute(task)
+        } catch (e: RejectedExecutionException) {
+            // Shut down between the check and the submit: the view is gone, so nothing is due.
+        }
     }
 
     private fun buildMonthData(firstJulian: Int, days: Int, events: List<Event>): MonthData {
