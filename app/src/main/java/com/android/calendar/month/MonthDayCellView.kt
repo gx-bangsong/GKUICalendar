@@ -5,6 +5,7 @@ package com.android.calendar.month
 
 import android.content.Context
 import android.graphics.Color
+import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.text.TextUtils
 import android.util.TypedValue
@@ -127,11 +128,16 @@ class MonthDayCellView(context: Context) : MaterialCardView(context) {
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 CellSlotMath.lunarSlotPx(density, fontScale)
             )
+            // A day the lunar rule hides has no text here, so a recycled holder never keeps old text.
             lunarLabel.text = cell.lunarText.orEmpty()
-            lunarLabel.setTextColor(onSurfaceVariant)
+            lunarLabel.setTextColor(if (cell.lunarEmphasized) primary else onSurfaceVariant)
+            lunarLabel.setTypeface(
+                null, if (cell.lunarEmphasized) Typeface.BOLD else Typeface.NORMAL
+            )
         } else {
             lunarLabel.visibility = View.GONE
             lunarLabel.text = null
+            lunarLabel.setTypeface(null, Typeface.NORMAL)
         }
 
         dotRow.removeAllViews()

@@ -6,6 +6,7 @@ package com.android.calendar.monthagenda
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
+import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import android.provider.CalendarContract.Attendees
@@ -35,7 +36,7 @@ import com.android.calendar.CalendarController.EventType
 import com.android.calendar.Event
 import com.android.calendar.lunar.LunarCache
 import com.android.calendar.Utils
-import com.android.calendar.lunar.LunarMode
+import com.android.calendar.lunar.LunarHelper
 import com.android.calendar.month.CellSlotMath
 import com.android.calendar.month.MonthGridAdapter
 import com.google.android.material.color.MaterialColors
@@ -80,7 +81,10 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
     private var pendingListPosition = -1
     private var lastWidth = -1
     private var lastHeight = -1
+    // Whether the grid reserves a lunar slot. Both enabled modes do; the day text is per day.
     private var lunarOn = false
+    // Everything that changes the lunar text. When it changes, old labels are dropped at once.
+    private var lunarKey = ""
     private var dayTitleFormat: SimpleDateFormat? = null
     private var cellDateFormat: SimpleDateFormat? = null
 
@@ -139,7 +143,8 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
         controller = CalendarController.getInstance(context)
         zone = TimeZone.getTimeZone(Utils.getTimeZone(context, null))
         firstDayOfWeek = Utils.getFirstDayOfWeekAsCalendar(context)
-        lunarOn = Utils.getLunarMode(context) != LunarMode.OFF
+        lunarOn = LunarHelper.needsLunarSlot(Utils.getLunarMode(context))
+        lunarKey = lunarSettingsKey(context)
 
         val args = requireArguments()
         val state = args.getBundle(ARG_STATE)
@@ -229,9 +234,14 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
         if (!isViewReady() || !contentStale) return
         contentStale = false
         LunarCache.evictAll()
-        val lunarNow = Utils.getLunarMode(requireContext()) != LunarMode.OFF
-        if (lunarNow != lunarOn) {
-            lunarOn = lunarNow
+        val context = requireContext()
+        val key = lunarSettingsKey(context)
+        if (key != lunarKey) {
+            // The lunar setting changed (mode, festivals, solar terms or full label). Old labels are
+            // dropped now, so no stale text shows. The month, selection and list position stay.
+            lunarKey = key
+            monthData = null
+            lunarOn = LunarHelper.needsLunarSlot(Utils.getLunarMode(context))
             relayout()
         }
         loadMonth()
@@ -436,7 +446,8 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
                     currentMonth = inMonth,
                     today = julian == todayJulian,
                     selected = julian == selectedJulian,
-                    lunarText = data?.lunarText?.get(julian),
+                    lunarText = data?.lunarLabels?.get(julian)?.text,
+                    lunarEmphasized = data?.lunarLabels?.get(julian)?.emphasized == true,
                     eventColors = data?.dayColors?.get(julian).orEmpty(),
                     description = describeDay(ymd, count),
                     lunarEnabled = lunarShown
@@ -447,6 +458,17 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
         gridAdapter.submitCells(cells, cellHeightPx)
         gridClip.contentDescription = monthTitleText()
         applyPanelProgress()
+    }
+
+    /** Every preference that changes the lunar text of a day, as one comparable key. */
+    private fun lunarSettingsKey(context: Context): String {
+        val festivals = Utils.getEnabledLunarFestivals(context).sorted().joinToString(",")
+        return listOf(
+            Utils.getLunarMode(context).name,
+            festivals,
+            Utils.getShowLunarJieqi(context).toString(),
+            Utils.getLunarDetailAlways(context).toString()
+        ).joinToString("|")
     }
 
     private fun describeDay(ymd: IntArray, count: Int): String {

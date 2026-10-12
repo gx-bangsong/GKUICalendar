@@ -25,7 +25,9 @@ class MonthGridAdapter(
         val eventColors: List<Int>,
         val description: String,
         /** True when the lunar row is shown, so it keeps its space even while the text loads. */
-        val lunarEnabled: Boolean = false
+        val lunarEnabled: Boolean = false,
+        /** Festival or solar-term day: drawn bold in the primary colour. */
+        val lunarEmphasized: Boolean = false
     )
 
     class CellHolder(val view: MonthDayCellView) : RecyclerView.ViewHolder(view)
