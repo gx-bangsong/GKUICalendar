@@ -337,4 +337,6 @@
     <string name="agenda_state_collapsed">月曆已收起</string>
     <string name="agenda_previous_month">上個月</string>
     <string name="agenda_next_month">下個月</string>
+    <string name="agenda_previous_week">上一週</string>
+    <string name="agenda_next_week">下一週</string>
 </resources>

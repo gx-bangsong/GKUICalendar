@@ -970,4 +970,6 @@
     <string name="agenda_state_collapsed">Month hidden</string>
     <string name="agenda_previous_month">Previous month</string>
     <string name="agenda_next_month">Next month</string>
+    <string name="agenda_previous_week">Previous week</string>
+    <string name="agenda_next_week">Next week</string>
 </resources>

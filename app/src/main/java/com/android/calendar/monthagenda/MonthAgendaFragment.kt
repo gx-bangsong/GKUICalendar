@@ -20,6 +20,7 @@ import android.view.VelocityTracker
 import android.view.View
 import android.view.ViewConfiguration
 import android.view.ViewGroup
+import android.view.accessibility.AccessibilityNodeInfo
 import android.view.animation.PathInterpolator
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -203,16 +204,40 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
         gridView.isNestedScrollingEnabled = false
         gridView.addOnItemTouchListener(monthSwipe)
 
-        // Month navigation without visible buttons: TalkBack and switch users get previous and
-        // next month as accessibility actions on the grid.
+        // Previous and next accessibility actions on the grid, for TalkBack and switch users. The
+        // labels follow the mode: a week while collapsed, a month while expanded. One delegate
+        // reads the mode each time, so the labels stay right after a change.
         gridClip.isFocusable = true
-        ViewCompat.addAccessibilityAction(gridClip, getString(R.string.agenda_previous_month)) { _, _ ->
-            shiftMonth(-1)
-            true
-        }
-        ViewCompat.addAccessibilityAction(gridClip, getString(R.string.agenda_next_month)) { _, _ ->
-            shiftMonth(1)
-            true
+        gridClip.accessibilityDelegate = object : View.AccessibilityDelegate() {
+            override fun onInitializeAccessibilityNodeInfo(host: View, info: AccessibilityNodeInfo) {
+                super.onInitializeAccessibilityNodeInfo(host, info)
+                val week = isWeekNavigation()
+                info.addAction(
+                    AccessibilityNodeInfo.AccessibilityAction(
+                        R.id.agenda_action_previous,
+                        getString(if (week) R.string.agenda_previous_week else R.string.agenda_previous_month)
+                    )
+                )
+                info.addAction(
+                    AccessibilityNodeInfo.AccessibilityAction(
+                        R.id.agenda_action_next,
+                        getString(if (week) R.string.agenda_next_week else R.string.agenda_next_month)
+                    )
+                )
+            }
+
+            override fun performAccessibilityAction(host: View, action: Int, args: Bundle?): Boolean =
+                when (action) {
+                    R.id.agenda_action_previous -> {
+                        navigate(-1)
+                        true
+                    }
+                    R.id.agenda_action_next -> {
+                        navigate(1)
+                        true
+                    }
+                    else -> super.performAccessibilityAction(host, action, args)
+                }
         }
 
         listAdapter = MonthAgendaAdapter(requireContext(), zone.id) { event -> openEvent(event) }
@@ -355,6 +380,35 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
         }
         loadDay()
         if (notifyController) sendSelectionToController()
+    }
+
+    /**
+     * True while the grid is collapsed to the selected week (narrow layout only). The check uses
+     * the same rule as the expanded state, so a window downgrade counts as collapsed too.
+     */
+    private fun isWeekNavigation(): Boolean =
+        !wideLayout && !PanelMath.isExpanded(userExpanded, autoCollapsed)
+
+    /** Swipe and accessibility step: a week while collapsed, a month while expanded. */
+    private fun navigate(delta: Int) {
+        if (isWeekNavigation()) shiftWeek(delta) else shiftMonth(delta)
+    }
+
+    /**
+     * Moves the selection by whole weeks on the same weekday, using civil days. The browse month
+     * follows the selection, so the collapsed grid always shows the selected week, and expanding
+     * shows the month of the selected day.
+     */
+    private fun shiftWeek(delta: Int) {
+        if (!isViewReady()) return
+        selectedJulian = MonthGridMath.shiftWeeks(selectedJulian, delta)
+        val ymd = MonthGridMath.ymd(selectedJulian)
+        val monthChanged = ymd[0] != displayYear || ymd[1] != displayMonth + 1
+        displayYear = ymd[0]
+        displayMonth = ymd[1] - 1
+        refreshMonth(reload = monthChanged)
+        loadDay()
+        sendSelectionToController()
     }
 
     private fun shiftMonth(delta: Int) {
@@ -858,7 +912,7 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
                         PanelMath.swipeMonthDelta(dx, vx, dp(SWIPE_MIN_DP).toFloat(), dp(FLING_DP).toFloat())
                     }
                     reset()
-                    if (delta != 0) shiftMonth(delta)
+                    if (delta != 0) navigate(delta)
                 }
                 MotionEvent.ACTION_CANCEL -> reset()
             }

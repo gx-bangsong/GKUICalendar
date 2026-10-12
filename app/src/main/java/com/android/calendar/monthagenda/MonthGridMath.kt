@@ -53,6 +53,21 @@ object MonthGridMath {
         return intArrayOf(year, month, day)
     }
 
+    /**
+     * The civil day [weeks] weeks away (negative for earlier). Julian day numbers are continuous,
+     * so month, year and leap-day boundaries need no special case.
+     */
+    @JvmStatic
+    fun shiftWeeks(julianDay: Int, weeks: Int): Int = julianDay + 7 * weeks
+
+    /** First day of the week that contains [julianDay]; [firstDayOfWeek] uses Calendar constants (1..7). */
+    @JvmStatic
+    fun weekStart(julianDay: Int, firstDayOfWeek: Int): Int {
+        val ymd = ymd(julianDay)
+        val dayOfWeek = utcCalendar(ymd[0], ymd[1] - 1, ymd[2]).get(GregorianCalendar.DAY_OF_WEEK)
+        return julianDay - (dayOfWeek - firstDayOfWeek + 7) % 7
+    }
+
     private fun utcCalendar(year: Int, month: Int, day: Int): GregorianCalendar =
         GregorianCalendar(TimeZone.getTimeZone("UTC")).apply {
             clear()
