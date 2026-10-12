@@ -208,7 +208,7 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
         // labels follow the mode: a week while collapsed, a month while expanded. One delegate
         // reads the mode each time, so the labels stay right after a change.
         gridClip.isFocusable = true
-        gridClip.accessibilityDelegate = object : View.AccessibilityDelegate() {
+        gridClip.setAccessibilityDelegate(object : View.AccessibilityDelegate() {
             override fun onInitializeAccessibilityNodeInfo(host: View, info: AccessibilityNodeInfo) {
                 super.onInitializeAccessibilityNodeInfo(host, info)
                 val week = isWeekNavigation()
@@ -238,7 +238,7 @@ class MonthAgendaFragment : Fragment(), CalendarController.EventHandler {
                     }
                     else -> super.performAccessibilityAction(host, action, args)
                 }
-        }
+        })
 
         listAdapter = MonthAgendaAdapter(requireContext(), zone.id) { event -> openEvent(event) }
         listView.layoutManager = LinearLayoutManager(requireContext())
