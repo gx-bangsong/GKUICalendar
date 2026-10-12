@@ -14,7 +14,9 @@ Status: project constraints for the 月历＋日程 work. These are project deci
 - 月历＋日程 is a layout inside MONTH. It is not a separate view or home mode.
 - Layout choice and expand state are separate states. Expanding or collapsing never changes the layout value.
 - Changing the layout while in 月 refreshes the layout and keeps the browse month, the selected date, and the list position.
-- The default for new users is unchanged. The Chinese new-user default is a separate, later change.
+- New-user default: a fresh install whose app UI language is Chinese (`zh`) starts in MONTH with 月历＋日程 (`preferences_month_layout`=`agenda`, `preferred_startView`=MONTH). The language is the resources configuration, not location, IP or time zone. Other new installs keep the existing defaults.
+- "Fresh" means the preference file had no keys before any default was written. Upgrades, restored backups and any install with state keep their values. The marker `month_first_run_v1` only makes the decision run once. Later choices of classic, start view or language are never overwritten.
+- Intent priority is unchanged. Detail-view and day extras, ACTION_EDIT, and the target event or date of notifications, widgets, search and external Intents are used before the start-view default.
 
 ## 3. Legacy HOME values
 
