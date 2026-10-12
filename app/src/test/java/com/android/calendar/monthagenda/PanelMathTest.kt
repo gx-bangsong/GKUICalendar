@@ -56,7 +56,7 @@ class PanelMathTest {
         val threshold = 560
         assertTrue(PanelMath.isAutoCollapsed(400, threshold))
         assertFalse(PanelMath.isAutoCollapsed(700, threshold))
-        assertFalse(PanelMath.isExpanded(null, PanelMath.isAutoCollapsed(700, threshold)))
+        assertTrue(PanelMath.isExpanded(null, PanelMath.isAutoCollapsed(700, threshold)))
     }
 
     @Test
