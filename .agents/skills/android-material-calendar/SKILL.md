@@ -50,7 +50,7 @@ project choices, not Material mandates. They are recorded in `docs/design/month-
 ## Verification
 
 - Compile status is established only by CI results. Do not report static reading or syntax checks as compile success.
-- CI (`.github/workflows/build`) runs `assembleDebug`, which runs the unit tests in the packages listed in `app/build.gradle.kts`, then `generateBp` and the databinding check, and uploads the debug APK. It does not run lint or instrumented tests. A new test package must be added to that filter to run in CI.
+- Workflows: `.github/workflows/build.yml` runs on every push and calls the composite action `.github/workflows/build/action.yml`. That action runs `assembleDebug` (which depends on `testDebugUnitTest`), then `generateBp` and the databinding regeneration, each failing if `git status` shows changes, then uploads `app-debug.apk`. `android-ci.yml` runs `assembleDebug` and `./gradlew test` on `main` only. Neither runs lint or instrumented tests. A new JVM test package must match the `filter.includeTestsMatching` list in `app/build.gradle.kts`.
 - Android CLI, adb and device checks are reported separately, and only when they were actually run.
 - Pure logic goes into JVM unit tests under the packages that CI runs (see `app/build.gradle.kts`).
 - Device checks (phone and tablet, portrait and landscape, font 1.0/1.3/2.0, TalkBack, AMOLED, API 23–28) are reported separately from static and CI results.

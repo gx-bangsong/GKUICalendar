@@ -54,5 +54,5 @@ These items are not verified by CI, by static reading, or on a device in this ro
 - A single toggle per tap, and rotation while a dialog is open. The framework behaviour and the attribute contract were read from the androidx source. Neither was run on a device.
 - Scroll restore on return. It is not device-tested.
 - Lint. CI does not run lint, and lint was not run locally.
-- Soong (Android.bp) build. `generateBp` in CI checks that the generated file is unchanged. It does not prove a Soong build.
+- Soong (Android.bp) build. The `build` composite action runs `generateBp` and fails if `git status` shows a change. That proves the generated file is in sync. It does not prove a Soong build.
 - Android CLI screenshot, layout and input checks. The CLI was not available in this environment.
