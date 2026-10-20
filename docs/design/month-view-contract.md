@@ -107,3 +107,7 @@ This is a project decision made in this round. It has not been checked on device
 
 - Not in this round: Material upgrade, Expressive, Compose, native libraries, targetSdk changes, holiday data, todo data, and the legacy dialog refactor.
 - Classic view behaviour, mini-month clicks, and external Intents must not change.
+
+## 13. Settings sub-pages
+
+- Settings sub-pages follow `docs/design/settings-md3-contract.md`: standard Material 3 on Material Components 1.12.0, with the lunar calendar subscreen as the sample. This does not change the month view rules above.
