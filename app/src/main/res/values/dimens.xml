@@ -99,4 +99,10 @@
          stretching the full window width. -->
     <dimen name="event_info_gutter">0dp</dimen>
 
+    <!-- Settings sub-pages (Material 3). The group heading and the row text share one start and
+         end inset, so their text starts at the same edge. Used by preference_md3_category.xml and
+         preference_md3.xml only. -->
+    <dimen name="preference_md3_content_start">16dp</dimen>
+    <dimen name="preference_md3_content_end">16dp</dimen>
+
 </resources>

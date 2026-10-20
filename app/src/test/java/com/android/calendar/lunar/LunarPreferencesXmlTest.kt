@@ -157,6 +157,22 @@ class LunarPreferencesXmlTest {
     }
 
     @Test
+    fun headingAndRowShareOneStartInset() {
+        // Static check only: both layouts reference one start inset resource, with the same value.
+        // It does not prove the rendered text edge; that needs a device measurement.
+        val heading = parse("src/main/res/layout/preference_md3_category.xml").documentElement
+        val row = parse("src/main/res/layout/preference_md3.xml").documentElement
+        assertEquals("@dimen/preference_md3_content_start", heading.getAttributeNS(androidNs, "paddingStart"))
+        assertEquals("@dimen/preference_md3_content_start", row.getAttributeNS(androidNs, "paddingStart"))
+        val dimens = parse("src/main/res/values/dimens.xml").getElementsByTagName("dimen")
+        val value = (0 until dimens.length)
+            .map { dimens.item(it) as Element }
+            .firstOrNull { it.getAttribute("name") == "preference_md3_content_start" }
+            ?.textContent
+        assertEquals("16dp", value)
+    }
+
+    @Test
     fun switchLayoutIsAMaterialSwitchThatIsNotFocusableOrClickable() {
         // The row toggles once when tapped. The switch must not take focus or clicks,
         // otherwise the row and the switch can both change the value.
