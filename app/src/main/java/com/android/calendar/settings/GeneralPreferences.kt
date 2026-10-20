@@ -28,6 +28,7 @@ import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Parcelable
 import android.os.Vibrator
 import android.provider.CalendarContract
 import android.provider.CalendarContract.CalendarCache
@@ -102,6 +103,25 @@ class GeneralPreferences : PreferenceFragmentCompat(),
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
         activity?.title = getString(R.string.preferences_list_general)
+    }
+
+    // The list position when this page's view is destroyed, for example when a sub-page opens.
+    // The fragment instance stays on the back stack, but its view and RecyclerView state are
+    // rebuilt on return, so the position is kept here and restored once preferences are bound.
+    private var listScrollState: Parcelable? = null
+
+    override fun onDestroyView() {
+        // Save before super, which clears the list reference.
+        listView?.layoutManager?.let { listScrollState = it.onSaveInstanceState() }
+        super.onDestroyView()
+    }
+
+    override fun onBindPreferences() {
+        super.onBindPreferences()
+        // Restore after the adapter is set. Restoring earlier can be lost when the adapter changes.
+        val state = listScrollState ?: return
+        listScrollState = null
+        listView?.layoutManager?.onRestoreInstanceState(state)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
