@@ -23,7 +23,7 @@
             app:iconSpaceReserved="false"
             app:layout="@layout/preference_md3" />
 
-        <SwitchPreference
+        <SwitchPreferenceCompat
             app:key="pref_lunar_detail_always"
             app:defaultValue="false"
             app:title="@string/lunar_detail_always_title"
@@ -46,7 +46,7 @@
             app:iconSpaceReserved="false"
             app:layout="@layout/preference_md3" />
 
-        <SwitchPreference
+        <SwitchPreferenceCompat
             app:key="pref_lunar_show_jieqi"
             app:defaultValue="false"
             app:title="@string/lunar_show_jieqi_title"

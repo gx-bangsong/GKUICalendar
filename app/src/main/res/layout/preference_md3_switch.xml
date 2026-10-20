@@ -1,8 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Switch widget for a Material 3 row. Same contract as androidx.preference
-  preference_widget_switch_compat.xml: the id is @+id/switchWidget, and the switch is not
-  focusable or clickable, so a tap on the row toggles the value once.
+  Switch widget for the Material 3 lunar rows. It is used only by SwitchPreferenceCompat
+  (androidx.preference 1.2.1).
+
+  Binding: SwitchPreferenceCompat.onBindViewHolder looks up R.id.switchWidget. The id name
+  must match this file, and this file must not be used with SwitchPreference, which looks up
+  android:id/switch_widget and only handles android.widget.Switch.
+  Checked against preference/preference/res/layout/preference_widget_switch_compat.xml and
+  SwitchPreferenceCompat.java at the 1.2.1 date.
+
+  The switch is not focusable or clickable, so a tap on the row toggles the value once.
 -->
 <com.google.android.material.materialswitch.MaterialSwitch
     xmlns:android="http://schemas.android.com/apk/res/android"

@@ -12,14 +12,30 @@ import java.io.File
 import javax.xml.parsers.DocumentBuilderFactory
 
 /**
- * Checks the contract that the lunar settings XML must keep. These are static checks on the
- * resource files, so they run in the JVM test task that CI executes. They do not replace a
- * device check.
+ * Static checks on the lunar settings resources, run by the JVM test task that CI executes.
+ *
+ * What these tests cover:
+ * - XML contract: keys, defaults, preference classes, layout references.
+ * - Pairing contract: a switch row's Preference class binds one switch id, and the widget
+ *   layout must declare that id.
+ * - Classpath checks: the androidx and Material classes and ids named by those contracts exist
+ *   in the dependency versions that CI resolves. These are metadata checks only.
+ *
+ * What these tests do NOT cover: view inflation, binding, checked state, taps, dialogs,
+ * rotation. Those are runtime checks and have not been run in this environment.
  */
 class LunarPreferencesXmlTest {
 
     private val appNs = "http://schemas.android.com/apk/res-auto"
     private val androidNs = "http://schemas.android.com/apk/res/android"
+
+    private val storageKeys = setOf(
+        "pref_lunar_mode",
+        "pref_lunar_festivals",
+        "pref_lunar_show_jieqi",
+        "pref_lunar_detail_always"
+    )
+    private val switchKeys = setOf("pref_lunar_show_jieqi", "pref_lunar_detail_always")
 
     private fun parse(path: String): org.w3c.dom.Document {
         val factory = DocumentBuilderFactory.newInstance()
@@ -42,14 +58,21 @@ class LunarPreferencesXmlTest {
         prefs().firstOrNull { it.app("key") == key }
             ?: throw AssertionError("no preference with key $key")
 
+    /**
+     * The switch id each Preference class binds, from the androidx.preference 1.2.1 source.
+     * SwitchPreferenceCompat looks up R.id.switchWidget. SwitchPreference looks up
+     * android.R.id.switch_widget. Any other class is not a supported switch row here.
+     */
+    private fun boundSwitchIdFor(preferenceTag: String): String = when (preferenceTag) {
+        "SwitchPreferenceCompat" -> "@+id/switchWidget"
+        "SwitchPreference" -> "@android:id/switch_widget"
+        else -> throw AssertionError("unsupported switch preference class: $preferenceTag")
+    }
+
     @Test
     fun keysAreUnchanged() {
         // Storage keys are read by other code. Changing one loses user data.
-        val keys = prefs().mapNotNull { it.app("key") }.toSet()
-        assertEquals(
-            setOf("pref_lunar_mode", "pref_lunar_festivals", "pref_lunar_show_jieqi", "pref_lunar_detail_always"),
-            keys
-        )
+        assertEquals(storageKeys, prefs().mapNotNull { it.app("key") }.toSet())
     }
 
     @Test
@@ -61,11 +84,13 @@ class LunarPreferencesXmlTest {
     }
 
     @Test
-    fun preferenceTypesAreUnchanged() {
+    fun preferenceClassesAreTheExpectedOnes() {
         assertEquals("ListPreference", byKey("pref_lunar_mode").tagName)
         assertEquals("MultiSelectListPreference", byKey("pref_lunar_festivals").tagName)
-        assertEquals("SwitchPreference", byKey("pref_lunar_show_jieqi").tagName)
-        assertEquals("SwitchPreference", byKey("pref_lunar_detail_always").tagName)
+        // Boolean rows use the compat class. It stores the same Boolean under the same key.
+        for (key in switchKeys) {
+            assertEquals("SwitchPreferenceCompat", byKey(key).tagName)
+        }
     }
 
     @Test
@@ -75,18 +100,31 @@ class LunarPreferencesXmlTest {
         categories.forEach { category ->
             assertEquals("@layout/preference_md3_category", category.app("layout"))
         }
-        // Each row inside a group uses the MD3 row layout, and every switch the switch layout.
-        for (key in listOf("pref_lunar_mode", "pref_lunar_festivals", "pref_lunar_show_jieqi", "pref_lunar_detail_always")) {
+        for (key in storageKeys) {
             assertEquals("@layout/preference_md3", byKey(key).app("layout"))
-        }
-        for (key in listOf("pref_lunar_show_jieqi", "pref_lunar_detail_always")) {
-            assertEquals("@layout/preference_md3_switch", byKey(key).app("widgetLayout"))
         }
     }
 
     @Test
-    fun headingsAreNotClickable() {
-        // A category has no key and is not a stored preference, so tapping it can't change a value.
+    fun switchRowsPairTheirPreferenceClassWithTheIdItBinds() {
+        // The row class decides which id is bound. The widget layout must declare that id.
+        // A mismatch leaves the switch unbound: it shows the wrong state and never syncs.
+        val widgetRef = "@layout/preference_md3_switch"
+        val switchId = parseSwitchLayoutId()
+        for (key in switchKeys) {
+            val row = byKey(key)
+            assertEquals("widget layout for $key", widgetRef, row.app("widgetLayout"))
+            assertEquals(
+                "switch id for ${row.tagName} ($key)",
+                boundSwitchIdFor(row.tagName),
+                switchId
+            )
+        }
+    }
+
+    @Test
+    fun headingsHaveNoKey() {
+        // A category has no key and is not a stored preference, so tapping it cannot change a value.
         prefs().filter { it.tagName == "PreferenceCategory" }.forEach {
             assertNull("category must not have a key", it.app("key"))
         }
@@ -119,7 +157,7 @@ class LunarPreferencesXmlTest {
     }
 
     @Test
-    fun switchLayoutKeepsTheSingleToggleContract() {
+    fun switchLayoutIsAMaterialSwitchThatIsNotFocusableOrClickable() {
         // The row toggles once when tapped. The switch must not take focus or clicks,
         // otherwise the row and the switch can both change the value.
         val root = parse("src/main/res/layout/preference_md3_switch.xml").documentElement
@@ -149,4 +187,34 @@ class LunarPreferencesXmlTest {
             found
         )
     }
+
+    // ---- Classpath checks: metadata from the resolved dependencies, not view runtime. ----
+
+    @Test
+    fun classpathPreferenceClassIsTwoStateAndHasTheBoundIdName() {
+        val compat = Class.forName("androidx.preference.SwitchPreferenceCompat", false, javaClass.classLoader)
+        val twoState = Class.forName("androidx.preference.TwoStatePreference", false, javaClass.classLoader)
+        assertTrue("SwitchPreferenceCompat must extend TwoStatePreference", twoState.isAssignableFrom(compat))
+        // The library R class must declare the id name the widget layout uses.
+        val idClass = Class.forName("androidx.preference.R\$id", false, javaClass.classLoader)
+        assertTrue("androidx.preference.R.id.switchWidget is missing", hasField(idClass, "switchWidget"))
+    }
+
+    @Test
+    fun classpathMaterialSwitchIsASwitchCompat() {
+        // SwitchPreferenceCompat only attaches its listener when the widget is a SwitchCompat.
+        val switchCompat = Class.forName("androidx.appcompat.widget.SwitchCompat", false, javaClass.classLoader)
+        val materialSwitch = Class.forName(
+            "com.google.android.material.materialswitch.MaterialSwitch", false, javaClass.classLoader
+        )
+        assertTrue("MaterialSwitch must extend SwitchCompat", switchCompat.isAssignableFrom(materialSwitch))
+    }
+
+    private fun parseSwitchLayoutId(): String {
+        val root = parse("src/main/res/layout/preference_md3_switch.xml").documentElement
+        return root.getAttributeNS(androidNs, "id")
+    }
+
+    private fun hasField(type: Class<*>, name: String): Boolean =
+        type.fields.any { it.name == name }
 }

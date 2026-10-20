@@ -30,7 +30,9 @@ Groups and rows:
 - Groups: 显示 (display: 显示农历, 显示完整农历日期) and 节日与节气 (festivals and solar terms: 触发农历显示的节日, 显示二十四节气). The order within the groups changes. No preference key, default value or meaning changes.
 - The group headings use `colorOnSurfaceVariant`, not `colorPrimary`. The light theme's `colorPrimary` (#41c3b1) has a contrast of about 2:1 on the light background, which is too low for text. Hierarchy comes from the label style and the spacing.
 - Row minimum height is 56dp. Touch targets stay at or above 48dp. Title uses `textAppearanceBodyLarge` with `colorOnSurface`. Supporting text uses `textAppearanceBodyMedium` with `colorOnSurfaceVariant`. The heights are not fixed, so text wraps and is not clipped.
-- Switches are `MaterialSwitch` with `@+id/switchWidget`, `focusable=false` and `clickable=false`. The row handles the single toggle. This matches the androidx `preference_widget_switch_compat.xml` contract, so a tap changes the value once.
+- Switches are `MaterialSwitch` with `@+id/switchWidget`, `focusable=false` and `clickable=false`. The row handles the single toggle, so a tap changes the value once.
+- Binding pairing (androidx.preference 1.2.1): the Preference class decides the switch id. `SwitchPreferenceCompat` binds `R.id.switchWidget`. `SwitchPreference` binds `android.R.id.switch_widget` and only handles `android.widget.Switch`. A `MaterialSwitch` layout therefore goes only with `SwitchPreferenceCompat`. The lunar rows use it. Mixing the two leaves the switch unbound.
+- Source for 1.2.1: the androidx repo has no 1.2.1 tag. Files were taken at the last commit before the 2023-07-26 release date, with no later change to those files on main before that date. Release-note commit SHAs are not in the GitHub mirror.
 - The title of the subscreen is 农历, the same as the entry in the general page.
 
 Selection and dialogs:
