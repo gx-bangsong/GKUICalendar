@@ -1,27 +1,58 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Lunar calendar (contextual reveal) preferences. -->
+<!--
+  Lunar calendar (contextual reveal) preferences, Material 3 sample.
+
+  Keys and default values are unchanged. Only the grouping, the row layouts (app:layout) and
+  the switch widget (app:widgetLayout) differ from the earlier screen. The rows use the
+  layouts in res/layout/preference_md3*.xml, which only this screen references.
+-->
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
-    <ListPreference
-        app:key="pref_lunar_mode"
-        app:title="@string/lunar_mode_title"
-        app:dialogTitle="@string/lunar_mode_title"
-        app:entries="@array/lunar_mode_entries"
-        app:entryValues="@array/lunar_mode_values"
-        app:defaultValue="@string/lunar_mode_default" />
-    <MultiSelectListPreference
-        app:key="pref_lunar_festivals"
-        app:title="@string/lunar_festivals_title"
-        app:dialogTitle="@string/lunar_festivals_title"
-        app:entries="@array/lunar_festival_entries"
-        app:entryValues="@array/lunar_festival_values"
-        app:defaultValue="@array/lunar_festival_defaults" />
-    <SwitchPreference
-        app:key="pref_lunar_show_jieqi"
-        app:defaultValue="false"
-        app:title="@string/lunar_show_jieqi_title" />
-    <SwitchPreference
-        app:key="pref_lunar_detail_always"
-        app:defaultValue="false"
-        app:title="@string/lunar_detail_always_title" />
+
+    <PreferenceCategory
+        app:title="@string/lunar_group_display"
+        app:layout="@layout/preference_md3_category">
+
+        <ListPreference
+            app:key="pref_lunar_mode"
+            app:title="@string/lunar_mode_title"
+            app:dialogTitle="@string/lunar_mode_title"
+            app:entries="@array/lunar_mode_entries"
+            app:entryValues="@array/lunar_mode_values"
+            app:defaultValue="@string/lunar_mode_default"
+            app:iconSpaceReserved="false"
+            app:layout="@layout/preference_md3" />
+
+        <SwitchPreference
+            app:key="pref_lunar_detail_always"
+            app:defaultValue="false"
+            app:title="@string/lunar_detail_always_title"
+            app:iconSpaceReserved="false"
+            app:layout="@layout/preference_md3"
+            app:widgetLayout="@layout/preference_md3_switch" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:title="@string/lunar_group_festivals"
+        app:layout="@layout/preference_md3_category">
+
+        <MultiSelectListPreference
+            app:key="pref_lunar_festivals"
+            app:title="@string/lunar_festivals_title"
+            app:dialogTitle="@string/lunar_festivals_title"
+            app:entries="@array/lunar_festival_entries"
+            app:entryValues="@array/lunar_festival_values"
+            app:defaultValue="@array/lunar_festival_defaults"
+            app:iconSpaceReserved="false"
+            app:layout="@layout/preference_md3" />
+
+        <SwitchPreference
+            app:key="pref_lunar_show_jieqi"
+            app:defaultValue="false"
+            app:title="@string/lunar_show_jieqi_title"
+            app:iconSpaceReserved="false"
+            app:layout="@layout/preference_md3"
+            app:widgetLayout="@layout/preference_md3_switch" />
+    </PreferenceCategory>
+
 </PreferenceScreen>
