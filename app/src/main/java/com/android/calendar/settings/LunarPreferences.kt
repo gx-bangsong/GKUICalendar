@@ -17,8 +17,10 @@ package com.android.calendar.settings
 
 import android.content.Context
 import android.os.Bundle
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import androidx.preference.ListPreference
 import androidx.preference.MultiSelectListPreference
 import androidx.preference.Preference
@@ -27,7 +29,7 @@ import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.RecyclerView
 import com.android.calendar.lunar.LunarFestivalSummary
 import ws.xsoh.etar.R
-import kotlin.math.max
+import kotlin.math.roundToInt
 
 /**
  * Settings screen for the contextual lunar calendar. Opened from
@@ -37,9 +39,6 @@ import kotlin.math.max
  * res/layout/preference_md3*.xml, which only res/xml/lunar_preferences.xml references.
  */
 class LunarPreferences : PreferenceFragmentCompat() {
-
-    // Debug-only sequence number for LunarAlignDebug lines.
-    private var debugSeq = 0
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         preferenceManager.sharedPreferencesName = GeneralPreferences.SHARED_PREFS_NAME
@@ -58,33 +57,42 @@ class LunarPreferences : PreferenceFragmentCompat() {
         savedInstanceState: Bundle?
     ): RecyclerView {
         val list = super.onCreateRecyclerView(inflater, parent, savedInstanceState)
-        // On a wide window the content is centred in a column of at most CONTENT_MAX_WIDTH_DP.
-        // A narrow window keeps the inherited padding. Only the horizontal padding changes, and
-        // only when the value differs, so this does not loop.
-        val basePadding = list.paddingStart
-        val maxContentPx = (CONTENT_MAX_WIDTH_DP * resources.displayMetrics.density).toInt()
-        // Debug-only geometry log (debuggable builds). Remove with LunarAlignDebug.
-        val debug = LunarAlignDebug.enabled(requireContext())
-        list.addOnLayoutChangeListener { view, left, _, right, _, _, _, _, _ ->
-            val side = max(basePadding, (right - left - maxContentPx) / 2)
-            if (view.paddingStart != side || view.paddingEnd != side) {
-                if (debug) {
-                    LunarAlignDebug.dump(list, "padding-change old=${view.paddingStart} new=$side", ++debugSeq)
-                }
-                view.setPaddingRelative(side, view.paddingTop, side, view.paddingBottom)
-            }
-        }
-        if (debug) {
-            list.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-                override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
-                    if (newState == RecyclerView.SCROLL_STATE_IDLE) {
-                        LunarAlignDebug.dump(recyclerView, "idle", ++debugSeq)
-                    }
-                }
-            })
-            list.post { LunarAlignDebug.dump(list, "post-create", ++debugSeq) }
-        }
+        // On a device where the framework already placed the list in its own layout (Android
+        // Auto), leave that layout alone.
+        if (list.parent != null) return list
+        // On a wide window the list is centred in a column of at most CONTENT_MAX_WIDTH_DP.
+        // The width limit is applied by the wrapper's measure pass, so no padding is changed
+        // after layout and every row uses the same start edge from its first layout.
+        val maxWidthPx = (CONTENT_MAX_WIDTH_DP * resources.displayMetrics.density).roundToInt()
+        val column = MaxWidthFrameLayout(parent.context, maxWidthPx)
+        column.addView(
+            list,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        )
+        parent.addView(
+            column,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                Gravity.CENTER_HORIZONTAL
+            )
+        )
         return list
+    }
+
+    override fun onDisplayPreferenceDialog(preference: Preference) {
+        if (preference.key !in CHOICE_KEYS) {
+            super.onDisplayPreferenceDialog(preference)
+            return
+        }
+        // After rotation the child FragmentManager restores the dialog itself. Do not show a
+        // second one.
+        if (childFragmentManager.findFragmentByTag(LunarChoiceDialogFragment.TAG) != null) return
+        LunarChoiceDialogFragment.newInstance(preference.key)
+            .show(childFragmentManager, LunarChoiceDialogFragment.TAG)
     }
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
@@ -111,7 +119,13 @@ class LunarPreferences : PreferenceFragmentCompat() {
         const val KEY_SHOW_JIEQI = "pref_lunar_show_jieqi"
         const val KEY_DETAIL_ALWAYS = "pref_lunar_detail_always"
 
-        /** Maximum content width of the list on a wide window (MD3 medium window width). */
+        /** Rows that open the MD3 choice dialog. */
+        private val CHOICE_KEYS = setOf(KEY_MODE, KEY_FESTIVALS)
+
+        /**
+         * Maximum width of the settings list on a wide window. This is a project choice, not an
+         * MD3 requirement; the MD3 medium window width is 600dp.
+         */
         private const val CONTENT_MAX_WIDTH_DP = 600
 
         fun setDefaultValues(context: Context) {
