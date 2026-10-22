@@ -29,6 +29,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.activity.OnBackPressedCallback;
@@ -41,8 +42,6 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
-import com.google.android.material.appbar.MaterialToolbar;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -73,6 +72,7 @@ public class TimeZoneSearchFragment extends Fragment {
     private static final String STATE_HAS_FOCUS = "has_focus";
     private static final String STATE_FIRST_POSITION = "first_position";
     private static final String STATE_FIRST_OFFSET = "first_offset";
+    private static final String STATE_QUERY = "query";
 
     private static final int TYPE_HEADER = 0;
     private static final int TYPE_ZONE = 1;
@@ -85,10 +85,14 @@ public class TimeZoneSearchFragment extends Fragment {
     private final List<TimeZoneSearchMatcher.Entry> mEntries = new ArrayList<>();
     private TimeZoneSearchMatcher.Entry mCurrentEntry;
     private boolean mLoaded;
+    private boolean mLoadRequested;
     private boolean mResultDelivered;
     private String mReferenceDateText = "";
 
     private EditText mSearchInput;
+    private ImageButton mClearButton;
+    /** The query as last seen by the watcher or restored; saved even while the view is gone. */
+    private String mLastQuery = "";
     private RecyclerView mResults;
     private ResultAdapter mAdapter;
     private int mPendingFirstPosition = -1;
@@ -127,10 +131,32 @@ public class TimeZoneSearchFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         Context context = requireContext();
 
-        MaterialToolbar toolbar = view.findViewById(R.id.timezone_search_toolbar);
-        toolbar.setNavigationOnClickListener(v -> closeWithoutSelection());
+        view.findViewById(R.id.timezone_search_back).setOnClickListener(
+                v -> closeWithoutSelection());
 
         mSearchInput = view.findViewById(R.id.timezone_search_input);
+        mClearButton = view.findViewById(R.id.timezone_search_clear);
+        // Clear empties the query only. The page, focus and keyboard stay as they are.
+        mClearButton.setOnClickListener(v -> mSearchInput.setText(""));
+
+        // Restore the query before the watcher exists. The restore must not run a filter pass
+        // against a list that is not loaded yet, and it must not be overwritten by the empty
+        // initial query. The rows are rebuilt once the list is available.
+        if (savedInstanceState != null) {
+            mLastQuery = savedInstanceState.getString(STATE_QUERY, "");
+            mSearchInput.setText(mLastQuery);
+            mSearchInput.setSelection(mSearchInput.length());
+            mPendingFirstPosition = savedInstanceState.getInt(STATE_FIRST_POSITION, -1);
+            mPendingFirstOffset = savedInstanceState.getInt(STATE_FIRST_OFFSET, 0);
+            if (savedInstanceState.getBoolean(STATE_HAS_FOCUS)) {
+                mSearchInput.requestFocus();
+            }
+        } else {
+            // Focus opens the keyboard only on first show, not after a rotation.
+            mSearchInput.requestFocus();
+        }
+        updateClearButton();
+
         mSearchInput.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -138,6 +164,8 @@ public class TimeZoneSearchFragment extends Fragment {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
+                mLastQuery = s.toString();
+                updateClearButton();
                 refreshRows();
             }
 
@@ -157,12 +185,17 @@ public class TimeZoneSearchFragment extends Fragment {
         mAdapter = new ResultAdapter();
         mResults.setAdapter(mAdapter);
 
-        View appBar = view.findViewById(R.id.timezone_search_app_bar);
-        View content = view.findViewById(R.id.timezone_search_content);
+        // The page pads itself. Left, top and right use the larger of the system bars and the
+        // display cutout. Bottom uses the larger of the navigation bar and the IME, never their
+        // sum, so no empty band is left when the keyboard is hidden. Window insets are already
+        // intersected with the window, so an adjustResize window does not count the IME twice.
         ViewCompat.setOnApplyWindowInsetsListener(view, (v, insets) -> {
-            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            appBar.setPadding(bars.left, bars.top, bars.right, 0);
-            content.setPadding(bars.left, 0, bars.right, bars.bottom);
+            Insets bars = Insets.max(insets.getInsets(WindowInsetsCompat.Type.systemBars()),
+                    insets.getInsets(WindowInsetsCompat.Type.displayCutout()));
+            int bottom = Math.max(
+                    insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom,
+                    insets.getInsets(WindowInsetsCompat.Type.ime()).bottom);
+            v.setPadding(bars.left, bars.top, bars.right, bottom);
             return insets;
         });
 
@@ -170,30 +203,46 @@ public class TimeZoneSearchFragment extends Fragment {
                 DateUtils.FORMAT_SHOW_DATE | DateUtils.FORMAT_SHOW_YEAR
                         | DateUtils.FORMAT_ABBREV_MONTH);
 
+        // The only back handler of this page. It is added to the view lifecycle, so it exists
+        // only while this view is alive, and it is the newest callback, so it runs before the
+        // event form's handler.
         OnBackPressedCallback backCallback = new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
-                closeWithoutSelection();
+                onBackRequested();
             }
         };
         requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(),
                 backCallback);
 
-        if (savedInstanceState != null) {
-            if (savedInstanceState.getBoolean(STATE_HAS_FOCUS)) {
-                mSearchInput.requestFocus();
-            }
-            mPendingFirstPosition = savedInstanceState.getInt(STATE_FIRST_POSITION, -1);
-            mPendingFirstOffset = savedInstanceState.getInt(STATE_FIRST_OFFSET, 0);
-        } else {
-            // Focus opens the keyboard only on first show, not after a rotation.
-            mSearchInput.requestFocus();
-        }
-
         if (mLoaded) {
             refreshRows();
-        } else {
+        } else if (TimeZoneSearchRouting.shouldStartLoad(mLoaded, mLoadRequested)) {
             loadEntries(context.getApplicationContext());
+        }
+    }
+
+    /** One back rule: with the keyboard visible, hide it and stay; otherwise leave the page. */
+    private void onBackRequested() {
+        if (TimeZoneSearchRouting.onBack(isImeVisible())
+                == TimeZoneSearchRouting.BackAction.HIDE_KEYBOARD) {
+            hideKeyboard();
+            return;
+        }
+        closeWithoutSelection();
+    }
+
+    private boolean isImeVisible() {
+        if (mSearchInput == null) {
+            return false;
+        }
+        WindowInsetsCompat insets = ViewCompat.getRootWindowInsets(mSearchInput);
+        return insets != null && insets.isVisible(WindowInsetsCompat.Type.ime());
+    }
+
+    private void updateClearButton() {
+        if (mClearButton != null && mSearchInput != null) {
+            mClearButton.setVisibility(mSearchInput.length() > 0 ? View.VISIBLE : View.INVISIBLE);
         }
     }
 
@@ -201,6 +250,7 @@ public class TimeZoneSearchFragment extends Fragment {
     public void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putBoolean(STATE_HAS_FOCUS, mSearchInput != null && mSearchInput.hasFocus());
+        outState.putString(STATE_QUERY, mLastQuery);
         if (mResults != null && mResults.getLayoutManager() instanceof LinearLayoutManager) {
             LinearLayoutManager layoutManager = (LinearLayoutManager) mResults.getLayoutManager();
             int position = layoutManager.findFirstVisibleItemPosition();
@@ -216,8 +266,10 @@ public class TimeZoneSearchFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        mMainHandler.removeCallbacksAndMessages(null);
+        // A queued load result is kept on purpose: it only fills the per-instance zone list, and
+        // the next view reads that list. It never touches a view that is already gone.
         mSearchInput = null;
+        mClearButton = null;
         mResults = null;
         mAdapter = null;
     }
@@ -234,6 +286,7 @@ public class TimeZoneSearchFragment extends Fragment {
     private void loadEntries(Context appContext) {
         final String currentZoneId = mCurrentZoneId;
         final long referenceMillis = mReferenceMillis;
+        mLoadRequested = true;
         mLoader.execute(() -> {
             TimeZoneData data = new TimeZoneData(appContext, currentZoneId, referenceMillis);
             List<TimeZoneSearchMatcher.Entry> loaded = new ArrayList<>(data.size());
@@ -273,17 +326,22 @@ public class TimeZoneSearchFragment extends Fragment {
             return;
         }
         String query = mSearchInput == null ? "" : mSearchInput.getText().toString();
-        mAdapter.setRows(buildRows(query));
-        if (mPendingFirstPosition >= 0 && mResults != null) {
+        List<Row> rows = buildRows(query);
+        mAdapter.setRows(rows);
+        // A restored position waits for the loaded list. It is consumed once, here, after the
+        // list is loaded; an unloaded (empty) list never consumes it.
+        if (mPendingFirstPosition >= 0 && mLoaded && mResults != null) {
             final int position = mPendingFirstPosition;
             final int offset = mPendingFirstOffset;
             mPendingFirstPosition = -1;
-            mResults.post(() -> {
-                if (mResults != null && mResults.getLayoutManager() != null) {
-                    ((LinearLayoutManager) mResults.getLayoutManager())
-                            .scrollToPositionWithOffset(position, offset);
-                }
-            });
+            if (TimeZoneSearchRouting.canApplyPendingPosition(mLoaded, rows.size(), position)) {
+                mResults.post(() -> {
+                    if (mResults != null && mResults.getLayoutManager() != null) {
+                        ((LinearLayoutManager) mResults.getLayoutManager())
+                                .scrollToPositionWithOffset(position, offset);
+                    }
+                });
+            }
         }
     }
 
@@ -322,7 +380,7 @@ public class TimeZoneSearchFragment extends Fragment {
 
     /** Publishes the real zone ID once, then removes this page. The event is not saved here. */
     private void selectTimeZone(String zoneId) {
-        if (mResultDelivered || !isAdded()) {
+        if (!TimeZoneSearchRouting.canDeliverResult(mResultDelivered, isAdded())) {
             return;
         }
         mResultDelivered = true;
@@ -336,7 +394,7 @@ public class TimeZoneSearchFragment extends Fragment {
 
     /** Back or the arrow: removes the page without a result, so the zone is unchanged. */
     private void closeWithoutSelection() {
-        if (mResultDelivered || !isAdded()) {
+        if (!TimeZoneSearchRouting.canDeliverResult(mResultDelivered, isAdded())) {
             return;
         }
         mResultDelivered = true;

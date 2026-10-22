@@ -347,7 +347,7 @@
 
     <!-- Event form: full-screen time zone search page. -->
     <string name="timezone_search_title">時區</string>
-    <string name="timezone_search_hint">搜尋城市、國家或時區 ID</string>
+    <string name="timezone_search_hint">搜尋城市、國家或時區</string>
     <string name="timezone_search_clear">清除搜尋</string>
     <string name="timezone_search_back">返回</string>
     <string name="timezone_search_current">目前時區</string>

@@ -980,7 +980,7 @@
 
     <!-- Event form: full-screen time zone search page. -->
     <string name="timezone_search_title">Time zone</string>
-    <string name="timezone_search_hint">Search city, country or zone ID</string>
+    <string name="timezone_search_hint">Search city, country or time zone</string>
     <string name="timezone_search_clear">Clear search</string>
     <string name="timezone_search_back">Back</string>
     <string name="timezone_search_current">Current time zone</string>
