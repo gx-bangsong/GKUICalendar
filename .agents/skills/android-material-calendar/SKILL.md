@@ -23,7 +23,7 @@ State the paths you read in the task summary. Reading a file is not proof that t
 
 - The current settings round targets standard Material 3 on Material Components 1.12.0. Material 3 Expressive is not an acceptance requirement for this round.
 - The month view rules in `docs/design/month-view-contract.md` and the lifecycle rules still apply to every screen that uses them. Settings work does not change them.
-- The lunar calendar subscreen is the sample. Other subscreens change only after the user accepts the sample.
+- The lunar calendar subscreen is the sample. Round 7 applies it to the General and Display details pages. Other subscreens change only after the user accepts those.
 
 ## Hard rules
 

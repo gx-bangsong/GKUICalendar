@@ -22,10 +22,14 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.ViewGroup
 import androidx.preference.ListPreference
+import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceManager
 import androidx.preference.PreferenceScreen
+import androidx.recyclerview.widget.RecyclerView
 import com.android.calendar.Utils
 import com.android.calendar.Utils.SHARED_PREFS_NAME
 import ws.xsoh.etar.R
@@ -52,6 +56,30 @@ class ViewDetailsPreferences : PreferenceFragmentCompat() {
 
         landscapeConf.onCreate(preferenceScreen, activity)
         portraitConf.onCreate(preferenceScreen, activity)
+
+        // The summary shows the saved entry, as the %s summary did. A SummaryProvider replaces
+        // %s, which AndroidX no longer supports.
+        for (key in LIST_KEYS) {
+            findPreference<ListPreference>(key)?.summaryProvider =
+                ListPreference.SimpleSummaryProvider.getInstance()
+        }
+    }
+
+    override fun onCreateRecyclerView(
+        inflater: LayoutInflater,
+        parent: ViewGroup,
+        savedInstanceState: Bundle?
+    ): RecyclerView {
+        val list = super.onCreateRecyclerView(inflater, parent, savedInstanceState)
+        // Width limit in the measure pass; see SettingsListLayout.kt.
+        return wrapSettingsListWidth(list, parent, resources.displayMetrics.density)
+    }
+
+    override fun onDisplayPreferenceDialog(preference: Preference) {
+        // The list rows use the MD3 choice dialog. Other rows keep the framework behaviour.
+        if (!showSettingsChoiceDialog(preference)) {
+            super.onDisplayPreferenceDialog(preference)
+        }
     }
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
@@ -73,9 +101,13 @@ class ViewDetailsPreferences : PreferenceFragmentCompat() {
 
         private fun initDisplayTime(activity: Activity?) {
             if (!Utils.getConfigBool(activity, R.bool.show_time_in_month)) {
+                // The last choice (range below) is hidden on this window size. Trim the values
+                // with the entries. Otherwise a stored value of that choice finds an index past
+                // the shorter entries array. With the value gone, the default is applied below.
                 val entries = displayTime.entries
-                val newEntries = Arrays.copyOf(entries, entries.size - 1)
-                displayTime.entries = newEntries
+                displayTime.entries = Arrays.copyOf(entries, entries.size - 1)
+                val values = displayTime.entryValues
+                displayTime.entryValues = Arrays.copyOf(values, values.size - 1)
             }
             if (displayTime.entry == null || displayTime.entry!!.isEmpty()) {
                 displayTime.value = getDefaultTimeToShow(activity).toString()
@@ -161,6 +193,13 @@ class ViewDetailsPreferences : PreferenceFragmentCompat() {
         private const val KEY_DISPLAY_LOCATION_H_PREF = "pref_display_location_horizontal"
         private const val KEY_MAX_NUMBER_OF_LINES_V_PREF = "pref_number_of_lines_vertical"
         private const val KEY_MAX_NUMBER_OF_LINES_H_PREF = "pref_number_of_lines_horizontal"
+
+        private val LIST_KEYS = listOf(
+            KEY_MAX_NUMBER_OF_LINES_V_PREF,
+            KEY_DISPLAY_TIME_V_PREF,
+            KEY_MAX_NUMBER_OF_LINES_H_PREF,
+            KEY_DISPLAY_TIME_H_PREF
+        )
 
         private val LANDSCAPE_PREFS = PreferenceKeys(KEY_DISPLAY_TIME_H_PREF, KEY_DISPLAY_LOCATION_H_PREF, KEY_MAX_NUMBER_OF_LINES_H_PREF)
         private val PORTRAIT_PREFS = PreferenceKeys(KEY_DISPLAY_TIME_V_PREF, KEY_DISPLAY_LOCATION_V_PREF, KEY_MAX_NUMBER_OF_LINES_V_PREF)
