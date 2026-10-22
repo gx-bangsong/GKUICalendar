@@ -344,6 +344,7 @@
     <string name="calendar_switch_account">切換帳號</string>
     <string name="calendar_choose_account">選擇帳號</string>
     <string name="calendar_unavailable">此事件的日曆已無法使用，請先選擇其他日曆再儲存。</string>
+    <string name="calendar_account_unnamed">未命名帳號</string>
 
     <!-- Event form: full-screen time zone search page. -->
     <string name="timezone_search_title">時區</string>

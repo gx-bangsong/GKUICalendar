@@ -19,6 +19,7 @@ package com.android.calendar.event;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Pure grouping and selection rules for the calendar selector of the event form.
@@ -180,6 +181,96 @@ public final class CalendarAccountGroups {
             }
         }
         return all.get(0);
+    }
+
+    /** Visible title and optional subtitle of one account. Used by the row, the chooser and TalkBack. */
+    public static final class AccountLabel {
+        public final String title;
+        /** Secondary text, or null when there is nothing useful to add. */
+        public final String subtitle;
+
+        AccountLabel(String title, String subtitle) {
+            this.title = title;
+            this.subtitle = subtitle;
+        }
+    }
+
+    /**
+     * Visible names for accounts. Identity is unchanged (ACCOUNT_NAME plus ACCOUNT_TYPE); this
+     * only decides what is shown.
+     *
+     * <p>A local account shows its own ACCOUNT_NAME when that is a real name, with
+     * {@code localTypeLabel} as subtitle. The app's own placeholder (the offline account name in
+     * any supported language, given as {@code localPlaceholderNames}) and a blank name show
+     * {@code localAccountLabel} instead, with no subtitle. A non-local account shows its name and
+     * its type; a blank name shows {@code unnamedAccountLabel}.
+     *
+     * <p>Two accounts that would show the same title are told apart by the display name of their
+     * first calendar, added to the subtitle. That name is a hint only; it never becomes the title.
+     */
+    public static List<AccountLabel> accountLabels(List<Account> accounts,
+            Set<String> localPlaceholderNames, String localAccountLabel,
+            String localTypeLabel, String unnamedAccountLabel) {
+        int count = accounts.size();
+        String[] titles = new String[count];
+        String[] subtitles = new String[count];
+        for (int i = 0; i < count; i++) {
+            Account account = accounts.get(i);
+            if (account.isLocal()) {
+                if (isBlank(account.accountName)
+                        || localPlaceholderNames.contains(account.accountName)) {
+                    titles[i] = localAccountLabel;
+                    subtitles[i] = null;
+                } else {
+                    titles[i] = account.accountName;
+                    subtitles[i] = localTypeLabel;
+                }
+            } else {
+                titles[i] = isBlank(account.accountName) ? unnamedAccountLabel
+                        : account.accountName;
+                subtitles[i] = isBlank(account.accountType) ? null : account.accountType;
+            }
+        }
+        List<AccountLabel> labels = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) {
+            String subtitle = subtitles[i];
+            for (int j = 0; j < count; j++) {
+                if (j != i && titles[i].equals(titles[j])) {
+                    subtitle = join(subtitle, firstCalendarName(accounts.get(i)));
+                    break;
+                }
+            }
+            labels.add(new AccountLabel(titles[i], subtitle));
+        }
+        return labels;
+    }
+
+    /**
+     * The text of one calendar chip. It is always the calendar's own display name. The account
+     * name is never used here, and a blank display name shows the given fallback.
+     */
+    public static String calendarChipLabel(Calendar calendar, String unnamedCalendarLabel) {
+        return isBlank(calendar.displayName) ? unnamedCalendarLabel : calendar.displayName;
+    }
+
+    private static String firstCalendarName(Account account) {
+        for (Calendar calendar : account.calendars) {
+            if (!isBlank(calendar.displayName)) {
+                return calendar.displayName;
+            }
+        }
+        return null;
+    }
+
+    private static String join(String first, String second) {
+        if (isBlank(second)) {
+            return first;
+        }
+        return isBlank(first) ? second : first + " \u00B7 " + second;
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
     }
 
     /** Stored key format used for the default calendar preference. */

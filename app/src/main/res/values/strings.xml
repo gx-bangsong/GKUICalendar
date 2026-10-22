@@ -977,6 +977,7 @@
     <string name="calendar_switch_account">Switch account</string>
     <string name="calendar_choose_account">Choose account</string>
     <string name="calendar_unavailable">This event\'s calendar is no longer available. Choose a calendar before saving.</string>
+    <string name="calendar_account_unnamed">Unnamed account</string>
 
     <!-- Event form: full-screen time zone search page. -->
     <string name="timezone_search_title">Time zone</string>

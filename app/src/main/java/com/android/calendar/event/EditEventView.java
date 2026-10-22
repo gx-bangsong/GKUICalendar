@@ -25,6 +25,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
+import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.drawable.Drawable;
@@ -108,8 +109,10 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Formatter;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.TimeZone;
 
 import ws.xsoh.etar.R;
@@ -196,6 +199,8 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
     private Cursor mCalendarsCursor;
     /** Writable calendars grouped by account. Choices are identified by calendar _ID. */
     private List<CalendarAccountGroups.Account> mCalendarAccounts = new ArrayList<>();
+    /** Visible names for mCalendarAccounts, index for index. Identity still uses the accounts. */
+    private List<CalendarAccountGroups.AccountLabel> mCalendarAccountLabels = new ArrayList<>();
     /** The account shown in the account row, or -1 before the calendars load. */
     private int mCalendarAccountIndex = -1;
     /** The event's calendar is not in the writable list (deleted, read-only or no permission). */
@@ -1146,6 +1151,11 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         }
 
         mCalendarAccounts = CalendarAccountGroups.group(readWritableCalendars(cursor));
+        mCalendarAccountLabels = CalendarAccountGroups.accountLabels(mCalendarAccounts,
+                localPlaceholderNames(),
+                mActivity.getString(R.string.offline_account_name),
+                mActivity.getString(R.string.preferences_calendar_account_local),
+                mActivity.getString(R.string.calendar_account_unnamed));
         mCalendarMissing = selectedCalendarId != -1
                 && CalendarAccountGroups.findCalendar(mCalendarAccounts, selectedCalendarId) == null;
         CalendarAccountGroups.Calendar initial = null;
@@ -1295,11 +1305,14 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
     private void showCalendarAccount(int accountIndex, long checkedCalendarId) {
         mCalendarAccountIndex = accountIndex;
         CalendarAccountGroups.Account account = mCalendarAccounts.get(accountIndex);
-        mCalendarAccountName.setText(calendarAccountName(account));
+        CalendarAccountGroups.AccountLabel label = mCalendarAccountLabels.get(accountIndex);
+        mCalendarAccountName.setText(label.title);
+        mCalendarAccountType.setText(label.subtitle);
+        mCalendarAccountType.setVisibility(label.subtitle == null ? View.GONE : View.VISIBLE);
+        // TalkBack reads the same title and subtitle as the screen.
+        mCalendarAccountRow.setContentDescription(label.subtitle == null
+                ? label.title : label.title + ", " + label.subtitle);
         updateCalendarAccountRow();
-        boolean showType = !account.isLocal() && !TextUtils.isEmpty(account.accountType);
-        mCalendarAccountType.setText(showType ? account.accountType : null);
-        mCalendarAccountType.setVisibility(showType ? View.VISIBLE : View.GONE);
 
         mBindingCalendarChips = true;
         try {
@@ -1309,8 +1322,9 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
                 Chip chip = (Chip) inflater.inflate(R.layout.calendar_selector_chip,
                         mCalendarChipGroup, false);
                 chip.setId(View.generateViewId());
-                chip.setText(TextUtils.isEmpty(calendar.displayName)
-                        ? calendar.ownerAccount : calendar.displayName);
+                // The chip shows the calendar's own display name, never the account name.
+                chip.setText(CalendarAccountGroups.calendarChipLabel(calendar,
+                        mActivity.getString(R.string.preferences_calendar_no_display_name)));
                 // The calendar colour is the only colour marker, drawn inside its own chip.
                 chip.setChipIcon(calendarColorMarker(calendar.color));
                 chip.setChipIconTint(null);
@@ -1325,19 +1339,21 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         updateCalendarStateText();
     }
 
-    private String calendarAccountName(CalendarAccountGroups.Account account) {
-        if (account.isLocal() || TextUtils.isEmpty(account.accountName)) {
-            return mActivity.getString(R.string.offline_account_name);
+    /**
+     * The built-in offline account name in every language the app ships. A local account whose
+     * ACCOUNT_NAME is one of these is a placeholder, not a real account name.
+     */
+    private Set<String> localPlaceholderNames() {
+        Set<String> names = new HashSet<>();
+        names.add(mActivity.getString(R.string.offline_account_name));
+        Locale[] locales = {Locale.ENGLISH, Locale.SIMPLIFIED_CHINESE, Locale.TRADITIONAL_CHINESE};
+        for (Locale locale : locales) {
+            Configuration config = new Configuration(mActivity.getResources().getConfiguration());
+            config.locale = locale;
+            names.add(mActivity.createConfigurationContext(config)
+                    .getString(R.string.offline_account_name));
         }
-        return account.accountName;
-    }
-
-    /** Account label for the chooser; the type is appended so same-name accounts differ. */
-    private String calendarAccountLabel(CalendarAccountGroups.Account account) {
-        if (account.isLocal() || TextUtils.isEmpty(account.accountType)) {
-            return calendarAccountName(account);
-        }
-        return calendarAccountName(account) + " (" + account.accountType + ")";
+        return names;
     }
 
     private Drawable calendarColorMarker(int color) {
@@ -1386,7 +1402,9 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         }
         String[] labels = new String[mCalendarAccounts.size()];
         for (int i = 0; i < labels.length; i++) {
-            labels[i] = calendarAccountLabel(mCalendarAccounts.get(i));
+            CalendarAccountGroups.AccountLabel label = mCalendarAccountLabels.get(i);
+            labels[i] = label.subtitle == null
+                    ? label.title : label.title + " (" + label.subtitle + ")";
         }
         new MaterialAlertDialogBuilder(mActivity)
                 .setTitle(R.string.calendar_choose_account)

@@ -17,6 +17,8 @@
 package com.android.calendar.event;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -26,7 +28,9 @@ import com.android.calendar.event.CalendarAccountGroups.Calendar;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.Test;
 
@@ -162,5 +166,132 @@ public class CalendarAccountGroupsTest {
     public void defaultKeyRoundTripsThroughDefaultCalendar() {
         Calendar work = cal(2, "Work", "b@example.com", "b@example.com", GOOGLE);
         assertEquals("b@example.com/Work", CalendarAccountGroups.defaultKeyOf(work));
+    }
+
+    // Test labels stand in for the localised strings. The placeholder set mirrors what the
+    // form builds from the offline account name in each supported language.
+    private static final String LOCAL_LABEL = "Offline label";
+    private static final String LOCAL_TYPE = "Offline type";
+    private static final String UNNAMED = "Unnamed";
+    /** The offline account name in Simplified Chinese, written as escapes to keep the source ASCII. */
+    private static final String CN_PLACEHOLDER = "\u79bb\u7ebf\u65e5\u5386";
+
+    private static Set<String> placeholders() {
+        Set<String> names = new HashSet<>();
+        names.add("Offline Calendar");
+        names.add(CN_PLACEHOLDER);
+        return names;
+    }
+
+    private static List<CalendarAccountGroups.AccountLabel> labelsOf(List<Calendar> calendars) {
+        return CalendarAccountGroups.accountLabels(CalendarAccountGroups.group(calendars),
+                placeholders(), LOCAL_LABEL, LOCAL_TYPE, UNNAMED);
+    }
+
+    @Test
+    public void twoLocalAccountsWithRealNamesKeepTheirOwnTitles() {
+        List<Calendar> calendars = new ArrayList<>(Arrays.asList(
+                cal(10, "Home", "Family", "Family", LOCAL),
+                cal(11, "Gym", "Trips", "Trips", LOCAL)));
+        List<CalendarAccountGroups.AccountLabel> labels = labelsOf(calendars);
+        assertEquals(2, labels.size());
+        assertEquals("Family", labels.get(0).title);
+        assertEquals("Trips", labels.get(1).title);
+        assertEquals(LOCAL_TYPE, labels.get(0).subtitle);
+        assertEquals(LOCAL_TYPE, labels.get(1).subtitle);
+    }
+
+    @Test
+    public void placeholderLocalNameShowsTheLocalisedLabelInAnyLanguage() {
+        List<CalendarAccountGroups.AccountLabel> english = labelsOf(new ArrayList<>(Arrays.asList(
+                cal(20, "Phone", "Offline Calendar", "Offline Calendar", LOCAL))));
+        assertEquals(LOCAL_LABEL, english.get(0).title);
+        assertNull(english.get(0).subtitle);
+
+        List<CalendarAccountGroups.AccountLabel> chinese = labelsOf(new ArrayList<>(Arrays.asList(
+                cal(21, "Phone", CN_PLACEHOLDER, CN_PLACEHOLDER, LOCAL))));
+        assertEquals(LOCAL_LABEL, chinese.get(0).title);
+        assertNull(chinese.get(0).subtitle);
+    }
+
+    @Test
+    public void blankLocalNameFallsBackToTheLocalisedLabel() {
+        List<CalendarAccountGroups.AccountLabel> labels = labelsOf(new ArrayList<>(Arrays.asList(
+                cal(22, "Phone", "", "", LOCAL))));
+        assertEquals(LOCAL_LABEL, labels.get(0).title);
+    }
+
+    @Test
+    public void blankNonLocalNameFallsBackToTheUnnamedLabelAndKeepsItsType() {
+        List<CalendarAccountGroups.AccountLabel> labels = labelsOf(new ArrayList<>(Arrays.asList(
+                cal(23, "Work", "", "", GOOGLE))));
+        assertEquals(UNNAMED, labels.get(0).title);
+        assertEquals(GOOGLE, labels.get(0).subtitle);
+    }
+
+    @Test
+    public void accountsThatWouldShowTheSameTitleAreToldApartByCalendarName() {
+        List<CalendarAccountGroups.AccountLabel> labels = labelsOf(new ArrayList<>(Arrays.asList(
+                cal(30, "Desk", "Offline Calendar", "Offline Calendar", LOCAL),
+                cal(31, "Garage", LOCAL_LABEL, LOCAL_LABEL, LOCAL))));
+        assertEquals(2, labels.size());
+        assertEquals(LOCAL_LABEL, labels.get(0).title);
+        assertEquals(LOCAL_LABEL, labels.get(1).title);
+        assertNotEquals(labels.get(0).subtitle, labels.get(1).subtitle);
+        assertTrue(labels.get(0).subtitle.contains("Desk"));
+        assertTrue(labels.get(1).subtitle.contains("Garage"));
+    }
+
+    @Test
+    public void chipShowsTheCalendarDisplayNameNeverTheAccountName() {
+        Calendar named = cal(40, "Work", "a@example.com", "a@example.com", GOOGLE);
+        Calendar unnamed = cal(41, "", "a@example.com", "a@example.com", GOOGLE);
+        Calendar nullName = cal(42, null, "a@example.com", "a@example.com", GOOGLE);
+        assertEquals("Work", CalendarAccountGroups.calendarChipLabel(named, UNNAMED));
+        assertEquals(UNNAMED, CalendarAccountGroups.calendarChipLabel(unnamed, UNNAMED));
+        assertEquals(UNNAMED, CalendarAccountGroups.calendarChipLabel(nullName, UNNAMED));
+        assertFalse("a@example.com".equals(
+                CalendarAccountGroups.calendarChipLabel(unnamed, UNNAMED)));
+    }
+
+    @Test
+    public void calendarsOfOneAccountKeepTheirOwnChipLabels() {
+        List<Calendar> calendars = new ArrayList<>(Arrays.asList(
+                cal(50, "Home", "Family", "Family", LOCAL),
+                cal(51, "Work", "Family", "Family", LOCAL),
+                cal(52, "Holidays", "Family", "Family", LOCAL)));
+        List<Account> accounts = CalendarAccountGroups.group(calendars);
+        assertEquals(1, accounts.size());
+        List<Calendar> inAccount = accounts.get(0).calendars;
+        assertEquals("Home", CalendarAccountGroups.calendarChipLabel(inAccount.get(0), UNNAMED));
+        assertEquals("Work", CalendarAccountGroups.calendarChipLabel(inAccount.get(1), UNNAMED));
+        assertEquals("Holidays",
+                CalendarAccountGroups.calendarChipLabel(inAccount.get(2), UNNAMED));
+    }
+
+    @Test
+    public void sameNameCalendarsInDifferentAccountsKeepTheirOwnIds() {
+        List<Calendar> calendars = new ArrayList<>(Arrays.asList(
+                cal(60, "Work", "a@example.com", "a@example.com", GOOGLE),
+                cal(61, "Work", "b@example.com", "b@example.com", GOOGLE)));
+        List<Account> accounts = CalendarAccountGroups.group(calendars);
+        assertEquals(2, accounts.size());
+        assertEquals(60, CalendarAccountGroups.findCalendar(accounts, 60).id);
+        assertEquals(61, CalendarAccountGroups.findCalendar(accounts, 61).id);
+        assertEquals(0, CalendarAccountGroups.indexOfAccountContaining(accounts, 60));
+        assertEquals(1, CalendarAccountGroups.indexOfAccountContaining(accounts, 61));
+    }
+
+    @Test
+    public void renamingACalendarDoesNotChangeTheSelectedId() {
+        List<Account> before = CalendarAccountGroups.group(new ArrayList<>(Arrays.asList(
+                cal(70, "Work", "a@example.com", "a@example.com", GOOGLE))));
+        List<Account> after = CalendarAccountGroups.group(new ArrayList<>(Arrays.asList(
+                cal(70, "Work renamed", "a@example.com", "a@example.com", GOOGLE))));
+        assertEquals(70, CalendarAccountGroups.findCalendar(before, 70).id);
+        assertEquals(70, CalendarAccountGroups.findCalendar(after, 70).id);
+        assertEquals(0, CalendarAccountGroups.indexOfAccountContaining(after, 70));
+        assertEquals("Work renamed", CalendarAccountGroups.calendarChipLabel(
+                CalendarAccountGroups.findCalendar(after, 70), UNNAMED));
     }
 }

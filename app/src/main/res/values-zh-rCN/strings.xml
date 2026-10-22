@@ -422,6 +422,7 @@
     <string name="calendar_switch_account">切换账号</string>
     <string name="calendar_choose_account">选择账号</string>
     <string name="calendar_unavailable">此事件的日历已不可用，请先选择其他日历再保存。</string>
+    <string name="calendar_account_unnamed">未命名账号</string>
 
     <!-- Event form: full-screen time zone search page. -->
     <string name="timezone_search_title">时区</string>
