@@ -38,6 +38,9 @@ import kotlin.math.max
  */
 class LunarPreferences : PreferenceFragmentCompat() {
 
+    // Debug-only sequence number for LunarAlignDebug lines.
+    private var debugSeq = 0
+
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         preferenceManager.sharedPreferencesName = GeneralPreferences.SHARED_PREFS_NAME
         setPreferencesFromResource(R.xml.lunar_preferences, rootKey)
@@ -60,11 +63,26 @@ class LunarPreferences : PreferenceFragmentCompat() {
         // only when the value differs, so this does not loop.
         val basePadding = list.paddingStart
         val maxContentPx = (CONTENT_MAX_WIDTH_DP * resources.displayMetrics.density).toInt()
+        // Debug-only geometry log (debuggable builds). Remove with LunarAlignDebug.
+        val debug = LunarAlignDebug.enabled(requireContext())
         list.addOnLayoutChangeListener { view, left, _, right, _, _, _, _, _ ->
             val side = max(basePadding, (right - left - maxContentPx) / 2)
             if (view.paddingStart != side || view.paddingEnd != side) {
+                if (debug) {
+                    LunarAlignDebug.dump(list, "padding-change old=${view.paddingStart} new=$side", ++debugSeq)
+                }
                 view.setPaddingRelative(side, view.paddingTop, side, view.paddingBottom)
             }
+        }
+        if (debug) {
+            list.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+                override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                    if (newState == RecyclerView.SCROLL_STATE_IDLE) {
+                        LunarAlignDebug.dump(recyclerView, "idle", ++debugSeq)
+                    }
+                }
+            })
+            list.post { LunarAlignDebug.dump(list, "post-create", ++debugSeq) }
         }
         return list
     }
