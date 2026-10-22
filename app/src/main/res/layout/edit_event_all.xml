@@ -26,23 +26,27 @@
         android:layout_height="wrap_content"
         android:paddingBottom="24dp">
 
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/title"
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/title_layout"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="24dp"
             android:layout_marginTop="16dp"
             android:layout_marginEnd="24dp"
-            android:background="@null"
-            android:focusable="true"
             android:hint="@string/hint_what"
-            android:inputType="textAutoCorrect|textCapSentences"
-            android:minHeight="48dip"
-            android:singleLine="true"
-            android:textSize="24sp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:focusable="true"
+                android:inputType="textAutoCorrect|textCapSentences"
+                android:singleLine="true"
+                android:textSize="18sp" />
+        </com.google.android.material.textfield.TextInputLayout>
 
         <HorizontalScrollView
             android:id="@+id/event_types_scroll"
@@ -51,8 +55,8 @@
             android:layout_marginTop="8dp"
             android:scrollbars="none"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="@+id/title"
-            app:layout_constraintTop_toBottomOf="@+id/title">
+            app:layout_constraintStart_toStartOf="@+id/title_layout"
+            app:layout_constraintTop_toBottomOf="@+id/title_layout">
 
             <com.google.android.material.chip.ChipGroup
                 android:id="@+id/event_types"
@@ -79,9 +83,9 @@
             android:layout_height="24dp"
             android:layout_marginStart="24dp"
             android:src="@drawable/outline_account_circle"
-            app:layout_constraintBottom_toBottomOf="@+id/calendars_spinner"
+            app:layout_constraintBottom_toBottomOf="@+id/calendars_layout"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="@+id/calendars_spinner" />
+            app:layout_constraintTop_toTopOf="@+id/calendars_layout" />
 
         <View
             android:id="@+id/calendar_selector_group_background"
@@ -92,18 +96,26 @@
             app:layout_constraintStart_toStartOf="@+id/calendar_selector_group_icon"
             app:layout_constraintTop_toTopOf="@+id/calendar_selector_group_icon" />
 
-        <Spinner
-            android:id="@+id/calendars_spinner"
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/calendars_layout"
+            style="@style/Widget.Material3.TextInputLayout.FilledBox.ExposedDropdownMenu"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
             android:layout_marginTop="16dp"
             android:layout_marginEnd="8dp"
-            android:gravity="center_vertical"
-            android:popupBackground="?attr/colorSurfaceContainer"
+            android:hint="@string/edit_event_calendar_label"
             app:layout_constraintEnd_toStartOf="@+id/change_color"
             app:layout_constraintStart_toEndOf="@+id/calendar_selector_group_icon"
-            app:layout_constraintTop_toBottomOf="@+id/separator_title" />
+            app:layout_constraintTop_toBottomOf="@+id/separator_title">
+
+            <com.android.calendar.event.ExposedDropdownField
+                android:id="@+id/calendars_spinner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="none"
+                android:singleLine="false" />
+        </com.google.android.material.textfield.TextInputLayout>
 
         <ImageButton
             android:id="@+id/change_color"
@@ -113,9 +125,9 @@
             android:background="?android:attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/choose_event_color_label"
             android:src="@drawable/outline_color_lens"
-            app:layout_constraintBottom_toBottomOf="@+id/calendars_spinner"
+            app:layout_constraintBottom_toBottomOf="@+id/calendars_layout"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@+id/calendars_spinner" />
+            app:layout_constraintTop_toTopOf="@+id/calendars_layout" />
 
         <View
             android:id="@+id/separator_calendar"
@@ -123,7 +135,7 @@
             android:layout_marginTop="16dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/calendars_spinner" />
+            app:layout_constraintTop_toBottomOf="@+id/calendars_layout" />
 
         <!-- ALL DAY -->
         <ImageView
@@ -513,22 +525,30 @@
             android:layout_height="24dp"
             android:layout_marginStart="24dp"
             android:src="@drawable/ic_outline_business_center"
-            app:layout_constraintBottom_toBottomOf="@+id/availability"
+            app:layout_constraintBottom_toBottomOf="@+id/availability_layout"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="@+id/availability" />
+            app:layout_constraintTop_toTopOf="@+id/availability_layout" />
 
-        <Spinner
-            android:id="@+id/availability"
-            style="@style/TextAppearance.EditEvent"
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/availability_layout"
+            style="@style/Widget.Material3.TextInputLayout.FilledBox.ExposedDropdownMenu"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
             android:layout_marginTop="16dp"
             android:layout_marginEnd="24dp"
-            android:popupBackground="?attr/colorSurfaceContainer"
+            android:hint="@string/accessibility_reminder_showmeas"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@+id/availability_icon"
-            app:layout_constraintTop_toBottomOf="@+id/separator_reminders" />
+            app:layout_constraintTop_toBottomOf="@+id/separator_reminders">
+
+            <com.android.calendar.event.ExposedDropdownField
+                android:id="@+id/availability"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="none"
+                android:singleLine="false" />
+        </com.google.android.material.textfield.TextInputLayout>
 
         <!-- VISIBILITY -->
         <ImageView
@@ -537,22 +557,30 @@
             android:layout_height="24dp"
             android:layout_marginStart="24dp"
             android:src="@drawable/ic_outline_lock"
-            app:layout_constraintBottom_toBottomOf="@+id/visibility"
+            app:layout_constraintBottom_toBottomOf="@+id/visibility_layout"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="@+id/visibility" />
+            app:layout_constraintTop_toTopOf="@+id/visibility_layout" />
 
-        <Spinner
-            android:id="@+id/visibility"
-            style="@style/TextAppearance.EditEvent"
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/visibility_layout"
+            style="@style/Widget.Material3.TextInputLayout.FilledBox.ExposedDropdownMenu"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
             android:layout_marginTop="16dp"
             android:layout_marginEnd="24dp"
-            android:popupBackground="?attr/colorSurfaceContainer"
+            android:hint="@string/accessibility_reminder_privacy"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@+id/visibility_icon"
-            app:layout_constraintTop_toBottomOf="@+id/availability" />
+            app:layout_constraintTop_toBottomOf="@+id/availability_layout">
+
+            <com.android.calendar.event.ExposedDropdownField
+                android:id="@+id/visibility"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="none"
+                android:singleLine="false" />
+        </com.google.android.material.textfield.TextInputLayout>
 
         <!-- RESPONSE GROUP -->
         <androidx.constraintlayout.widget.Group
@@ -570,7 +598,7 @@
             android:layout_marginTop="16dp"
             android:text="@string/view_event_response_label"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/visibility" />
+            app:layout_constraintTop_toBottomOf="@+id/visibility_layout" />
 
         <RadioGroup
             android:id="@+id/response_value"

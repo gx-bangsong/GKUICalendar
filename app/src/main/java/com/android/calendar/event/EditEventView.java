@@ -42,12 +42,10 @@ import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityManager;
 import android.view.inputmethod.EditorInfo;
-import android.widget.AdapterView;
-import android.widget.AdapterView.OnItemSelectedListener;
-import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.CompoundButton;
@@ -55,7 +53,6 @@ import android.widget.LinearLayout;
 import android.widget.MultiAutoCompleteTextView;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
-import android.widget.ResourceCursorAdapter;
 import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -96,6 +93,7 @@ import com.google.android.material.datepicker.MaterialDatePicker;
 import com.google.android.material.datepicker.MaterialPickerOnPositiveButtonClickListener;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 import com.google.android.material.timepicker.MaterialTimePicker;
 import com.google.android.material.timepicker.TimeFormat;
 
@@ -111,7 +109,7 @@ import java.util.TimeZone;
 import ws.xsoh.etar.R;
 
 public class EditEventView implements View.OnClickListener, DialogInterface.OnCancelListener,
-        DialogInterface.OnClickListener, OnItemSelectedListener,
+        DialogInterface.OnClickListener,
         RecurrencePickerDialog.OnRecurrenceSetListener,
         TimeZonePickerDialog.OnTimeZoneSetListener {
 
@@ -149,10 +147,10 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
     TextView mEndDateHome;
     SwitchCompat mAllDayCheckBox;
     com.google.android.material.chip.ChipGroup mEventTypeGroup;
-    Spinner mCalendarsSpinner;
+    ExposedDropdownField mCalendarsSpinner;
     Button mRruleButton;
-    Spinner mAvailabilitySpinner;
-    Spinner mAccessLevelSpinner;
+    ExposedDropdownField mAvailabilitySpinner;
+    ExposedDropdownField mAccessLevelSpinner;
     RadioGroup mResponseRadioGroup;
     TextView mTitleTextView;
     AutoCompleteTextView mLocationTextView;
@@ -209,12 +207,12 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
     private ArrayList<Integer> mAvailabilityValues;
     private ArrayList<String> mAvailabilityLabels;
     private ArrayList<String> mAccessLabels;
-    private ArrayList<String> mOriginalAvailabilityLabels;
-    private ArrayAdapter<String> mAvailabilityAdapter;
-    private ArrayAdapter<String> mAccessAdapter;
+    /** Visibility values (ACCESS_*), parallel to mAccessLabels. */
+    private ArrayList<Integer> mAccessValues;
     private boolean mAvailabilityExplicitlySet;
-    private boolean mAllDayChangingAvailability;
     private int mAvailabilityCurrentlySelected;
+    /** Set when calendars load before the model; the calendar refresh runs in setModel. */
+    private boolean mCalendarsInitPending;
     private int mDefaultReminderMinutes;
     private boolean mSaveAfterQueryComplete = false;
     private TimeZonePickerUtils mTzPickerUtils;
@@ -239,7 +237,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         mScrollView = (ScrollView) view.findViewById(R.id.scroll_view);
 
         // cache all the widgets
-        mCalendarsSpinner = (Spinner) view.findViewById(R.id.calendars_spinner);
+        mCalendarsSpinner = (ExposedDropdownField) view.findViewById(R.id.calendars_spinner);
         mTitleTextView = (TextView) view.findViewById(R.id.title);
         mLocationTextView = (AutoCompleteTextView) view.findViewById(R.id.location);
         mDescriptionTextView = (TextView) view.findViewById(R.id.description);
@@ -265,8 +263,8 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         mAllDayCheckBox = view.findViewById(R.id.is_all_day);
         mEventTypeGroup = view.findViewById(R.id.event_types);
         mRruleButton = (Button) view.findViewById(R.id.rrule);
-        mAvailabilitySpinner = (Spinner) view.findViewById(R.id.availability);
-        mAccessLevelSpinner = (Spinner) view.findViewById(R.id.visibility);
+        mAvailabilitySpinner = (ExposedDropdownField) view.findViewById(R.id.availability);
+        mAccessLevelSpinner = (ExposedDropdownField) view.findViewById(R.id.visibility);
         mCalendarSelectorGroupBackground = view.findViewById(R.id.calendar_selector_group_background);
         mRemindersGroup = view.findViewById(R.id.reminder_items_container);
         mResponseGroup = view.findViewById(R.id.response_group);
@@ -300,37 +298,15 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         });
 
         mAvailabilityExplicitlySet = false;
-        mAllDayChangingAvailability = false;
         mAvailabilityCurrentlySelected = -1;
-        mAvailabilitySpinner.setOnItemSelectedListener(
-                new OnItemSelectedListener() {
-                    @Override
-                    public void onItemSelected(AdapterView<?> parent,
-                                               View view, int position, long id) {
-                        // The spinner's onItemSelected gets called while it is being
-                        // initialized to the first item, and when we explicitly set it
-                        // in the allDay checkbox toggling, so we need these checks to
-                        // find out when the spinner is actually being clicked.
-
-                        // Set the initial selection.
-                        if (mAvailabilityCurrentlySelected == -1) {
-                            mAvailabilityCurrentlySelected = position;
-                        }
-
-                        if (mAvailabilityCurrentlySelected != position &&
-                                !mAllDayChangingAvailability) {
-                            mAvailabilityExplicitlySet = true;
-                        } else {
-                            mAvailabilityCurrentlySelected = position;
-                            mAllDayChangingAvailability = false;
-                }
+        // Only a user pick of a different option counts as an explicit availability choice.
+        mAvailabilitySpinner.setOnPickListener(index -> {
+            if (index != mAvailabilityCurrentlySelected) {
+                mAvailabilityExplicitlySet = true;
             }
-
-                    @Override
-                    public void onNothingSelected(AdapterView<?> arg0) {
-                    }
-                });
-
+            mAvailabilityCurrentlySelected = index;
+        });
+        mCalendarsSpinner.setOnPickListener(this::onCalendarPicked);
 
         mDescriptionTextView.setTag(mDescriptionTextView.getBackground());
         mUrlTextView.setTag(mUrlTextView.getBackground());
@@ -643,8 +619,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             mEmailValidator.setRemoveInvalid(false);
         }
 
-        mModel.mCalendarId = mCalendarsSpinner.getSelectedItemId();
-        int calendarCursorPosition = mCalendarsSpinner.getSelectedItemPosition();
+        int calendarCursorPosition = mCalendarsSpinner.getSelectedIndex();
         if (mCalendarsCursor.moveToPosition(calendarCursorPosition)) {
             String calendarOwner = mCalendarsCursor.getString(
                     EditEventHelper.CALENDARS_INDEX_OWNER_ACCOUNT);
@@ -707,10 +682,16 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             mModel.mEnd = mEndTime.toMillis();
             mModel.mTimezone = mTimezone;
         }
-        mModel.mAccessLevel = mAccessLevelSpinner.getSelectedItemPosition();
-        // TODO set correct availability value
-        mModel.mAvailability = mAvailabilityValues.get(mAvailabilitySpinner
-                .getSelectedItemPosition());
+        // Map the selected option index to its stored value; keep the model value if none.
+        int accessIndex = mAccessLevelSpinner.getSelectedIndex();
+        if (mAccessValues != null && accessIndex >= 0 && accessIndex < mAccessValues.size()) {
+            mModel.mAccessLevel = mAccessValues.get(accessIndex);
+        }
+        int availabilityIndex = mAvailabilitySpinner.getSelectedIndex();
+        if (mAvailabilityValues != null && availabilityIndex >= 0
+                && availabilityIndex < mAvailabilityValues.size()) {
+            mModel.mAvailability = mAvailabilityValues.get(availabilityIndex);
+        }
 
         // rrrule
         // If we're making an exception we don't want it to be a repeating
@@ -727,11 +708,11 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
     private void prepareAccess() {
         Resources r = mActivity.getResources();
         mAccessLabels = loadStringArray(r, R.array.visibility);
-        mAccessAdapter = new ArrayAdapter<String>(mActivity,
-                R.layout.simple_spinner_item, mAccessLabels);
-        mAccessAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        mAccessLevelSpinner.setAdapter(mAccessAdapter);
-        mAccessLevelSpinner.setSelection(mModel.mAccessLevel);
+        mAccessValues = loadIntegerArray(r, R.array.visibility_values);
+        // Select by stored value. An unknown value falls back to the first option,
+        // which matches what the form saved before.
+        int index = DropdownValues.indexOfOrFallback(mAccessValues, mModel.mAccessLevel, 0);
+        mAccessLevelSpinner.setChoices(mAccessLabels, index);
     }
 
     private void prepareAvailability() {
@@ -739,24 +720,17 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
 
         mAvailabilityValues = loadIntegerArray(r, R.array.availability_values);
         mAvailabilityLabels = loadStringArray(r, R.array.availability);
-        // Copy the unadulterated availability labels for all-day toggling.
-        mOriginalAvailabilityLabels = new ArrayList<String>();
-        mOriginalAvailabilityLabels.addAll(mAvailabilityLabels);
 
         if (mModel.mCalendarAllowedAvailability != null) {
             EventViewUtils.reduceMethodList(mAvailabilityValues, mAvailabilityLabels,
                     mModel.mCalendarAllowedAvailability);
         }
 
-        mAvailabilityAdapter = new ArrayAdapter<String>(mActivity,
-                R.layout.simple_spinner_item, mAvailabilityLabels);
-        mAvailabilityAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        mAvailabilitySpinner.setAdapter(mAvailabilityAdapter);
-
-        int availIndex = mAvailabilityValues.indexOf(mModel.mAvailability);
-        if (availIndex != -1) {
-            mAvailabilitySpinner.setSelection(availIndex);
-        }
+        // Values and labels are reduced in parallel, so an index into one indexes the other.
+        int availIndex = DropdownValues.indexOfOrFallback(
+                mAvailabilityValues, mModel.mAvailability, 0);
+        mAvailabilitySpinner.setChoices(mAvailabilityLabels, availIndex);
+        mAvailabilityCurrentlySelected = mAvailabilitySpinner.getSelectedIndex();
         mAvailabilityExplicitlySet = mModel.mAvailabilityExplicitlySet;
     }
 
@@ -1017,6 +991,14 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         mLoadingMessage.setVisibility(View.GONE);
         setTitleFocus();
         sendAccessibilityEvent();
+
+        if (mCalendarsInitPending) {
+            mCalendarsInitPending = false;
+            int selected = mCalendarsSpinner.getSelectedIndex();
+            if (selected >= 0) {
+                onCalendarPicked(selected);
+            }
+        }
     }
 
     public void updateHeadlineColor(int displayColor) {
@@ -1146,12 +1128,10 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             selection = findDefaultCalendarPosition(cursor);
         }
 
-        // populate the calendars spinner
-        CalendarsAdapter adapter = new CalendarsAdapter(mActivity,
-            R.layout.calendars_spinner_item, cursor);
-        mCalendarsSpinner.setAdapter(adapter);
-        mCalendarsSpinner.setOnItemSelectedListener(this);
-        mCalendarsSpinner.setSelection(selection);
+        // Populate the calendars dropdown. The calendar-dependent refresh (reminders,
+        // availability, visibility) runs once the model is available: see setModel().
+        mCalendarsSpinner.setChoices(buildCalendarLabels(cursor), selection);
+        mCalendarsInitPending = true;
 
         if (mSaveAfterQueryComplete) {
             mLoadingCalendarsDialog.cancel();
@@ -1196,7 +1176,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             mStartRowContainer.setVisibility(View.GONE);
             mEndRowContainer.setVisibility(View.GONE);
             for (View v : mEditViewList) {
-                v.setEnabled(false);
+                setFieldEnabled(v, false);
                 v.setBackgroundDrawable(null);
             }
             mRruleButton.setEnabled(false);
@@ -1214,7 +1194,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             if (TextUtils.isEmpty(mUrlTextView.getText())) {
                 mUrlGroup.setVisibility(View.GONE);
             }
-            mCalendarsSpinner.setEnabled(false);
+            setFieldEnabled(mCalendarsSpinner, false);
         } else {
             for (View v : mViewOnlyList) {
                 v.setVisibility(View.GONE);
@@ -1225,7 +1205,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             mStartRowContainer.setVisibility(View.VISIBLE);
             mEndRowContainer.setVisibility(View.VISIBLE);
             for (View v : mEditViewList) {
-                v.setEnabled(true);
+                setFieldEnabled(v, true);
                 if (v.getTag() != null) {
                     v.setBackgroundDrawable((Drawable) v.getTag());
                     v.setPadding(mOriginalPadding[0], mOriginalPadding[1], mOriginalPadding[2],
@@ -1245,7 +1225,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             mUrlGroup.setVisibility(View.VISIBLE);
 
             // disallow changing calendar for recurrences when not modifying all instances
-            mCalendarsSpinner.setEnabled(mode == Utils.MODIFY_ALL);
+            setFieldEnabled(mCalendarsSpinner, mode == Utils.MODIFY_ALL);
         }
         setAllDayViewsVisibility(mAllDayCheckBox.isChecked());
     }
@@ -1473,15 +1453,12 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             // 0 = busy
             // 1 = available
             int newAvailabilityValue = isChecked? 1 : 0;
-            if (mAvailabilityAdapter != null && mAvailabilityValues != null
-                    && mAvailabilityValues.contains(newAvailabilityValue)) {
-                // We'll need to let the spinner's listener know that we're
-                // explicitly toggling it.
-                mAllDayChangingAvailability = true;
-
-                String newAvailabilityLabel = mOriginalAvailabilityLabels.get(newAvailabilityValue);
-                int newAvailabilityPos = mAvailabilityAdapter.getPosition(newAvailabilityLabel);
-                mAvailabilitySpinner.setSelection(newAvailabilityPos);
+            int newAvailabilityPos = mAvailabilityValues != null
+                    ? mAvailabilityValues.indexOf(newAvailabilityValue) : -1;
+            if (newAvailabilityPos != -1) {
+                // Programmatic: select() does not count as an explicit user choice.
+                mAvailabilitySpinner.select(newAvailabilityPos);
+                mAvailabilityCurrentlySelected = newAvailabilityPos;
             }
         }
 
@@ -1502,15 +1479,21 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
     }
 
     @Override
-    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-        // This is only used for the Calendar spinner in new events, and only fires when the
-        // calendar selection changes or on screen rotation
-        Cursor c = (Cursor) parent.getItemAtPosition(position);
-        if (c == null) {
-            // TODO: can this happen? should we drop this check?
+    /**
+     * The user picked a calendar. Loads that calendar's values into the model
+     * and refreshes the reminder, availability and visibility lists. Also runs
+     * once after the calendars load (see setModel). Option positions index the
+     * calendars cursor directly.
+     */
+    private void onCalendarPicked(int position) {
+        if (mModel == null || mCalendarsCursor == null) {
+            return;
+        }
+        if (!mCalendarsCursor.moveToPosition(position)) {
             Log.w(TAG, "Cursor not set on calendar item");
             return;
         }
+        Cursor c = mCalendarsCursor;
 
         mModel.mCalendarId = c.getLong(EditEventHelper.CALENDARS_INDEX_ID);
         EditEventHelper.setModelFromCalendarCursor(mModel, c, mActivity);
@@ -1539,6 +1522,32 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         prepareReminders();
         prepareAvailability();
         prepareAccess();
+    }
+
+    /**
+     * Enables or disables a form field together with its TextInputLayout box, so
+     * the outline and label reflect the state. Fields not wrapped in a TIL are
+     * just disabled.
+     */
+    private static void setFieldEnabled(View field, boolean enabled) {
+        ViewParent parent = field.getParent();
+        if (parent instanceof TextInputLayout) {
+            ((TextInputLayout) parent).setEnabled(enabled);
+        }
+        field.setEnabled(enabled);
+    }
+
+    /** Dropdown labels for the calendars cursor, in cursor order (see DropdownValues). */
+    private static ArrayList<String> buildCalendarLabels(Cursor cursor) {
+        ArrayList<String> labels = new ArrayList<String>(cursor.getCount());
+        int nameColumn = cursor.getColumnIndexOrThrow(Calendars.CALENDAR_DISPLAY_NAME);
+        int ownerColumn = cursor.getColumnIndexOrThrow(Calendars.OWNER_ACCOUNT);
+        cursor.moveToPosition(-1);
+        while (cursor.moveToNext()) {
+            labels.add(DropdownValues.calendarLabel(
+                    cursor.getString(nameColumn), cursor.getString(ownerColumn)));
+        }
+        return labels;
     }
 
     /**
@@ -1600,10 +1609,6 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             mStartHomeGroup.setVisibility(View.GONE);
             mEndHomeGroup.setVisibility(View.GONE);
         }
-    }
-
-    @Override
-    public void onNothingSelected(AdapterView<?> parent) {
     }
 
     public void showTimerPickerDialog(View view) {
@@ -1752,37 +1757,6 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         setTime(mEndTimeButton, endMillis); // In case end time had to be
         // reset
         updateHomeTime();
-    }
-
-    public static class CalendarsAdapter extends ResourceCursorAdapter {
-        public CalendarsAdapter(Context context, int resourceId, Cursor c) {
-            super(context, resourceId, c);
-            setDropDownViewResource(R.layout.calendars_dropdown_item);
-        }
-
-        @Override
-        public void bindView(View view, Context context, Cursor cursor) {
-            View colorBar = view.findViewById(R.id.color);
-            int colorColumn = cursor.getColumnIndexOrThrow(Calendars.CALENDAR_COLOR);
-            int nameColumn = cursor.getColumnIndexOrThrow(Calendars.CALENDAR_DISPLAY_NAME);
-            int ownerColumn = cursor.getColumnIndexOrThrow(Calendars.OWNER_ACCOUNT);
-            if (colorBar != null) {
-                colorBar.setBackgroundColor(Utils.getDisplayColorFromColor(context,
-                        cursor.getInt(colorColumn)));
-            }
-
-            TextView name = (TextView) view.findViewById(R.id.calendar_name);
-            if (name != null) {
-                String displayName = cursor.getString(nameColumn);
-                name.setText(displayName);
-
-                TextView accountName = (TextView) view.findViewById(R.id.account_name);
-                if (accountName != null) {
-                    accountName.setText(cursor.getString(ownerColumn));
-                    accountName.setVisibility(TextView.VISIBLE);
-                }
-            }
-        }
     }
 
     private void setupEventTypeChips(String selectedType) {

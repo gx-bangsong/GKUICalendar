@@ -86,7 +86,6 @@ import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityManager;
 import android.widget.AdapterView;
-import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
@@ -440,7 +439,7 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
     private ArrayList<Integer> mReminderMethodValues;
     private ArrayList<String> mReminderMethodLabels;
     private QueryHandler mHandler;
-    private OnItemSelectedListener mReminderChangeListener;
+    private EventViewUtils.ReminderChangeListener mReminderChangeListener;
     private boolean mIsDialog = false;
     private boolean mIsPaused = true;
     private boolean mDismissOnResume = false;
@@ -581,21 +580,12 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
-        mReminderChangeListener = new OnItemSelectedListener() {
+        mReminderChangeListener = new EventViewUtils.ReminderChangeListener() {
             @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                Integer prevValue = (Integer) parent.getTag();
-                if (prevValue == null || prevValue != position) {
-                    parent.setTag(position);
-                    mUserModifiedReminders = true;
-                }
+            public void onReminderChanged() {
+                // Only reported for real changes; see ExposedDropdownField.
+                mUserModifiedReminders = true;
             }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-                // do nothing
-            }
-
         };
 
         if (savedInstanceState != null) {

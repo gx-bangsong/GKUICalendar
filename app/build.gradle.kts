@@ -215,6 +215,7 @@ if (System.getenv("CI") != null) {
 		filter.includeTestsMatching("com.android.calendar.monthagenda.*")
 		filter.includeTestsMatching("com.android.calendar.theme.*")
 		filter.includeTestsMatching("com.android.calendar.settings.*")
+		filter.includeTestsMatching("com.android.calendar.event.DropdownValuesTest")
 		// List every passing lunar test in the Actions log so the runs are
 		// auditable there directly.
 		testLogging.events(TestLogEvent.PASSED)

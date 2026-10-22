@@ -195,6 +195,14 @@
         <item>@string/visibility_public</item>
     </string-array>
 
+    <!-- Maps the visibility labels above to CalendarContract.Events.ACCESS_* values. -->
+    <integer-array name="visibility_values" translatable="false">
+        <item>0</item>  <!-- ACCESS_DEFAULT -->
+        <item>1</item>  <!-- ACCESS_CONFIDENTIAL -->
+        <item>2</item>  <!-- ACCESS_PRIVATE -->
+        <item>3</item>  <!-- ACCESS_PUBLIC -->
+    </integer-array>
+
     <!-- Invitation responses -->
     <string-array name="response_labels1">
         <item>No response</item>
