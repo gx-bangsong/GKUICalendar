@@ -34,12 +34,11 @@ internal object LunarAlignDebug {
         )
         for (i in 0 until list.childCount) {
             val child = list.getChildAt(i)
-            val holder = list.getChildViewHolder(child)
             val title = child.findViewById<TextView>(android.R.id.title)
             Log.d(
                 TAG,
-                "  item seq=$seq pos=${holder.bindingAdapterPosition} " +
-                    "type=${holder.itemViewType} cls=${child.javaClass.simpleName} " +
+                "  item seq=$seq pos=${list.getChildAdapterPosition(child)} " +
+                    "type=${list.getChildViewHolder(child)?.itemViewType} cls=${child.javaClass.simpleName} " +
                     "screenX=${screenX(child)} width=${child.width} padStart=${child.paddingStart} " +
                     "tx=${child.translationX} layoutDir=${child.layoutDirection} " +
                     titleInfo(title)
