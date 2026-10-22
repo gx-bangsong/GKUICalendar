@@ -38,6 +38,7 @@ import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.Handler;
 import android.provider.CalendarContract.Attendees;
 import android.provider.CalendarContract.Calendars;
@@ -59,6 +60,7 @@ import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
+import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.ViewConfiguration;
@@ -89,6 +91,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Formatter;
 import java.util.Locale;
+import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -630,6 +633,38 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
     private int mSelectionMode = SELECTION_HIDDEN;
 
+    // Temporary time block after an empty slot is tapped in the day view (see
+    // DayTimeSlotPreview). Only used when mNumDays == 1; the week view is unchanged.
+    private static final int SLOT_DRAG_NONE = 0;
+    private static final int SLOT_DRAG_START = 1;
+    private static final int SLOT_DRAG_END = 2;
+    private static final float SLOT_HANDLE_RADIUS_DP = 7f;
+    private static final float SLOT_HANDLE_TOUCH_RADIUS_DP = 24f; // a 48dp target
+    private static final float SLOT_CORNER_DP = 8f;
+    private static final float SLOT_INSET_DP = 2f;
+    private static final float SLOT_STROKE_DP = 2f;
+    private static final int SLOT_ACTION_OPEN = R.id.day_slot_action_open;
+    private static final int SLOT_ACTION_START_EARLIER = R.id.day_slot_action_start_earlier;
+    private static final int SLOT_ACTION_START_LATER = R.id.day_slot_action_start_later;
+    private static final int SLOT_ACTION_END_EARLIER = R.id.day_slot_action_end_earlier;
+    private static final int SLOT_ACTION_END_LATER = R.id.day_slot_action_end_later;
+    private DayTimeSlotPreview mSlotPreview;
+    private int mSlotPreviewDay;
+    private long mSlotStartMillis;
+    private long mSlotEndMillis;
+    private String mSlotDescription = "";
+    private String mSlotRangeLabel = "";
+    private String mSlotStartLabel = "";
+    private String mSlotEndLabel = "";
+    private int mSlotDrag = SLOT_DRAG_NONE;
+    private boolean mSlotDragMoved;
+    private boolean mSlotSwallowGesture;
+    private float mSlotDownContentY;
+    private int mSlotDownStartMinute;
+    private int mSlotDownEndMinute;
+    private int mSlotTouchSlop;
+    private final TextPaint mSlotTextPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+
     private boolean mScrolling = false;
 
     // Pixels scrolled
@@ -848,6 +883,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
     private void init(Context context) {
         setFocusable(true);
+        mSlotTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
 
         // Allow focus in touch mode so that we can do keyboard shortcuts
         // even after we've entered touch mode.
@@ -2516,6 +2552,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         p.setAlpha(alpha);
 
         drawSelectedRect(r, canvas, p);
+        drawSlotPreview(canvas, p);
     }
 
     private void drawSelectedRect(Rect r, Canvas canvas, Paint p) {
@@ -2528,6 +2565,11 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             r.right = computeDayLeftPosition(daynum + 1) + 1;
 
             saveSelectionPosition(r.left, r.top, r.right, r.bottom);
+
+            if (isSlotPreviewShown()) {
+                // The time block replaces the single-hour highlight in the day view
+                return;
+            }
 
             // Draw the highlight on the grid
             p.setColor(mCalendarGridAreaSelected);
@@ -3980,6 +4022,422 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         invalidate();
     }
 
+    /**
+     * Whether the temporary time block is drawn and can be touched. Day view only, and only
+     * while its day is the day on screen. Swiping to another day hides it; the view that held
+     * it keeps no visible copy of a day it no longer shows.
+     */
+    private boolean isSlotPreviewShown() {
+        return mSlotPreview != null && mNumDays == 1 && !mSelectionAllday
+                && mSlotPreviewDay == mFirstJulianDay;
+    }
+
+    private void clearSlotPreview() {
+        mSlotPreview = null;
+        mSlotDrag = SLOT_DRAG_NONE;
+        mSlotSwallowGesture = false;
+    }
+
+    private float slotDensity() {
+        return mScale > 0 ? mScale : 1f;
+    }
+
+    private float slotPixelsPerHour() {
+        return mCellHeight + HOUR_GAP;
+    }
+
+    /** Vertical offset of the scrolling grid inside the view. Same formula as onDraw. */
+    private float slotYTranslate() {
+        return -mViewStartY + DAY_HEADER_HEIGHT + mAlldayHeight;
+    }
+
+    /** View coordinates to grid coordinates (the space doDraw draws in). */
+    private float slotContentX(float viewX) {
+        return viewX + mViewStartX;
+    }
+
+    private float slotContentY(float viewY) {
+        return viewY - slotYTranslate();
+    }
+
+    private float slotEdgeY(int minute) {
+        return minute * slotPixelsPerHour() / 60f;
+    }
+
+    private float slotLeft() {
+        int daynum = mSlotPreviewDay - mFirstJulianDay;
+        return computeDayLeftPosition(daynum) + 1 + SLOT_INSET_DP * slotDensity();
+    }
+
+    private float slotRight() {
+        int daynum = mSlotPreviewDay - mFirstJulianDay;
+        return computeDayLeftPosition(daynum + 1) + 1 - DAY_GAP - SLOT_INSET_DP * slotDensity();
+    }
+
+    /** Top of the visible grid, in grid coordinates. Same clip as onDraw. */
+    private float slotVisibleTop() {
+        return mFirstCell - slotYTranslate();
+    }
+
+    private float slotVisibleBottom() {
+        return mViewHeight - slotYTranslate();
+    }
+
+    /**
+     * Centre Y of a handle, in grid coordinates. It is kept inside the visible grid so the
+     * drawn circle is never clipped; the touch test uses the same position.
+     */
+    private float slotHandleY(int edge) {
+        float radius = SLOT_HANDLE_RADIUS_DP * slotDensity();
+        int minute = edge == SLOT_DRAG_START
+                ? mSlotPreview.getStartMinute() : mSlotPreview.getEndMinute();
+        float y = slotEdgeY(minute);
+        float low = slotVisibleTop() + radius;
+        float high = slotVisibleBottom() - radius;
+        if (high < low) {
+            return (low + high) / 2f;
+        }
+        return Math.max(low, Math.min(high, y));
+    }
+
+    /** The handle under a view point, or SLOT_DRAG_NONE. Nearest handle wins if both match. */
+    private int slotHandleAt(float viewX, float viewY) {
+        if (!isSlotPreviewShown()) {
+            return SLOT_DRAG_NONE;
+        }
+        float centreX = (slotLeft() + slotRight()) / 2f;
+        float x = slotContentX(viewX);
+        float y = slotContentY(viewY);
+        float touch = SLOT_HANDLE_TOUCH_RADIUS_DP * slotDensity();
+        float dStart = (float) Math.hypot(x - centreX, y - slotHandleY(SLOT_DRAG_START));
+        float dEnd = (float) Math.hypot(x - centreX, y - slotHandleY(SLOT_DRAG_END));
+        boolean startHit = dStart <= touch;
+        boolean endHit = dEnd <= touch;
+        if (startHit && endHit) {
+            return dStart <= dEnd ? SLOT_DRAG_START : SLOT_DRAG_END;
+        }
+        if (startHit) {
+            return SLOT_DRAG_START;
+        }
+        return endHit ? SLOT_DRAG_END : SLOT_DRAG_NONE;
+    }
+
+    private boolean isInSlotBlock(float viewX, float viewY) {
+        if (!isSlotPreviewShown()) {
+            return false;
+        }
+        float x = slotContentX(viewX);
+        float y = slotContentY(viewY);
+        return x >= slotLeft() && x <= slotRight()
+                && y >= slotEdgeY(mSlotPreview.getStartMinute())
+                && y <= slotEdgeY(mSlotPreview.getEndMinute());
+    }
+
+    /** Starts a block at the snapped tap minute, with the default event duration. */
+    private void startSlotPreview(int minute) {
+        long durationMillis = Utils.getDefaultEventDurationInMillis(mContext);
+        int durationMinutes = (int) (durationMillis / DateUtils.MINUTE_IN_MILLIS);
+        mSlotPreview = DayTimeSlotPreview.forTap(minute, durationMinutes);
+        mSlotPreviewDay = mSelectionDay;
+        refreshSlotPreview();
+    }
+
+    /**
+     * Recomputes the instants and labels from the block. Called on tap and on every change,
+     * never from onDraw, so the time zone and formatting cost is not paid per frame.
+     */
+    private void refreshSlotPreview() {
+        if (mSlotPreview == null) {
+            return;
+        }
+        String zoneId = Utils.getTimeZone(mContext, mTZUpdater);
+        Time day = new Time(zoneId);
+        day.setJulianDay(mSlotPreviewDay);
+        TimeZone zone = TimeZone.getTimeZone(zoneId);
+        int year = day.getYear();
+        int month = day.getMonth();
+        int monthDay = day.getDay();
+        mSlotStartMillis = mSlotPreview.startMillis(year, month, monthDay, zone);
+        mSlotEndMillis = mSlotPreview.endMillis(year, month, monthDay, zone);
+        int flags = DateUtils.FORMAT_SHOW_TIME;
+        if (mSlotPreview.getEndMinute() >= DayTimeSlotPreview.MINUTES_PER_DAY) {
+            // The block ends at the next midnight, so the end needs its date
+            flags |= DateUtils.FORMAT_SHOW_DATE;
+        }
+        mSlotRangeLabel = Utils.formatDateRange(mContext, mSlotStartMillis, mSlotEndMillis, flags);
+        mSlotStartLabel = Utils.formatDateRange(mContext, mSlotStartMillis, mSlotStartMillis,
+                DateUtils.FORMAT_SHOW_TIME);
+        mSlotEndLabel = Utils.formatDateRange(mContext, mSlotEndMillis, mSlotEndMillis,
+                DateUtils.FORMAT_SHOW_TIME | (flags & DateUtils.FORMAT_SHOW_DATE));
+        mSlotDescription = getResources().getString(R.string.day_slot_description, mSlotRangeLabel);
+    }
+
+    /** Opens the existing event editor with the block's start and end. Nothing is written here. */
+    private void openSlotPreviewEditor(int rawX, int rawY) {
+        if (!isSlotPreviewShown()) {
+            return;
+        }
+        mSelectionMode = SELECTION_SELECTED;
+        mController.sendEventRelatedEventWithExtra(this, EventType.CREATE_EVENT, -1,
+                mSlotStartMillis, mSlotEndMillis, rawX, rawY, 0, -1);
+    }
+
+    private void announceSlotPreview() {
+        announceForAccessibility(mSlotDescription);
+    }
+
+    /** Restores the edge that was being dragged, then drops the drag. */
+    private void cancelSlotDrag() {
+        if (mSlotDrag == SLOT_DRAG_NONE) {
+            return;
+        }
+        if (mSlotPreview != null && mSlotDragMoved) {
+            if (mSlotDrag == SLOT_DRAG_START) {
+                mSlotPreview.dragStart(mSlotDownStartMinute);
+            } else {
+                mSlotPreview.dragEnd(mSlotDownEndMinute);
+            }
+            refreshSlotPreview();
+        }
+        mSlotDrag = SLOT_DRAG_NONE;
+        mSlotDragMoved = false;
+        invalidate();
+    }
+
+    /**
+     * Handles touches that start on a handle of the time block. Touches that start elsewhere
+     * (including the block body) return false and take the normal grid path, so scrolling,
+     * the day switch and the tap that opens the editor keep working.
+     */
+    private boolean handleSlotPreviewTouch(MotionEvent ev) {
+        if (mSlotPreview == null || mNumDays != 1) {
+            return false;
+        }
+        switch (ev.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN: {
+                mSlotSwallowGesture = false;
+                mSlotDrag = slotHandleAt(ev.getX(), ev.getY());
+                mSlotDragMoved = false;
+                if (mSlotDrag == SLOT_DRAG_NONE) {
+                    return false;
+                }
+                mSlotDownContentY = slotContentY(ev.getY());
+                mSlotDownStartMinute = mSlotPreview.getStartMinute();
+                mSlotDownEndMinute = mSlotPreview.getEndMinute();
+                if (getParent() != null) {
+                    getParent().requestDisallowInterceptTouchEvent(true);
+                }
+                return true;
+            }
+            case MotionEvent.ACTION_MOVE: {
+                if (mSlotSwallowGesture) {
+                    return true;
+                }
+                if (mSlotDrag == SLOT_DRAG_NONE) {
+                    return false;
+                }
+                float dy = slotContentY(ev.getY()) - mSlotDownContentY;
+                if (!mSlotDragMoved && Math.abs(dy) < mSlotTouchSlop) {
+                    return true;
+                }
+                mSlotDragMoved = true;
+                int delta = DayTimeSlotPreview.minuteFromOffset(dy, slotPixelsPerHour());
+                int startBefore = mSlotPreview.getStartMinute();
+                int endBefore = mSlotPreview.getEndMinute();
+                if (mSlotDrag == SLOT_DRAG_START) {
+                    mSlotPreview.dragStart(mSlotDownStartMinute + delta);
+                } else {
+                    mSlotPreview.dragEnd(mSlotDownEndMinute + delta);
+                }
+                if (startBefore != mSlotPreview.getStartMinute()
+                        || endBefore != mSlotPreview.getEndMinute()) {
+                    refreshSlotPreview();
+                    invalidate();
+                }
+                return true;
+            }
+            case MotionEvent.ACTION_UP: {
+                if (mSlotSwallowGesture) {
+                    mSlotSwallowGesture = false;
+                    return true;
+                }
+                if (mSlotDrag == SLOT_DRAG_NONE) {
+                    return false;
+                }
+                boolean moved = mSlotDragMoved;
+                mSlotDrag = SLOT_DRAG_NONE;
+                mSlotDragMoved = false;
+                if (moved) {
+                    // Releasing does not save or invite anyone. The block stays until the user
+                    // taps it to open the editor, or leaves.
+                    announceSlotPreview();
+                    invalidate();
+                } else {
+                    // A tap on a handle counts as a tap on the block
+                    openSlotPreviewEditor((int) ev.getRawX(), (int) ev.getRawY());
+                }
+                return true;
+            }
+            case MotionEvent.ACTION_POINTER_DOWN: {
+                if (mSlotDrag != SLOT_DRAG_NONE) {
+                    // A second finger cancels the handle drag and ends the gesture here
+                    cancelSlotDrag();
+                    mSlotSwallowGesture = true;
+                    return true;
+                }
+                return mSlotSwallowGesture;
+            }
+            case MotionEvent.ACTION_POINTER_UP:
+                return mSlotSwallowGesture || mSlotDrag != SLOT_DRAG_NONE;
+            case MotionEvent.ACTION_CANCEL: {
+                boolean used = mSlotDrag != SLOT_DRAG_NONE || mSlotSwallowGesture;
+                cancelSlotDrag();
+                mSlotSwallowGesture = false;
+                return used;
+            }
+            default:
+                return mSlotDrag != SLOT_DRAG_NONE || mSlotSwallowGesture;
+        }
+    }
+
+    private void drawSlotPreview(Canvas canvas, Paint p) {
+        if (!isSlotPreviewShown()) {
+            return;
+        }
+        float density = slotDensity();
+        float left = slotLeft();
+        float right = slotRight();
+        float top = slotEdgeY(mSlotPreview.getStartMinute());
+        float bottom = slotEdgeY(mSlotPreview.getEndMinute());
+        float corner = SLOT_CORNER_DP * density;
+        int solid = 0xFF000000 | mCalendarGridAreaSelected;
+
+        p.setAntiAlias(true);
+        p.setStyle(Paint.Style.FILL);
+        p.setColor(mCalendarGridAreaSelected);
+        canvas.drawRoundRect(left, top, right, bottom, corner, corner, p);
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(SLOT_STROKE_DP * density);
+        p.setColor(solid);
+        canvas.drawRoundRect(left, top, right, bottom, corner, corner, p);
+
+        drawSlotLabel(canvas, left, top, right, bottom);
+
+        float centreX = (left + right) / 2f;
+        float radius = SLOT_HANDLE_RADIUS_DP * density;
+        float[] handleYs = {slotHandleY(SLOT_DRAG_START), slotHandleY(SLOT_DRAG_END)};
+        for (float handleY : handleYs) {
+            p.setStyle(Paint.Style.FILL);
+            p.setColor(mNewEventHintColor);
+            canvas.drawCircle(centreX, handleY, radius, p);
+            p.setStyle(Paint.Style.STROKE);
+            p.setStrokeWidth(SLOT_STROKE_DP * density);
+            p.setColor(solid);
+            canvas.drawCircle(centreX, handleY, radius, p);
+        }
+        p.setStyle(Paint.Style.FILL);
+    }
+
+    /**
+     * Draws the range inside the block when it fits. The full range, then start and end on two
+     * lines, then nothing. A time is never cut to "1…", and the handles and accessibility
+     * actions still carry the times.
+     */
+    private void drawSlotLabel(Canvas canvas, float left, float top, float right, float bottom) {
+        float density = slotDensity();
+        float pad = 4f * density;
+        float available = right - left - 2 * pad;
+        mSlotTextPaint.setTextSize(NEW_EVENT_HINT_FONT_SIZE * density);
+        mSlotTextPaint.setColor(mNewEventHintColor);
+        float lineHeight = mSlotTextPaint.getTextSize() * 1.25f;
+        float height = bottom - top - 2 * pad;
+        if (height < lineHeight || available <= 0) {
+            return;
+        }
+        float baseline = top + pad + mSlotTextPaint.getTextSize();
+        if (mSlotTextPaint.measureText(mSlotRangeLabel) <= available) {
+            canvas.drawText(mSlotRangeLabel, left + pad, baseline, mSlotTextPaint);
+        } else if (height >= 2 * lineHeight
+                && mSlotTextPaint.measureText(mSlotStartLabel) <= available
+                && mSlotTextPaint.measureText(mSlotEndLabel) <= available) {
+            canvas.drawText(mSlotStartLabel, left + pad, baseline, mSlotTextPaint);
+            canvas.drawText(mSlotEndLabel, left + pad, baseline + lineHeight, mSlotTextPaint);
+        }
+    }
+
+    /** Accessibility: the block's times are in the description and in the actions. */
+    @Override
+    public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo info) {
+        super.onInitializeAccessibilityNodeInfo(info);
+        if (!isSlotPreviewShown()) {
+            return;
+        }
+        info.setContentDescription(mSlotDescription);
+        Resources res = getResources();
+        info.addAction(new AccessibilityNodeInfo.AccessibilityAction(SLOT_ACTION_OPEN,
+                res.getString(R.string.day_slot_open_action, mSlotRangeLabel)));
+        info.addAction(new AccessibilityNodeInfo.AccessibilityAction(SLOT_ACTION_START_EARLIER,
+                res.getString(R.string.day_slot_start_earlier)));
+        info.addAction(new AccessibilityNodeInfo.AccessibilityAction(SLOT_ACTION_START_LATER,
+                res.getString(R.string.day_slot_start_later)));
+        info.addAction(new AccessibilityNodeInfo.AccessibilityAction(SLOT_ACTION_END_EARLIER,
+                res.getString(R.string.day_slot_end_earlier)));
+        info.addAction(new AccessibilityNodeInfo.AccessibilityAction(SLOT_ACTION_END_LATER,
+                res.getString(R.string.day_slot_end_later)));
+    }
+
+    @Override
+    public boolean performAccessibilityAction(int action, Bundle arguments) {
+        if (!isSlotPreviewShown()) {
+            return super.performAccessibilityAction(action, arguments);
+        }
+        int step = DayTimeSlotPreview.SNAP_MINUTES;
+        if (action == SLOT_ACTION_OPEN) {
+            int[] location = new int[2];
+            getLocationOnScreen(location);
+            openSlotPreviewEditor(location[0] + getWidth() / 2, location[1] + getHeight() / 2);
+            return true;
+        } else if (action == SLOT_ACTION_START_EARLIER) {
+            mSlotPreview.moveStartBy(-step);
+        } else if (action == SLOT_ACTION_START_LATER) {
+            mSlotPreview.moveStartBy(step);
+        } else if (action == SLOT_ACTION_END_EARLIER) {
+            mSlotPreview.moveEndBy(-step);
+        } else if (action == SLOT_ACTION_END_LATER) {
+            mSlotPreview.moveEndBy(step);
+        } else {
+            return super.performAccessibilityAction(action, arguments);
+        }
+        refreshSlotPreview();
+        announceSlotPreview();
+        invalidate();
+        return true;
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasWindowFocus) {
+        super.onWindowFocusChanged(hasWindowFocus);
+        if (!hasWindowFocus) {
+            cancelSlotDrag();
+        }
+    }
+
+    /** Sends the selected hour to the controller so other views follow it. */
+    private void sendSelectedTimeToController() {
+        Time startTime = new Time();
+        startTime.set(mBaseDate);
+        startTime.setJulianDay(mSelectionDay);
+        startTime.setHour(mSelectionHour);
+        startTime.normalize();
+
+        Time endTime = new Time();
+        endTime.set(startTime);
+        endTime.setHour(endTime.getHour() + 1);
+
+        mController.sendEvent(this, EventType.GO_TO, startTime, endTime, -1, ViewType.CURRENT,
+                CalendarController.EXTRA_GOTO_TIME, null, null);
+    }
+
     private void doSingleTapUp(MotionEvent ev) {
         if (!mHandleActionUp || mScrolling) {
             return;
@@ -3989,6 +4447,12 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         int y = (int) ev.getY();
         int selectedDay = mSelectionDay;
         int selectedHour = mSelectionHour;
+
+        if (isInSlotBlock(x, y)) {
+            openSlotPreviewEditor((int) ev.getRawX(), (int) ev.getRawY());
+            return;
+        }
+        clearSlotPreview();
 
         if (mMaxAlldayEvents > mMaxUnexpandedAlldayEventCount) {
             // check if the tap was in the allday expansion area
@@ -4012,6 +4476,17 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 mController.sendEvent(this, EventType.GO_TO, null, null, selectedTime, -1,
                         ViewType.DAY, CalendarController.EXTRA_GOTO_DATE, null, null);
             }
+            return;
+        }
+
+        if (mNumDays == 1 && mSelectedEvent == null && !mSelectionAllday) {
+            // An empty time in the day view: show the temporary block, do not create yet
+            int minute = DayTimeSlotPreview.minuteFromOffset(slotContentY(y), slotPixelsPerHour());
+            startSlotPreview(minute);
+            mSelectionMode = SELECTION_SELECTED;
+            sendSelectedTimeToController();
+            announceSlotPreview();
+            invalidate();
             return;
         }
 
@@ -4055,24 +4530,14 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             }
         } else {
             // Select time
-            Time startTime = new Time();
-            startTime.set(mBaseDate);
-            startTime.setJulianDay(mSelectionDay);
-            startTime.setHour(mSelectionHour);
-            startTime.normalize();
-
-            Time endTime = new Time();
-            endTime.set(startTime);
-            endTime.setHour(endTime.getHour() + 1);
-
             mSelectionMode = SELECTION_SELECTED;
-            mController.sendEvent(this, EventType.GO_TO, startTime, endTime, -1, ViewType.CURRENT,
-                    CalendarController.EXTRA_GOTO_TIME, null, null);
+            sendSelectedTimeToController();
         }
         invalidate();
     }
 
     private void doLongPress(MotionEvent ev) {
+        clearSlotPreview();
         eventClickCleanup();
         if (mScrolling) {
             return;
@@ -4376,6 +4841,10 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     public boolean onTouchEvent(MotionEvent ev) {
         int action = ev.getAction();
         if (DEBUG) Log.e(TAG, "" + action + " ev.getPointerCount() = " + ev.getPointerCount());
+
+        if (handleSlotPreviewTouch(ev)) {
+            return true;
+        }
 
         if ((ev.getActionMasked() == MotionEvent.ACTION_DOWN) ||
                 (ev.getActionMasked() == MotionEvent.ACTION_UP) ||
@@ -4995,6 +5464,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
     @Override
     protected void onDetachedFromWindow() {
+        cancelSlotDrag();
         cleanup();
         super.onDetachedFromWindow();
     }

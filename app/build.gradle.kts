@@ -222,6 +222,8 @@ if (System.getenv("CI") != null) {
 		filter.includeTestsMatching("com.android.calendar.event.CalendarAccountGroupsTest")
 		filter.includeTestsMatching("com.android.calendar.EventInfoRulesTest")
 		filter.includeTestsMatching("com.android.calendar.EventInfoLayoutTest")
+		filter.includeTestsMatching("com.android.calendar.DayTimeSlotPreviewTest")
+		filter.includeTestsMatching("com.android.calendar.DayViewTimeSlotSourceTest")
 		// List every passing lunar test in the Actions log so the runs are
 		// auditable there directly.
 		testLogging.events(TestLogEvent.PASSED)

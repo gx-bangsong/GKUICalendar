@@ -437,4 +437,11 @@
     <!-- Event detail page action bar -->
     <string name="event_info_navigate_back">返回</string>
     <string name="event_info_more_actions">更多选项</string>
+    <!-- Day view: temporary time block after an empty slot is tapped -->
+    <string name="day_slot_description">新建事件，%1$s</string>
+    <string name="day_slot_open_action">用此时间新建事件，%1$s</string>
+    <string name="day_slot_start_earlier">提前 15 分钟开始</string>
+    <string name="day_slot_start_later">推迟 15 分钟开始</string>
+    <string name="day_slot_end_earlier">提前 15 分钟结束</string>
+    <string name="day_slot_end_later">推迟 15 分钟结束</string>
 </resources>

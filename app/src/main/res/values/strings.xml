@@ -992,4 +992,11 @@
     <!-- Event detail page action bar -->
     <string name="event_info_navigate_back">Back</string>
     <string name="event_info_more_actions">More options</string>
+    <!-- Day view: temporary time block after an empty slot is tapped -->
+    <string name="day_slot_description">New event, %1$s</string>
+    <string name="day_slot_open_action">Create event, %1$s</string>
+    <string name="day_slot_start_earlier">Start 15 minutes earlier</string>
+    <string name="day_slot_start_later">Start 15 minutes later</string>
+    <string name="day_slot_end_earlier">End 15 minutes earlier</string>
+    <string name="day_slot_end_later">End 15 minutes later</string>
 </resources>
