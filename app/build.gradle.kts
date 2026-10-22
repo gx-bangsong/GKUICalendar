@@ -220,6 +220,8 @@ if (System.getenv("CI") != null) {
 		filter.includeTestsMatching("com.android.calendar.timezonepicker.TimeZoneSearchRoutingTest")
 		filter.includeTestsMatching("com.android.calendar.timezonepicker.TimeZoneSelectionRoutingTest")
 		filter.includeTestsMatching("com.android.calendar.event.CalendarAccountGroupsTest")
+		filter.includeTestsMatching("com.android.calendar.EventInfoRulesTest")
+		filter.includeTestsMatching("com.android.calendar.EventInfoLayoutTest")
 		// List every passing lunar test in the Actions log so the runs are
 		// auditable there directly.
 		testLogging.events(TestLogEvent.PASSED)

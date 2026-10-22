@@ -394,7 +394,6 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
     private AttendeesView mLongAttendees;
     private Button emailAttendeesButton;
     private Menu mMenu = null;
-    private View mHeadlines;
     private ScrollView mScrollView;
     private View mLoadingMsgView;
     private View mErrorMsgView;
@@ -808,7 +807,6 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
 
         mDesc =  mView.findViewById(R.id.description);
         mUrl =  mView.findViewById(R.id.url);
-        mHeadlines = mView.findViewById(R.id.event_info_headline);
         mLongAttendees = (AttendeesView) mView.findViewById(R.id.long_attendee_list);
 
         mResponseRadioGroup = (RadioGroup) mView.findViewById(R.id.response_value);
@@ -1753,8 +1751,6 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
         String description = mEventCursor.getString(EVENT_INDEX_DESCRIPTION);
         String rRule = mEventCursor.getString(EVENT_INDEX_RRULE);
 
-        mHeadlines.setBackgroundColor(mCurrentColor);
-
         // What
         if (eventName != null) {
             String customAppUri = mEventCursor.getString(EVENT_INDEX_CUSTOM_APP_URI);
@@ -1808,25 +1804,23 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
                     eventRecurrence, true);
         }
         if (repeatString == null) {
-            mWhenRepeat.setVisibility(View.GONE);
+            setVisibilityCommon(view, R.id.repeat_row, View.GONE);
         } else {
             setTextCommon(view, R.id.when_repeat, repeatString);
+            setVisibilityCommon(view, R.id.repeat_row, View.VISIBLE);
         }
 
         // Organizer view is setup in the updateCalendar method
 
 
         // Where
-        if (location == null || location.trim().length() == 0) {
-            setVisibilityCommon(view, R.id.where, View.GONE);
+        if (!EventInfoRules.hasText(location)) {
+            setVisibilityCommon(view, R.id.where_row, View.GONE);
         } else {
+            setVisibilityCommon(view, R.id.where_row, View.VISIBLE);
             final TextView textView = mWhere;
             if (textView != null) {
                 textView.setAutoLinkMask(0);
-                final int textColor = Utils.getAdaptiveTextColor(context,
-                        getResources().getColor(R.color.event_info_headline_color), mCurrentColor);
-                textView.setTextColor(textColor);
-                textView.setLinkTextColor(textColor);
                 textView.setText(location.trim());
                 try {
                     textView.setText(Utils.extendedLinkify(textView.getText().toString(), true));
@@ -1860,8 +1854,9 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
         }
 
         // Description
-        if (description != null && description.length() != 0) {
+        if (EventInfoRules.hasText(description)) {
             mDesc.setText(description);
+            setVisibilityCommon(view, R.id.description_row, View.VISIBLE);
         }
 
         // Launch Custom App
@@ -1874,6 +1869,7 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
         // Url
         if (mEventUrl != null && !mEventUrl.isBlank()) {
             mUrl.setText(mEventUrl);
+            setVisibilityCommon(mView, R.id.url_row, View.VISIBLE);
         }
     }
 
@@ -1891,43 +1887,29 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
             displayedTimezone = Utils.getDisplayedTimezone(mStartMillis, localTimezone,
                     mEventCursor.getString(EVENT_INDEX_EVENT_TIMEZONE));
         }
-        // Display the datetime.  Make the timezone (if any) transparent.
+        // The date and time on the first row. The time zone has a row of its own below it, and
+        // that row is hidden when there is no zone to show.
+        setTextCommon(view, R.id.when_datetime, displayedDatetime);
         if (displayedTimezone == null) {
-            setTextCommon(view, R.id.when_datetime, displayedDatetime);
+            setVisibilityCommon(view, R.id.timezone_row, View.GONE);
         } else {
-            int timezoneIndex = displayedDatetime.length();
-            displayedDatetime += "  " + displayedTimezone;
-            SpannableStringBuilder sb = new SpannableStringBuilder(displayedDatetime);
-            ForegroundColorSpan transparentColorSpan = new ForegroundColorSpan(
-                    Utils.getAdaptiveTextColor(context,
-                            context.getResources().getColor(R.color.event_info_headline_transparent_color), mCurrentColor));
-            sb.setSpan(transparentColorSpan, timezoneIndex, displayedDatetime.length(),
-                    Spannable.SPAN_INCLUSIVE_INCLUSIVE);
-            setTextCommon(view, R.id.when_datetime, sb);
+            setTextCommon(view, R.id.when_timezone, displayedTimezone);
+            setVisibilityCommon(view, R.id.timezone_row, View.VISIBLE);
         }
     }
 
+    /**
+     * The headline sits on the surface, so text and icons keep the theme colours and the event
+     * colour is shown only as one marker bar. The colour is the resolved event colour, which
+     * already falls back to the calendar colour.
+     */
     private void updateAdaptiveTextAndIconColors() {
-        if (Utils.getSharedPreference(mContext, GeneralPreferences.KEY_REAL_EVENT_COLORS, false)) {
-            // TextViews
-            int color = Utils.getAdaptiveTextColor(mContext,
-                    mContext.getResources().getColor(R.color.event_info_headline_color), mCurrentColor);
-
-            mWhenDateTime.setTextColor(color);
-            mTitle.setTextColor(color);
-            mWhere.setTextColor(color);
-            mWhenRepeat.setTextColor(color);
-            color = Utils.getAdaptiveTextColor(mContext,
-                    mContext.getResources().getColor(R.color.event_info_headline_link_color), mCurrentColor);
-            mWhere.setLinkTextColor(color);
-
-            // Icons on Tablet
-            if (mWindowStyle == DIALOG_WINDOW_STYLE) {
-                color = Utils.getAdaptiveTextColor(mContext, Color.WHITE, mCurrentColor);
-                ((ImageButton) mView.findViewById(R.id.edit)).setColorFilter(color);
-                ((ImageButton) mView.findViewById(R.id.delete)).setColorFilter(color);
-                ((ImageButton) mView.findViewById(R.id.change_color)).setColorFilter(color);
-            }
+        if (mView == null || !EventInfoRules.hasColorMarker(mCurrentColor)) {
+            return;
+        }
+        View marker = mView.findViewById(R.id.event_info_color_marker);
+        if (marker != null) {
+            marker.setBackgroundColor(mCurrentColor);
         }
     }
 
@@ -2083,10 +2065,10 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
                 setVisibilityCommon(view, R.id.organizer_container, View.GONE);
             }
             mHasAttendeeData = mEventCursor.getInt(EVENT_INDEX_HAS_ATTENDEE_DATA) != 0;
-            mCanModifyCalendar = mEventCursor.getInt(EVENT_INDEX_CALENDAR_ACCESS_LEVEL)
-                    >= Calendars.CAL_ACCESS_CONTRIBUTOR;
+            mCanModifyCalendar = EventInfoRules.canModifyCalendar(
+                    mEventCursor.getInt(EVENT_INDEX_CALENDAR_ACCESS_LEVEL));
             // TODO add "|| guestCanModify" after b/1299071 is fixed
-            mCanModifyEvent = mCanModifyCalendar && mIsOrganizer;
+            mCanModifyEvent = EventInfoRules.canModifyEvent(mCanModifyCalendar, mIsOrganizer);
             mIsBusyFreeCalendar =
                     mEventCursor.getInt(EVENT_INDEX_CALENDAR_ACCESS_LEVEL) == Calendars.CAL_ACCESS_FREEBUSY;
 
@@ -2153,7 +2135,7 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
         if (rescheduleButton == null) {
             return;
         }
-        boolean show = mCanModifyEvent && mEventId > 0;
+        boolean show = EventInfoRules.showReschedule(mCanModifyEvent, mEventId);
         rescheduleButton.setVisibility(show ? View.VISIBLE : View.GONE);
     }
 
@@ -2189,8 +2171,10 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
             (mLongAttendees).addAttendees(mNoResponseAttendees);
             mLongAttendees.setEnabled(false);
             mLongAttendees.setVisibility(View.VISIBLE);
+            setVisibilityCommon(view, R.id.attendees_row, View.VISIBLE);
         } else {
             mLongAttendees.setVisibility(View.GONE);
+            setVisibilityCommon(view, R.id.attendees_row, View.GONE);
         }
 
         if (hasEmailableAttendees()) {
@@ -2363,10 +2347,6 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
         if (textView == null)
             return;
 
-        final int textColor = Utils.getAdaptiveTextColor(mContext,
-                getResources().getColor(R.color.event_info_headline_color), mCurrentColor);
-        textView.setTextColor(textColor);
-        textView.setLinkTextColor(textColor);
         textView.setText(text);
     }
 
@@ -2629,7 +2609,6 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
     public void onColorSelected(int color) {
         mCurrentColor = color;
         mCurrentColorKey = mDisplayColorKeyMap.get(color);
-        mHeadlines.setBackgroundColor(color);
 
         updateAdaptiveTextAndIconColors();
 
