@@ -54,7 +54,6 @@ import android.widget.MultiAutoCompleteTextView;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.ScrollView;
-import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.TextView.OnEditorActionListener;
 
@@ -1048,14 +1047,6 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             if (id != View.NO_ID) {
                 b.append(((RadioButton) (v.findViewById(id))).getText() + PERIOD_SPACE);
             }
-        } else if (v instanceof Spinner) {
-            Spinner s = (Spinner) v;
-            if (s.getSelectedItem() instanceof String) {
-                String str = ((String) (s.getSelectedItem())).trim();
-                if (!TextUtils.isEmpty(str)) {
-                    b.append(str + PERIOD_SPACE);
-                }
-            }
         } else if (v instanceof ViewGroup) {
             ViewGroup vg = (ViewGroup) v;
             int children = vg.getChildCount();
@@ -1478,7 +1469,6 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         return mColorPicker.getVisibility() == View.VISIBLE;
     }
 
-    @Override
     /**
      * The user picked a calendar. Loads that calendar's values into the model
      * and refreshes the reminder, availability and visibility lists. Also runs
