@@ -989,4 +989,7 @@
     <string name="timezone_search_no_results">No time zones match \"%1$s\"</string>
     <string name="timezone_search_unknown">Unrecognised time zone ID</string>
     <string name="timezone_search_offset_note">GMT offset %1$s as of %2$s</string>
+    <!-- Event detail page action bar -->
+    <string name="event_info_navigate_back">Back</string>
+    <string name="event_info_more_actions">More options</string>
 </resources>

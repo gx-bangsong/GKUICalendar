@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Panel of the full-screen event detail page: the content surface with rounded top corners.
+  It overlaps the illustrated header and runs to the edges of the screen.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="?attr/colorSurface" />
+    <corners
+        android:topLeftRadius="@dimen/event_info_panel_corner_radius"
+        android:topRightRadius="@dimen/event_info_panel_corner_radius" />
+</shape>

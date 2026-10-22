@@ -105,4 +105,13 @@
     <dimen name="preference_md3_content_start">16dp</dimen>
     <dimen name="preference_md3_content_end">16dp</dimen>
 
+
+    <!-- Event detail page: full-screen illustrated header -->
+    <dimen name="event_info_header_height">216dp</dimen>
+    <dimen name="event_info_panel_overlap">-28dp</dimen>
+    <dimen name="event_info_panel_corner_radius">28dp</dimen>
+    <dimen name="event_info_action_size">48dp</dimen>
+    <dimen name="event_info_action_bar_padding">8dp</dimen>
+    <dimen name="event_info_action_circle_size">40dp</dimen>
+    <dimen name="event_info_color_marker_radius">4dp</dimen>
 </resources>

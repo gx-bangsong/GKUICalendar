@@ -27,4 +27,7 @@
 
     <dimen name="event_info_gutter">48dp</dimen>
 
+
+    <!-- Event detail page: full-screen illustrated header -->
+    <dimen name="event_info_header_height">240dp</dimen>
 </resources>

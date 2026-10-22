@@ -1,23 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2006 The Android Open Source Project
+<!--
+  Full-screen event detail page (phone and any full-window host of EventInfoActivity).
 
-     Licensed under the Apache License, Version 2.0 (the "License");
-     you may not use this file except in compliance with the License.
-     You may obtain a copy of the License at
+  Structure, top to bottom in z-order:
+  - a scrolling column: an illustrated header that runs under the status bar, then the content
+    panel. The panel has rounded top corners, overlaps the header and spans the full width.
+  - the action bar (back, edit, more), floating over the header and inset for the system bars.
 
-          http://www.apache.org/licenses/LICENSE-2.0
-
-     Unless required by applicable law or agreed to in writing, software
-     distributed under the License is distributed on an "AS IS" BASIS,
-     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     See the License for the specific language governing permissions and
-     limitations under the License.
+  The dialog / pane host uses event_info_dialog.xml and keeps its own structure.
 -->
 <FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="?attr/colorSurface">
+
     <RelativeLayout
         android:id="@+id/event_info_loading_msg"
         android:layout_width="match_parent"
@@ -36,34 +34,63 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content" />
     </RelativeLayout>
-    <RelativeLayout
+
+    <TextView
+        android:id="@+id/event_info_error_msg"
+        android:text="@string/event_not_found"
+        android:gravity="center"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
-        <com.google.android.material.appbar.AppBarLayout
-            android:id="@+id/bar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+        android:layout_height="match_parent" />
 
-            <include layout="@layout/app_bar" />
+    <ScrollView
+        android:id="@+id/event_info_scroll_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:animateLayoutChanges="true"
+        android:clipToPadding="false"
+        android:fadingEdge="none"
+        android:orientation="vertical">
 
-        </com.google.android.material.appbar.AppBarLayout>
-        <TextView
-            android:id="@+id/event_info_error_msg"
-            android:text="@string/event_not_found"
-            android:gravity="center"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
-        <ScrollView
-            android:id="@+id/event_info_scroll_view"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_below="@+id/bar"
-            android:animateLayoutChanges="true"
-            android:fadingEdge="none"
+            android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <include layout="@layout/event_info_body" />
+            <!-- Illustrated header. Its colour is the tonal primary container, not the event
+                 colour, so the event colour is shown only in the single colour marker. -->
+            <FrameLayout
+                android:id="@+id/event_info_header"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/event_info_header_height"
+                android:background="?attr/colorPrimaryContainer">
+                <ImageView
+                    android:id="@+id/event_info_header_art"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:importantForAccessibility="no"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/event_info_header_art" />
+            </FrameLayout>
 
-        </ScrollView>
-    </RelativeLayout>
+            <!-- Content panel: overlaps the header by the overlap dimen, full width -->
+            <FrameLayout
+                android:id="@+id/event_info_panel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/event_info_panel_overlap"
+                android:background="@drawable/event_info_panel_background"
+                android:paddingTop="20dp">
+
+                <include layout="@layout/event_info_body" />
+
+            </FrameLayout>
+        </LinearLayout>
+    </ScrollView>
+
+    <include
+        layout="@layout/event_info_action_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top" />
+
 </FrameLayout>

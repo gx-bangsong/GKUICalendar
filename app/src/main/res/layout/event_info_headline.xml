@@ -15,9 +15,11 @@
      limitations under the License.
 -->
 <!--
-  Headline of the event detail page (Material 3). One colour marker and the large title sit on
-  the surface, so the event colour never tints the whole block. The action set is edit, delete
-  and colour, and each button is shown only when the event allows it (see EventInfoFragment).
+  Headline of the event detail page (Material 3). One small rounded colour marker sits in the
+  icon column, so the title starts on the same x as the information rows. The marker takes the
+  resolved event colour (falling back to the calendar colour) in EventInfoFragment. The action
+  buttons are kept here for the dialog / pane host and stay GONE on the full-screen page, which
+  has its own action bar (event_info_action_bar).
 -->
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
@@ -27,19 +29,23 @@
     android:layout_height="wrap_content"
     android:gravity="top"
     android:orientation="horizontal"
-    android:paddingStart="4dp"
-    android:paddingEnd="4dp"
-    android:paddingTop="8dp"
-    android:paddingBottom="8dp">
+    android:paddingStart="20dp"
+    android:paddingEnd="20dp"
+    android:paddingTop="12dp"
+    android:paddingBottom="12dp">
 
-    <!-- The single colour mark of the event (or its calendar when no event colour is set) -->
-    <View
-        android:id="@+id/event_info_color_marker"
-        android:layout_width="4dp"
-        android:layout_height="32dp"
-        android:layout_marginTop="4dp"
-        android:background="?attr/colorPrimary"
-        android:importantForAccessibility="no" />
+    <!-- The single colour mark, in the same 24dp column as the row icons -->
+    <FrameLayout
+        android:layout_width="24dp"
+        android:layout_height="wrap_content">
+        <View
+            android:id="@+id/event_info_color_marker"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="10dp"
+            android:importantForAccessibility="no" />
+    </FrameLayout>
 
     <!-- WHAT: wraps onto several lines for long titles -->
     <TextView
@@ -48,7 +54,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:layout_marginStart="12dp"
+        android:layout_marginStart="16dp"
         android:autoLink="all"
         android:textColor="?attr/colorOnSurface"
         android:textColorLink="?attr/colorPrimary"

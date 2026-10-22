@@ -48,6 +48,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -71,6 +72,7 @@ import android.text.style.ForegroundColorSpan;
 import android.text.util.Rfc822Token;
 import android.util.Log;
 import android.util.SparseArray;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -89,6 +91,7 @@ import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
+import android.widget.PopupMenu;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.RadioGroup.OnCheckedChangeListener;
@@ -100,6 +103,11 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.core.graphics.ColorUtils;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.core.content.FileProvider;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.FragmentManager;
@@ -796,6 +804,9 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
         }
 
         mScrollView = (ScrollView) mView.findViewById(R.id.event_info_scroll_view);
+        if (mWindowStyle != DIALOG_WINDOW_STYLE) {
+            setUpFullScreenChrome();
+        }
         mLoadingMsgView = mView.findViewById(R.id.event_info_loading_msg);
         mErrorMsgView = mView.findViewById(R.id.event_info_error_msg);
         mTitle = (TextView) mView.findViewById(R.id.title);
@@ -1109,12 +1120,8 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
-        // Show color/edit/delete buttons only in non-dialog configuration
-        if (!mIsDialog && !mIsTabletConfig || mWindowStyle == EventInfoFragment.FULL_WINDOW_STYLE) {
-            inflater.inflate(R.menu.event_info_title_bar, menu);
-            mMenu = menu;
-            updateMenu();
-        }
+        // The full-screen page has no toolbar. Its actions are the floating action bar and the
+        // more menu (see setUpFullScreenChrome and showMoreMenu), so nothing is inflated here.
     }
 
     @Override
@@ -1134,8 +1141,7 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
 
         final int itemId = item.getItemId();
         if (itemId == android.R.id.home) {
-            Utils.returnToCalendarHome(mContext);
-            mActivity.finish();
+            navigateUp();
             return true;
         } else if (itemId == R.id.info_action_edit) {
             doEdit();
@@ -1909,7 +1915,11 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
         }
         View marker = mView.findViewById(R.id.event_info_color_marker);
         if (marker != null) {
-            marker.setBackgroundColor(mCurrentColor);
+            GradientDrawable mark = new GradientDrawable();
+            mark.setShape(GradientDrawable.RECTANGLE);
+            mark.setCornerRadius(getResources().getDimension(R.dimen.event_info_color_marker_radius));
+            mark.setColor(mCurrentColor);
+            marker.setBackground(mark);
         }
     }
 
@@ -2074,7 +2084,7 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
 
             if (!mIsBusyFreeCalendar) {
 
-                View b = mView.findViewById(R.id.edit);
+                View b = findEditAction();
                 b.setEnabled(true);
                 b.setOnClickListener(new OnClickListener() {
                     @Override
@@ -2100,7 +2110,7 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
                 }
             }
             if (mCanModifyEvent) {
-                button = mView.findViewById(R.id.edit);
+                button = findEditAction();
                 if (button != null) {
                     button.setEnabled(true);
                     button.setVisibility(View.VISIBLE);
@@ -2144,9 +2154,18 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
         if (mMenu == null) {
             return;
         }
-        MenuItem delete = mMenu.findItem(R.id.info_action_delete);
-        MenuItem edit = mMenu.findItem(R.id.info_action_edit);
-        MenuItem changeColor = mMenu.findItem(R.id.info_action_change_color);
+        applyActionPermissions(mMenu);
+    }
+
+    /**
+     * Applies the permission rules to a menu of the event actions. The same rules serve the
+     * full-screen more menu (a fresh PopupMenu) and any options menu that is still attached.
+     */
+    private void applyActionPermissions(Menu menu) {
+        MenuItem delete = menu.findItem(R.id.info_action_delete);
+        MenuItem edit = menu.findItem(R.id.info_action_edit);
+        MenuItem changeColor = menu.findItem(R.id.info_action_change_color);
+        MenuItem reschedule = menu.findItem(R.id.info_action_reschedule);
         if (delete != null) {
             delete.setVisible(mCanModifyCalendar);
             delete.setEnabled(mCanModifyCalendar);
@@ -2159,6 +2178,114 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
             changeColor.setVisible(mCanModifyCalendar);
             changeColor.setEnabled(mCanModifyCalendar);
         }
+        if (reschedule != null) {
+            boolean show = EventInfoRules.showReschedule(mCanModifyEvent, mEventId);
+            reschedule.setVisible(show);
+            reschedule.setEnabled(show);
+        }
+    }
+
+    /** The edit action of this page: the floating action on full screen, else the headline one. */
+    private View findEditAction() {
+        View floating = mView.findViewById(R.id.event_info_action_edit);
+        return floating != null ? floating : mView.findViewById(R.id.edit);
+    }
+
+    /**
+     * Full-screen page only: wires the floating back button and the more menu, and applies the
+     * window insets. The dialog and pane hosts keep their own buttons and do not call this.
+     */
+    private void setUpFullScreenChrome() {
+        View back = mView.findViewById(R.id.event_info_nav_back);
+        if (back != null) {
+            back.setOnClickListener(v -> navigateUp());
+        }
+        View more = mView.findViewById(R.id.event_info_action_more);
+        if (more != null) {
+            more.setOnClickListener(this::showMoreMenu);
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(mView, (v, insets) -> {
+            applyFullScreenInsets(insets);
+            return insets;
+        });
+        applyStatusBarAppearance();
+    }
+
+    /**
+     * Keeps the floating action bar clear of the status bar and display cutout, keeps the panel
+     * clear of cutouts on the sides, and keeps the last row clear of the navigation bar. The
+     * header itself is not inset, so it runs under the status bar.
+     */
+    private void applyFullScreenInsets(WindowInsetsCompat insets) {
+        if (mView == null) {
+            return;
+        }
+        Insets bars = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+        View bar = mView.findViewById(R.id.event_info_action_bar);
+        if (bar != null) {
+            int base = getResources().getDimensionPixelSize(R.dimen.event_info_action_bar_padding);
+            bar.setPadding(base + bars.left, base + bars.top, base + bars.right, base);
+        }
+        View scroll = mView.findViewById(R.id.event_info_scroll_view);
+        if (scroll != null) {
+            scroll.setPadding(0, 0, 0, bars.bottom);
+        }
+        View panel = mView.findViewById(R.id.event_info_panel);
+        if (panel != null && panel.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
+            ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) panel.getLayoutParams();
+            if (lp.leftMargin != bars.left || lp.rightMargin != bars.right) {
+                lp.leftMargin = bars.left;
+                lp.rightMargin = bars.right;
+                panel.setLayoutParams(lp);
+            }
+        }
+    }
+
+    /**
+     * The header is the tonal primary container, so the status bar icons follow its luminance:
+     * a light header gets dark icons, a dark header gets light icons.
+     */
+    private void applyStatusBarAppearance() {
+        if (mActivity == null || mView == null) {
+            return;
+        }
+        TypedValue value = new TypedValue();
+        if (!mActivity.getTheme().resolveAttribute(
+                com.google.android.material.R.attr.colorPrimaryContainer, value, true)
+                || value.type < TypedValue.TYPE_FIRST_COLOR_INT
+                || value.type > TypedValue.TYPE_LAST_COLOR_INT) {
+            return;
+        }
+        boolean lightHeader = ColorUtils.calculateLuminance(value.data) > 0.5;
+        Window window = mActivity.getWindow();
+        new WindowInsetsControllerCompat(window, window.getDecorView())
+                .setAppearanceLightStatusBars(lightHeader);
+    }
+
+    /** Back / up: the same behaviour as the former toolbar navigation icon. */
+    private void navigateUp() {
+        Utils.returnToCalendarHome(mContext);
+        mActivity.finish();
+    }
+
+    /**
+     * Opens the more menu with the event actions. Edit is left out because it has its own
+     * button in the action bar.
+     */
+    private void showMoreMenu(View anchor) {
+        if (mIsDialog || mActivity == null) {
+            return;
+        }
+        PopupMenu popup = new PopupMenu(mContext, anchor);
+        popup.inflate(R.menu.event_info_title_bar);
+        applyActionPermissions(popup.getMenu());
+        MenuItem edit = popup.getMenu().findItem(R.id.info_action_edit);
+        if (edit != null) {
+            edit.setVisible(false);
+        }
+        popup.setOnMenuItemClickListener(this::onOptionsItemSelected);
+        popup.show();
     }
 
     private void updateAttendees(View view) {

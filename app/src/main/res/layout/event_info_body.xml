@@ -15,21 +15,20 @@
      limitations under the License.
 -->
 <!--
-  Scrollable body of the event detail page, shared by the full-screen page and the dialog.
+  Body of the event detail page, shared by the full-screen page (inside the rounded panel) and
+  the dialog / pane host.
 
-  The content column is at most 600dp wide and centred, so wide windows keep a readable line
-  length. Each information row is an icon column (24dp) followed by a content column that starts
-  at the same x on every row. Rows that hold dynamic content (time zone, recurrence, location,
-  description, link, attendees) start GONE and are shown only when there is something to show.
-  Text colours come from the theme, never from the event colour.
+  This file holds no background and no outer margin: the host decides the surface. The content
+  column is at most 600dp wide and centred, so wide windows keep a readable line length. Every
+  information row is one icon column (24dp) followed by a text column that starts at the same x
+  (20dp + 24dp + 16dp). Rows with dynamic content start GONE and are shown only when there is
+  something to show. Reading text is a TextView with theme colours, never the event colour.
 -->
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:paddingStart="16dp"
-    android:paddingEnd="16dp"
     android:paddingTop="8dp"
     android:paddingBottom="24dp">
 
@@ -43,7 +42,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintWidth_max="600dp">
 
-        <!-- Title, colour marker and the actions -->
+        <!-- Colour marker and title. Actions sit in the headline only on the dialog / pane host. -->
         <include layout="@layout/event_info_headline" />
 
         <!-- Quick reschedule. Shown only for a one-off event on a writable calendar. -->
@@ -51,487 +50,469 @@
             android:id="@+id/reschedule_button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginStart="20dp"
+            android:layout_marginEnd="20dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="4dp"
             android:text="@string/reschedule_move_to_today"
             android:textAllCaps="false"
             android:visibility="gone"
             style="@style/Widget.Material3.Button.TonalButton" />
 
-        <!-- One continuous content area with rounded corners -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/event_info_card"
-            android:layout_width="match_parent"
+    <LinearLayout
+    android:id="@+id/when_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="top"
+        android:orientation="horizontal"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp">
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_outline_schedule"
+            app:tint="?attr/colorOnSurfaceVariant" />
+        <LinearLayout
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="0dp"
-            app:strokeWidth="0dp">
+            android:layout_weight="1"
+            android:layout_marginStart="16dp"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/when_datetime"
+                style="?attr/textAppearanceBodyLarge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="?attr/colorOnSurface"
+                android:textIsSelectable="true" />
+        </LinearLayout>
+    </LinearLayout>
 
+
+    <LinearLayout
+    android:id="@+id/timezone_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="top"
+        android:orientation="horizontal"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="0dp"
+        android:paddingBottom="12dp"
+    android:visibility="gone">
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_outline_public"
+            app:tint="?attr/colorOnSurfaceVariant" />
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="16dp"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/when_timezone"
+                style="?attr/textAppearanceBodyMedium"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textIsSelectable="true" />
+        </LinearLayout>
+    </LinearLayout>
+
+
+    <LinearLayout
+    android:id="@+id/repeat_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="top"
+        android:orientation="horizontal"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="0dp"
+        android:paddingBottom="12dp"
+    android:visibility="gone">
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_outline_repeat"
+            app:tint="?attr/colorOnSurfaceVariant" />
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="16dp"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/when_repeat"
+                style="?attr/textAppearanceBodyMedium"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textIsSelectable="true" />
+        </LinearLayout>
+    </LinearLayout>
+
+
+    <LinearLayout
+    android:id="@+id/where_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="top"
+        android:orientation="horizontal"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="12dp"
+        android:visibility="gone"
+        android:paddingBottom="12dp">
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_outline_place"
+            app:tint="?attr/colorOnSurfaceVariant" />
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="16dp"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/where"
+                style="?attr/textAppearanceBodyLarge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="?attr/colorOnSurface"
+                android:textIsSelectable="true"
+                android:textColorLink="?attr/colorPrimary" />
+        </LinearLayout>
+    </LinearLayout>
+
+
+    <!-- REMINDERS: always shown, because it also holds the add action -->
+    <LinearLayout
+        android:id="@+id/reminders_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="top"
+        android:orientation="horizontal"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="4dp">
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_outline_notifications"
+            app:tint="?attr/colorOnSurfaceVariant" />
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="16dp"
+            android:orientation="vertical">
+            <TextView
+                style="?attr/textAppearanceLabelMedium"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:text="@string/event_info_reminders_label" />
             <LinearLayout
+                android:id="@+id/reminder_items_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+            <Button
+                android:id="@+id/reminder_add"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="0dp"
+                android:contentDescription="@string/accessibility_add_reminder"
+                android:text="@string/reminders_label"
+                android:textAllCaps="false" />
+        </LinearLayout>
+    </LinearLayout>
+
+
+    <LinearLayout
+    android:id="@+id/description_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="top"
+        android:orientation="horizontal"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp"
+    android:visibility="gone">
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_outline_notes"
+            app:tint="?attr/colorOnSurfaceVariant" />
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="16dp"
+            android:orientation="vertical">
+            <include
+                android:id="@+id/description"
+                layout="@layout/expandable_textview"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="0dp"
+                android:layout_marginTop="0dp" />
+        </LinearLayout>
+    </LinearLayout>
+
+
+    <LinearLayout
+    android:id="@+id/url_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="top"
+        android:orientation="horizontal"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp"
+    android:visibility="gone">
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_outline_link"
+            app:tint="?attr/colorOnSurfaceVariant" />
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="16dp"
+            android:orientation="vertical">
+            <include
+                android:id="@+id/url"
+                layout="@layout/expandable_textview"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="0dp"
+                android:layout_marginTop="0dp" />
+        </LinearLayout>
+    </LinearLayout>
+
+
+    <LinearLayout
+    android:id="@+id/calendar_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="top"
+        android:orientation="horizontal"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp"
+    android:visibility="gone">
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/outline_calendar_view_day"
+            app:tint="?attr/colorOnSurfaceVariant" />
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="16dp"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/calendar_label"
+                style="?attr/textAppearanceLabelMedium"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:text="@string/view_event_calendar_label" />
+            <TextView
+                android:id="@+id/calendar_name"
+                style="?attr/textAppearanceBodyLarge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="?attr/colorOnSurface"
+                android:textIsSelectable="true" />
+        </LinearLayout>
+    </LinearLayout>
+
+
+    <LinearLayout
+    android:id="@+id/organizer_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="top"
+        android:orientation="horizontal"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp"
+    android:visibility="gone">
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/outline_account_circle"
+            app:tint="?attr/colorOnSurfaceVariant" />
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="16dp"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/organizer_label"
+                style="?attr/textAppearanceLabelMedium"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:text="@string/event_info_organizer" />
+            <TextView
+                android:id="@+id/organizer"
+                style="?attr/textAppearanceBodyLarge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="?attr/colorOnSurface"
+                android:textIsSelectable="true" />
+        </LinearLayout>
+    </LinearLayout>
+
+
+    <LinearLayout
+    android:id="@+id/attendees_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="top"
+        android:orientation="horizontal"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp"
+    android:visibility="gone">
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_outline_person_add"
+            app:tint="?attr/colorOnSurfaceVariant" />
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="16dp"
+            android:orientation="vertical">
+            <com.android.calendar.event.AttendeesView
+                android:id="@+id/long_attendee_list"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp">
+                android:visibility="gone" />
+        </LinearLayout>
+    </LinearLayout>
 
-                <!-- DATE AND TIME -->
-                <LinearLayout
-                    android:id="@+id/when_row"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="top"
-                    android:orientation="horizontal"
-                    android:paddingStart="20dp"
-                    android:paddingEnd="20dp"
-                    android:paddingTop="12dp"
-                    android:paddingBottom="12dp">
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_outline_schedule"
-                        app:tint="?attr/colorOnSurfaceVariant" />
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="16dp"
-                        android:orientation="vertical">
-                        <TextView
-                            android:id="@+id/when_datetime"
-                            style="?attr/textAppearanceBodyLarge"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:textColor="?attr/colorOnSurface"
-                            android:textIsSelectable="true" />
-                    </LinearLayout>
-                </LinearLayout>
 
-                <!-- TIME ZONE. Hidden when it is the same zone as the local one, or all-day. -->
-                <LinearLayout
-                    android:id="@+id/timezone_row"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="top"
-                    android:orientation="horizontal"
-                    android:paddingStart="20dp"
-                    android:paddingEnd="20dp"
-                    android:paddingTop="0dp"
-                    android:paddingBottom="12dp"
-                    android:visibility="gone">
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_outline_public"
-                        app:tint="?attr/colorOnSurfaceVariant" />
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="16dp"
-                        android:orientation="vertical">
-                        <TextView
-                            android:id="@+id/when_timezone"
-                            style="?attr/textAppearanceBodyMedium"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:textColor="?attr/colorOnSurfaceVariant"
-                            android:textIsSelectable="true" />
-                    </LinearLayout>
-                </LinearLayout>
+    <!-- RESPONSE. Shown only for an invitation the user can answer. -->
+    <LinearLayout
+        android:id="@+id/response_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="4dp"
+        android:visibility="gone">
+        <TextView
+            android:id="@+id/response_label"
+            style="?attr/textAppearanceLabelLarge"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:text="@string/view_event_response_label" />
+        <RadioGroup
+            android:id="@+id/response_value"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="52dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <RadioButton
+                android:id="@+id/response_yes"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center_vertical"
+                style="?attr/textAppearanceBodyLarge"
+                android:text="@string/response_yes" />
+            <RadioButton
+                android:id="@+id/response_maybe"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center_vertical"
+                style="?attr/textAppearanceBodyLarge"
+                android:text="@string/response_maybe" />
+            <RadioButton
+                android:id="@+id/response_no"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center_vertical"
+                style="?attr/textAppearanceBodyLarge"
+                android:text="@string/response_no" />
+        </RadioGroup>
+    </LinearLayout>
 
-                <!-- RECURRENCE. Hidden for a one-off event. -->
-                <LinearLayout
-                    android:id="@+id/repeat_row"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="top"
-                    android:orientation="horizontal"
-                    android:paddingStart="20dp"
-                    android:paddingEnd="20dp"
-                    android:paddingTop="0dp"
-                    android:paddingBottom="12dp"
-                    android:visibility="gone">
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_outline_repeat"
-                        app:tint="?attr/colorOnSurfaceVariant" />
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="16dp"
-                        android:orientation="vertical">
-                        <TextView
-                            android:id="@+id/when_repeat"
-                            style="?attr/textAppearanceBodyMedium"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:textColor="?attr/colorOnSurfaceVariant" />
-                    </LinearLayout>
-                </LinearLayout>
+    <!-- EMAIL GUESTS. Hidden when there are no attendees. -->
+    <LinearLayout
+        android:id="@+id/email_attendees_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:visibility="gone">
+        <Button
+            android:id="@+id/email_attendees_button"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:drawableStart="@drawable/outline_email"
+            android:drawablePadding="8dp"
+            android:text="@string/email_guests_label"
+            android:textAllCaps="false" />
+    </LinearLayout>
 
-                <!-- LOCATION. Hidden when the event has none. -->
-                <LinearLayout
-                    android:id="@+id/where_row"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="top"
-                    android:orientation="horizontal"
-                    android:paddingStart="20dp"
-                    android:paddingEnd="20dp"
-                    android:paddingTop="12dp"
-                    android:paddingBottom="12dp"
-                    android:visibility="gone">
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_outline_place"
-                        app:tint="?attr/colorOnSurfaceVariant" />
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="16dp"
-                        android:orientation="vertical">
-                        <TextView
-                            android:id="@+id/where"
-                            style="?attr/textAppearanceBodyLarge"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:ellipsize="end"
-                            android:singleLine="false"
-                            android:textColor="?attr/colorOnSurface"
-                            android:textColorLink="?attr/colorPrimary"
-                            android:textIsSelectable="true" />
-                    </LinearLayout>
-                </LinearLayout>
-
-                <!-- CALENDAR -->
-                <LinearLayout
-                    android:id="@+id/calendar_container"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="top"
-                    android:orientation="horizontal"
-                    android:paddingStart="20dp"
-                    android:paddingEnd="20dp"
-                    android:paddingTop="12dp"
-                    android:paddingBottom="12dp"
-                    android:visibility="gone">
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/outline_calendar_view_day"
-                        app:tint="?attr/colorOnSurfaceVariant" />
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="16dp"
-                        android:orientation="vertical">
-                        <TextView
-                            android:id="@+id/calendar_label"
-                            style="?attr/textAppearanceLabelMedium"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:textColor="?attr/colorOnSurfaceVariant"
-                            android:text="@string/view_event_calendar_label" />
-                        <TextView
-                            android:id="@+id/calendar_name"
-                            style="?attr/textAppearanceBodyLarge"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:textColor="?attr/colorOnSurface"
-                            android:textIsSelectable="true" />
-                    </LinearLayout>
-                </LinearLayout>
-
-                <!-- ORGANIZER -->
-                <LinearLayout
-                    android:id="@+id/organizer_container"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="top"
-                    android:orientation="horizontal"
-                    android:paddingStart="20dp"
-                    android:paddingEnd="20dp"
-                    android:paddingTop="12dp"
-                    android:paddingBottom="12dp"
-                    android:visibility="gone">
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/outline_account_circle"
-                        app:tint="?attr/colorOnSurfaceVariant" />
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="16dp"
-                        android:orientation="vertical">
-                        <TextView
-                            android:id="@+id/organizer_label"
-                            style="?attr/textAppearanceLabelMedium"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:textColor="?attr/colorOnSurfaceVariant"
-                            android:text="@string/event_info_organizer" />
-                        <TextView
-                            android:id="@+id/organizer"
-                            style="?attr/textAppearanceBodyLarge"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:textColor="?attr/colorOnSurface"
-                            android:textIsSelectable="true" />
-                    </LinearLayout>
-                </LinearLayout>
-
-                <!-- DESCRIPTION. Hidden when the event has none. -->
-                <LinearLayout
-                    android:id="@+id/description_row"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="top"
-                    android:orientation="horizontal"
-                    android:paddingStart="20dp"
-                    android:paddingEnd="20dp"
-                    android:paddingTop="12dp"
-                    android:paddingBottom="12dp"
-                    android:visibility="gone">
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_outline_notes"
-                        app:tint="?attr/colorOnSurfaceVariant" />
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="16dp"
-                        android:orientation="vertical">
-                        <include
-                            android:id="@+id/description"
-                            layout="@layout/expandable_textview"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginLeft="0dp"
-                            android:layout_marginTop="0dp" />
-                    </LinearLayout>
-                </LinearLayout>
-
-                <!-- URL. Hidden when the event has none. -->
-                <LinearLayout
-                    android:id="@+id/url_row"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="top"
-                    android:orientation="horizontal"
-                    android:paddingStart="20dp"
-                    android:paddingEnd="20dp"
-                    android:paddingTop="12dp"
-                    android:paddingBottom="12dp"
-                    android:visibility="gone">
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_outline_link"
-                        app:tint="?attr/colorOnSurfaceVariant" />
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="16dp"
-                        android:orientation="vertical">
-                        <include
-                            android:id="@+id/url"
-                            layout="@layout/expandable_textview"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginLeft="0dp"
-                            android:layout_marginTop="0dp" />
-                    </LinearLayout>
-                </LinearLayout>
-
-                <!-- ATTENDEES. Hidden when the event has none. -->
-                <LinearLayout
-                    android:id="@+id/attendees_row"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="top"
-                    android:orientation="horizontal"
-                    android:paddingStart="20dp"
-                    android:paddingEnd="20dp"
-                    android:paddingTop="12dp"
-                    android:paddingBottom="12dp"
-                    android:visibility="gone">
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_outline_person_add"
-                        app:tint="?attr/colorOnSurfaceVariant" />
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="16dp"
-                        android:orientation="vertical">
-                        <com.android.calendar.event.AttendeesView
-                            android:id="@+id/long_attendee_list"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:visibility="gone" />
-                    </LinearLayout>
-                </LinearLayout>
-
-                <!-- REMINDERS: always shown, because it also holds the add action -->
-                <LinearLayout
-                    android:id="@+id/reminders_row"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="top"
-                    android:orientation="horizontal"
-                    android:paddingStart="20dp"
-                    android:paddingEnd="20dp"
-                    android:paddingTop="12dp"
-                    android:paddingBottom="4dp">
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_outline_notifications"
-                        app:tint="?attr/colorOnSurfaceVariant" />
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="16dp"
-                        android:orientation="vertical">
-                        <TextView
-                            style="?attr/textAppearanceLabelMedium"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:textColor="?attr/colorOnSurfaceVariant"
-                            android:text="@string/event_info_reminders_label" />
-                        <LinearLayout
-                            android:id="@+id/reminder_items_container"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical" />
-                        <Button
-                            android:id="@+id/reminder_add"
-                            style="@style/Widget.Material3.Button.TextButton"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="0dp"
-                            android:contentDescription="@string/accessibility_add_reminder"
-                            android:text="@string/reminders_label"
-                            android:textAllCaps="false" />
-                    </LinearLayout>
-                </LinearLayout>
-
-                <!-- RESPONSE. Shown only for an invitation the user can answer. -->
-                <LinearLayout
-                    android:id="@+id/response_container"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:paddingStart="20dp"
-                    android:paddingEnd="20dp"
-                    android:paddingTop="12dp"
-                    android:paddingBottom="4dp"
-                    android:visibility="gone">
-                    <TextView
-                        android:id="@+id/response_label"
-                        style="?attr/textAppearanceLabelLarge"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:textColor="?attr/colorOnSurfaceVariant"
-                        android:text="@string/view_event_response_label" />
-                    <RadioGroup
-                        android:id="@+id/response_value"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:minHeight="52dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-                        <RadioButton
-                            android:id="@+id/response_yes"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:gravity="center_vertical"
-                            style="?attr/textAppearanceBodyLarge"
-                            android:text="@string/response_yes" />
-                        <RadioButton
-                            android:id="@+id/response_maybe"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:gravity="center_vertical"
-                            style="?attr/textAppearanceBodyLarge"
-                            android:text="@string/response_maybe" />
-                        <RadioButton
-                            android:id="@+id/response_no"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:gravity="center_vertical"
-                            style="?attr/textAppearanceBodyLarge"
-                            android:text="@string/response_no" />
-                    </RadioGroup>
-                </LinearLayout>
-
-                <!-- EMAIL GUESTS / ORGANIZER -->
-                <LinearLayout
-                    android:id="@+id/email_attendees_container"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp"
-                    android:visibility="gone">
-                    <Button
-                        android:id="@+id/email_attendees_button"
-                        style="@style/Widget.Material3.Button.TextButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:drawableStart="@drawable/outline_email"
-                        android:drawablePadding="8dp"
-                        android:text="@string/email_guests_label"
-                        android:textAllCaps="false" />
-                </LinearLayout>
-
-                <!-- LAUNCH CUSTOM APP (set by the event's custom app extension) -->
-                <LinearLayout
-                    android:id="@+id/launch_custom_app_container"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp"
-                    android:visibility="gone">
-                    <Button
-                        android:id="@+id/launch_custom_app_button"
-                        style="@style/Widget.Material3.Button.TextButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:drawablePadding="8dp"
-                        android:textAllCaps="false" />
-                </LinearLayout>
-
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+    <!-- LAUNCH CUSTOM APP (set by the event's custom app extension) -->
+    <LinearLayout
+        android:id="@+id/launch_custom_app_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:visibility="gone">
+        <Button
+            android:id="@+id/launch_custom_app_button"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:drawablePadding="8dp"
+            android:textAllCaps="false" />
+    </LinearLayout>
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

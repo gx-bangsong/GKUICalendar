@@ -195,4 +195,94 @@ public class EventInfoLayoutTest {
         assertTrue(fragment.contains("EventInfoRules.canModifyEvent("));
         assertTrue(fragment.contains("EventInfoRules.showReschedule("));
     }
+
+    /** The full-screen page is a header that runs under the status bar plus an overlapping panel. */
+    @Test
+    public void fullScreenPageHasIllustratedHeaderAndOverlappingPanel() throws Exception {
+        Document full = parse(LAYOUT + "event_info.xml");
+        Element header = byId(full, "event_info_header");
+        assertTrue("missing illustrated header", header != null);
+        assertEquals("@dimen/event_info_header_height",
+                header.getAttributeNS(ANDROID_NS, "layout_height"));
+        Element art = byId(full, "event_info_header_art");
+        assertTrue("header must carry its own illustration", art != null);
+        assertEquals("@drawable/event_info_header_art", art.getAttributeNS(ANDROID_NS, "src"));
+
+        Element panel = byId(full, "event_info_panel");
+        assertTrue("missing content panel", panel != null);
+        assertEquals("panel must overlap the header by the overlap dimen",
+                "@dimen/event_info_panel_overlap",
+                panel.getAttributeNS(ANDROID_NS, "layout_marginTop"));
+        assertEquals("@drawable/event_info_panel_background",
+                panel.getAttributeNS(ANDROID_NS, "background"));
+        assertEquals("panel must run to the edges: no start margin",
+                "", panel.getAttributeNS(ANDROID_NS, "layout_marginStart"));
+        assertEquals("panel must run to the edges: no end margin",
+                "", panel.getAttributeNS(ANDROID_NS, "layout_marginEnd"));
+    }
+
+    @Test
+    public void fullScreenPageHasNoToolbarAndNoCardInsideThePanel() throws Exception {
+        String full = read(LAYOUT + "event_info.xml");
+        assertFalse("the full page must not keep the toolbar", full.contains("app_bar"));
+        assertFalse("the full page must not keep an AppBarLayout", full.contains("AppBarLayout"));
+        String body = read(LAYOUT + "event_info_body.xml");
+        assertFalse("the body must not wrap content in a card", body.contains("MaterialCardView"));
+        assertFalse("the body must not set outer margins on the panel",
+                body.contains("layout_marginHorizontal"));
+    }
+
+    /** Edit is hidden until EventInfoFragment finds that the user can edit the event. */
+    @Test
+    public void floatingEditStartsHidden() throws Exception {
+        Document bar = parse(LAYOUT + "event_info_action_bar.xml");
+        Element edit = byId(bar, "event_info_action_edit");
+        assertTrue("missing floating edit", edit != null);
+        assertEquals("gone", edit.getAttributeNS(ANDROID_NS, "visibility"));
+        assertTrue("missing back target", byId(bar, "event_info_nav_back") != null);
+        assertTrue("missing more target", byId(bar, "event_info_action_more") != null);
+    }
+
+    /** The circle and the icon are separate views, so the circle's alpha never fades the icon. */
+    @Test
+    public void actionCircleAndIconAreSeparateAndOpaque() throws Exception {
+        String bar = read(LAYOUT + "event_info_action_bar.xml");
+        assertFalse("a whole action must not be given an alpha", bar.contains("android:alpha"));
+        assertTrue("each action needs a 48dp touch target",
+                read("src/main/res/values/dimens.xml").contains(
+                        "<dimen name=\"event_info_action_size\">48dp</dimen>"));
+        int circles = bar.split("@drawable/event_info_action_circle", -1).length - 1;
+        assertEquals("three actions each with their own circle", 3, circles);
+    }
+
+    @Test
+    public void headerHeightIsQualifiedNotOneSizeForAllWindows() throws Exception {
+        String[] dirs = {"values", "values-land", "values-sw600dp", "values-sw600dp-land"};
+        for (String dir : dirs) {
+            String xml = read("src/main/res/" + dir + "/dimens.xml");
+            assertTrue(dir + " must define the header height",
+                    xml.contains("name=\"event_info_header_height\""));
+        }
+    }
+
+    /** Only the full-screen Activity gives up decor fitting; the dialog path is unchanged. */
+    @Test
+    public void onlyTheFullScreenActivityLetsTheHeaderRunUnderTheStatusBar() throws Exception {
+        String activity = read("src/main/java/com/android/calendar/EventInfoActivity.java");
+        assertTrue(activity.contains("WindowCompat.setDecorFitsSystemWindows(window, false)"));
+        assertTrue(activity.contains("setContentView(R.layout.simple_frame_layout)"));
+        assertTrue(activity.contains("setContentView(R.layout.event_info_activity)"));
+        String container = read(LAYOUT + "event_info_activity.xml");
+        assertFalse("the full-screen container must not keep the drawer",
+                container.contains("DrawerLayout"));
+        assertTrue(container.contains("@+id/main_frame"));
+    }
+
+    @Test
+    public void fragmentInsetsTheActionBarAndAvoidsTheCutout() throws Exception {
+        String fragment = read("src/main/java/com/android/calendar/EventInfoFragment.java");
+        assertTrue(fragment.contains("WindowInsetsCompat.Type.displayCutout()"));
+        assertTrue(fragment.contains("WindowInsetsCompat.Type.systemBars()"));
+        assertTrue(fragment.contains("findEditAction()"));
+    }
 }

@@ -434,4 +434,7 @@
     <string name="timezone_search_no_results">没有与“%1$s”匹配的时区</string>
     <string name="timezone_search_unknown">无法识别的时区 ID</string>
     <string name="timezone_search_offset_note">GMT 偏移 %1$s（截至 %2$s）</string>
+    <!-- Event detail page action bar -->
+    <string name="event_info_navigate_back">返回</string>
+    <string name="event_info_more_actions">更多选项</string>
 </resources>

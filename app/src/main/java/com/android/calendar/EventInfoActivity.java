@@ -20,6 +20,7 @@ import static android.provider.CalendarContract.EXTRA_EVENT_BEGIN_TIME;
 import static android.provider.CalendarContract.EXTRA_EVENT_END_TIME;
 
 import android.content.Intent;
+import android.graphics.Color;
 import android.content.res.Resources;
 import android.database.ContentObserver;
 import android.net.Uri;
@@ -28,9 +29,11 @@ import android.os.Handler;
 import android.provider.CalendarContract;
 import android.provider.CalendarContract.Attendees;
 import android.util.Log;
+import android.view.Window;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.WindowCompat;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
@@ -145,7 +148,16 @@ public class EventInfoActivity extends AppCompatActivity {
             return;
         }
 
-        setContentView(R.layout.simple_frame_layout);
+        if (isDialog) {
+            setContentView(R.layout.simple_frame_layout);
+        } else {
+            // Full-screen page: the illustrated header runs under the status bar, so this window
+            // stops fitting the system bars. Only this page does so; other windows are unchanged.
+            Window window = getWindow();
+            WindowCompat.setDecorFitsSystemWindows(window, false);
+            window.setStatusBarColor(Color.TRANSPARENT);
+            setContentView(R.layout.event_info_activity);
+        }
 
         // Get the fragment if exists
         mInfoFragment = (EventInfoFragment)
