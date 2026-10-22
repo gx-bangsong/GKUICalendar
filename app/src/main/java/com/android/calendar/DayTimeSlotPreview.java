@@ -16,7 +16,7 @@
 
 package com.android.calendar;
 
-import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.TimeZone;
 
 /**
@@ -109,11 +109,13 @@ final class DayTimeSlotPreview {
 
     /**
      * The instant of {@code minute} on the given day. {@code month} is zero-based, as in
-     * {@link Calendar}. Minutes past the day's end roll over into the next day through the
+     * Gregorian calendar. Minutes past the day's end roll over into the next day through the
      * calendar, so DST days keep their real length.
      */
     static long millisAt(int year, int month, int dayOfMonth, int minute, TimeZone zone) {
-        Calendar calendar = Calendar.getInstance(zone);
+        // Always Gregorian: Calendar.getInstance() follows the locale (Buddhist, Japanese), and
+        // the year would then be read in another calendar.
+        GregorianCalendar calendar = new GregorianCalendar(zone);
         calendar.clear();
         calendar.setLenient(true);
         calendar.set(year, month, dayOfMonth, minute / 60, minute % 60, 0);
