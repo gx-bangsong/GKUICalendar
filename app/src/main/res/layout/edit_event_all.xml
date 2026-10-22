@@ -72,46 +72,98 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/event_types_scroll" />
 
-        <!-- Calendar Selector -->
-        <ImageView
-            android:id="@+id/calendar_selector_group_icon"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:layout_marginStart="24dp"
-            android:src="@drawable/outline_account_circle"
-            app:layout_constraintBottom_toBottomOf="@+id/calendars_layout"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="@+id/calendars_layout" />
-
-        <View
-            android:id="@+id/calendar_selector_group_background"
-            android:layout_width="12dp"
-            android:layout_height="12dp"
-            android:layout_marginStart="14dp"
-            android:layout_marginTop="2dp"
-            app:layout_constraintStart_toStartOf="@+id/calendar_selector_group_icon"
-            app:layout_constraintTop_toTopOf="@+id/calendar_selector_group_icon" />
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/calendars_layout"
-            style="@style/Widget.Material3.TextInputLayout.FilledBox.ExposedDropdownMenu"
+        <!-- Calendar selector: account row, then single-select calendar chips.
+             Not a TextInputLayout; the account row and chips carry their own states. -->
+        <LinearLayout
+            android:id="@+id/calendar_account_row"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="8dp"
             android:layout_marginEnd="8dp"
-            android:hint="@string/edit_event_calendar_label"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:minHeight="56dp"
+            android:orientation="horizontal"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
             app:layout_constraintEnd_toStartOf="@+id/change_color"
-            app:layout_constraintStart_toEndOf="@+id/calendar_selector_group_icon"
+            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/separator_title">
 
-            <com.android.calendar.event.ExposedDropdownField
-                android:id="@+id/calendars_spinner"
-                android:layout_width="match_parent"
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:inputType="none"
-                android:singleLine="false" />
-        </com.google.android.material.textfield.TextInputLayout>
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp">
+
+                <TextView
+                    android:id="@+id/calendar_account_name"
+                    style="@style/TextAppearance.EditEvent"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1" />
+
+                <TextView
+                    android:id="@+id/calendar_account_type"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textAppearance="?attr/textAppearanceBodySmall"
+                    android:textColor="?attr/colorOnSurfaceVariant" />
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/calendar_account_switch"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginStart="8dp"
+                android:contentDescription="@string/calendar_switch_account"
+                android:src="@drawable/outline_arrow_drop_down"
+                android:tint="?attr/colorOnSurfaceVariant" />
+        </LinearLayout>
+
+        <HorizontalScrollView
+            android:id="@+id/calendar_chips_scroll"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:scrollbars="none"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/calendar_account_row">
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/calendar_chip_group"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
+                app:chipSpacingHorizontal="8dp"
+                app:selectionRequired="true"
+                app:singleLine="true"
+                app:singleSelection="true" />
+        </HorizontalScrollView>
+
+        <TextView
+            android:id="@+id/calendar_state_text"
+            style="@style/TextAppearance.EditEvent"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="24dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="24dp"
+            android:visibility="gone"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/calendar_chips_scroll" />
 
         <ImageButton
             android:id="@+id/change_color"
@@ -121,9 +173,9 @@
             android:background="?android:attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/choose_event_color_label"
             android:src="@drawable/outline_color_lens"
-            app:layout_constraintBottom_toBottomOf="@+id/calendars_layout"
+            app:layout_constraintBottom_toBottomOf="@+id/calendar_account_row"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@+id/calendars_layout" />
+            app:layout_constraintTop_toTopOf="@+id/calendar_account_row" />
 
         <View
             android:id="@+id/separator_calendar"
@@ -131,7 +183,7 @@
             android:layout_marginTop="16dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/calendars_layout" />
+            app:layout_constraintTop_toBottomOf="@+id/calendar_state_text" />
 
         <!-- ALL DAY -->
         <ImageView
@@ -525,7 +577,7 @@
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/availability_layout"
-            style="@style/Widget.Material3.TextInputLayout.FilledBox.ExposedDropdownMenu"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
@@ -557,7 +609,7 @@
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/visibility_layout"
-            style="@style/Widget.Material3.TextInputLayout.FilledBox.ExposedDropdownMenu"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"

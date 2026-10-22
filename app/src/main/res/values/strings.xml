@@ -972,4 +972,9 @@
     <string name="agenda_next_month">Next month</string>
     <string name="agenda_previous_week">Previous week</string>
     <string name="agenda_next_week">Next week</string>
+
+    <!-- Event form: calendar account row and chips. -->
+    <string name="calendar_switch_account">Switch account</string>
+    <string name="calendar_choose_account">Choose account</string>
+    <string name="calendar_unavailable">This event\'s calendar is no longer available. Choose a calendar before saving.</string>
 </resources>

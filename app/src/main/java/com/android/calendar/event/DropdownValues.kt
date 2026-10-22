@@ -29,14 +29,4 @@ object DropdownValues {
         val index = values.indexOf(value)
         return if (index >= 0) index else fallback
     }
-
-    /**
-     * Label for a calendar in the calendar dropdown: the display name, plus the
-     * owner account when it is set and differs from the name.
-     */
-    @JvmStatic
-    fun calendarLabel(displayName: String?, owner: String?): String {
-        val name = displayName.orEmpty()
-        return if (owner.isNullOrEmpty() || owner == name) name else "$name ($owner)"
-    }
 }

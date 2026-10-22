@@ -41,17 +41,4 @@ class DropdownValuesTest {
     fun indexOfOrFallbackUsesFallbackWhenValueNotOffered() {
         assertEquals(0, DropdownValues.indexOfOrFallback(listOf(1, 2), 9, 0))
     }
-
-    @Test
-    fun calendarLabelAddsOwnerOnlyWhenItDiffers() {
-        assertEquals("Work (a@example.com)", DropdownValues.calendarLabel("Work", "a@example.com"))
-        assertEquals("a@example.com", DropdownValues.calendarLabel("a@example.com", "a@example.com"))
-        assertEquals("Local", DropdownValues.calendarLabel("Local", ""))
-        assertEquals("Local", DropdownValues.calendarLabel("Local", null))
-    }
-
-    @Test
-    fun calendarLabelHandlesMissingName() {
-        assertEquals("", DropdownValues.calendarLabel(null, null))
-    }
 }

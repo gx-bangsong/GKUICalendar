@@ -24,9 +24,11 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.ColorStateList;
 import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.provider.CalendarContract;
 import android.provider.CalendarContract.Attendees;
@@ -40,6 +42,7 @@ import android.text.format.DateUtils;
 import android.text.util.Rfc822Tokenizer;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
@@ -49,6 +52,7 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.CompoundButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.MultiAutoCompleteTextView;
 import android.widget.RadioButton;
@@ -56,6 +60,7 @@ import android.widget.RadioGroup;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.TextView.OnEditorActionListener;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -90,6 +95,8 @@ import com.android.calendar.timezonepicker.TimeZonePickerUtils;
 import com.google.android.material.datepicker.CalendarConstraints;
 import com.google.android.material.datepicker.MaterialDatePicker;
 import com.google.android.material.datepicker.MaterialPickerOnPositiveButtonClickListener;
+import com.google.android.material.chip.Chip;
+import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
@@ -102,6 +109,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Formatter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 
@@ -146,7 +154,12 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
     TextView mEndDateHome;
     SwitchCompat mAllDayCheckBox;
     com.google.android.material.chip.ChipGroup mEventTypeGroup;
-    ExposedDropdownField mCalendarsSpinner;
+    LinearLayout mCalendarAccountRow;
+    TextView mCalendarAccountName;
+    TextView mCalendarAccountType;
+    ImageView mCalendarAccountSwitch;
+    ChipGroup mCalendarChipGroup;
+    TextView mCalendarStateText;
     Button mRruleButton;
     ExposedDropdownField mAvailabilitySpinner;
     ExposedDropdownField mAccessLevelSpinner;
@@ -159,7 +172,6 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
     TextView mWhenView;
     TextView mTimezoneTextView;
     MultiAutoCompleteTextView mAttendeesList;
-    View mCalendarSelectorGroupBackground;
     View mStartRowContainer;
     View mEndRowContainer;
     View mLocationGroup;
@@ -185,6 +197,17 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
     private View mView;
     private CalendarEventModel mModel;
     private Cursor mCalendarsCursor;
+    /** Writable calendars grouped by account. Choices are identified by calendar _ID. */
+    private List<CalendarAccountGroups.Account> mCalendarAccounts = new ArrayList<>();
+    /** The account shown in the account row, or -1 before the calendars load. */
+    private int mCalendarAccountIndex = -1;
+    /** The event's calendar is not in the writable list (deleted, read-only or no permission). */
+    private boolean mCalendarMissing;
+    /** Calendar _ID to select at the first model load; -1 if there is none. */
+    private long mCalendarInitialId = -1;
+    private boolean mCalendarSelectorEnabled = true;
+    /** True while chips are bound in code, so their change listener ignores the change. */
+    private boolean mBindingCalendarChips;
     private AccountSpecifier mAddressAdapter;
     private Rfc822Validator mEmailValidator;
     private TimePickerDialog mStartTimePickerDialog;
@@ -241,7 +264,12 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         mScrollView = (ScrollView) view.findViewById(R.id.scroll_view);
 
         // cache all the widgets
-        mCalendarsSpinner = (ExposedDropdownField) view.findViewById(R.id.calendars_spinner);
+        mCalendarAccountRow = (LinearLayout) view.findViewById(R.id.calendar_account_row);
+        mCalendarAccountName = (TextView) view.findViewById(R.id.calendar_account_name);
+        mCalendarAccountType = (TextView) view.findViewById(R.id.calendar_account_type);
+        mCalendarAccountSwitch = (ImageView) view.findViewById(R.id.calendar_account_switch);
+        mCalendarChipGroup = (ChipGroup) view.findViewById(R.id.calendar_chip_group);
+        mCalendarStateText = (TextView) view.findViewById(R.id.calendar_state_text);
         mTitleTextView = (TextView) view.findViewById(R.id.title);
         mLocationTextView = (AutoCompleteTextView) view.findViewById(R.id.location);
         mDescriptionTextView = (TextView) view.findViewById(R.id.description);
@@ -269,7 +297,6 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         mRruleButton = (Button) view.findViewById(R.id.rrule);
         mAvailabilitySpinner = (ExposedDropdownField) view.findViewById(R.id.availability);
         mAccessLevelSpinner = (ExposedDropdownField) view.findViewById(R.id.visibility);
-        mCalendarSelectorGroupBackground = view.findViewById(R.id.calendar_selector_group_background);
         mRemindersGroup = view.findViewById(R.id.reminder_items_container);
         mResponseGroup = view.findViewById(R.id.response_group);
         mOrganizerGroup = view.findViewById(R.id.organizer_row);
@@ -310,7 +337,9 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             }
             mAvailabilityCurrentlySelected = index;
         });
-        mCalendarsSpinner.setOnPickListener(this::onCalendarPicked);
+        mCalendarAccountRow.setOnClickListener(v -> showCalendarAccountChooser());
+        mCalendarChipGroup.setOnCheckedStateChangeListener(
+                (group, checkedIds) -> onCalendarChipChecked(checkedIds));
 
         mDescriptionTextView.setTag(mDescriptionTextView.getBackground());
         mUrlTextView.setTag(mUrlTextView.getBackground());
@@ -493,6 +522,11 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         if (mModel == null || (mCalendarsCursor == null && mModel.mUri == null)) {
             return false;
         }
+        if (mCalendarMissing) {
+            // Never save into a different calendar silently: the user must choose one first.
+            Toast.makeText(mActivity, R.string.calendar_unavailable, Toast.LENGTH_LONG).show();
+            return false;
+        }
         return fillModelFromUI();
     }
 
@@ -624,18 +658,14 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             mEmailValidator.setRemoveInvalid(false);
         }
 
-        int calendarCursorPosition = mCalendarsSpinner.getSelectedIndex();
-        if (mCalendarsCursor.moveToPosition(calendarCursorPosition)) {
-            String calendarOwner = mCalendarsCursor.getString(
-                    EditEventHelper.CALENDARS_INDEX_OWNER_ACCOUNT);
-            String calendarName = mCalendarsCursor.getString(
-                    EditEventHelper.CALENDARS_INDEX_DISPLAY_NAME);
-            String defaultCalendar = calendarOwner + "/" + calendarName;
-            Utils.setSharedPreference(
-                    mActivity, GeneralPreferences.KEY_DEFAULT_CALENDAR, defaultCalendar);
-            mModel.mOwnerAccount = calendarOwner;
-            mModel.mOrganizer = calendarOwner;
-            mModel.mCalendarId = mCalendarsCursor.getLong(EditEventHelper.CALENDARS_INDEX_ID);
+        // The owner comes from the selected calendar _ID, never from a list position.
+        CalendarAccountGroups.Calendar selected =
+                CalendarAccountGroups.findCalendar(mCalendarAccounts, mModel.mCalendarId);
+        if (selected != null) {
+            Utils.setSharedPreference(mActivity, GeneralPreferences.KEY_DEFAULT_CALENDAR,
+                    CalendarAccountGroups.defaultKeyOf(selected));
+            mModel.mOwnerAccount = selected.ownerAccount;
+            mModel.mOrganizer = selected.ownerAccount;
         }
 
         if (mModel.mAllDay) {
@@ -983,9 +1013,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             mResponseGroup.setVisibility(View.GONE);
         }
 
-        if (model.isEventColorInitialized()) {
-            updateHeadlineColor(model.getEventColor());
-        }
+        showEventColorIndicator(model.isEventColorInitialized(), model.getEventColor());
 
         populateWhen();
         populateRepeats();
@@ -999,19 +1027,23 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
 
         if (mCalendarsInitPending) {
             mCalendarsInitPending = false;
-            int selected = mCalendarsSpinner.getSelectedIndex();
-            if (selected >= 0) {
-                onCalendarPicked(selected);
+            // Programmatic backfill: refreshes the model and the calendar-dependent rows through
+            // the same path as a user pick, but the chip listener is not involved. An unavailable
+            // calendar is not backfilled, so the event's calendar is never overwritten.
+            if (!mCalendarMissing && mCalendarInitialId != -1) {
+                refreshForCalendar(mCalendarInitialId);
             }
         }
     }
 
-    public void updateHeadlineColor(int displayColor) {
-        setSpinnerBackgroundColor(displayColor);
+    /** Shows the per-event colour on the colour button. Calendar colours are on the chips. */
+    public void updateEventColorIndicator(int displayColor) {
+        showEventColorIndicator(true, displayColor);
     }
 
-    private void setSpinnerBackgroundColor(int displayColor) {
-        mCalendarSelectorGroupBackground.setBackgroundColor(displayColor);
+    private void showEventColorIndicator(boolean hasEventColor, int displayColor) {
+        ((ImageView) mColorPicker).setImageTintList(
+                hasEventColor ? ColorStateList.valueOf(displayColor) : null);
     }
 
     private void setTitleFocus() {
@@ -1118,16 +1150,25 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             return;
         }
 
-        int selection;
-        if (selectedCalendarId != -1) {
-            selection = findSelectedCalendarPosition(cursor, selectedCalendarId);
-        } else {
-            selection = findDefaultCalendarPosition(cursor);
+        mCalendarAccounts = CalendarAccountGroups.group(readWritableCalendars(cursor));
+        mCalendarMissing = selectedCalendarId != -1
+                && CalendarAccountGroups.findCalendar(mCalendarAccounts, selectedCalendarId) == null;
+        CalendarAccountGroups.Calendar initial = null;
+        if (!mCalendarMissing) {
+            initial = selectedCalendarId != -1
+                    ? CalendarAccountGroups.findCalendar(mCalendarAccounts, selectedCalendarId)
+                    : CalendarAccountGroups.defaultCalendar(mCalendarAccounts,
+                            Utils.getSharedPreference(mActivity,
+                                    GeneralPreferences.KEY_DEFAULT_CALENDAR, (String) null));
         }
-
-        // Populate the calendars dropdown. The calendar-dependent refresh (reminders,
-        // availability, visibility) runs once the model is available: see setModel().
-        mCalendarsSpinner.setChoices(buildCalendarLabels(cursor), selection);
+        mCalendarInitialId = initial == null ? -1 : initial.id;
+        // Show the account of the event's calendar. If that calendar is unavailable, show the
+        // first account with no chip checked, so that nothing is chosen silently.
+        int accountIndex = CalendarAccountGroups.indexOfAccountContaining(mCalendarAccounts,
+                mCalendarInitialId);
+        showCalendarAccount(accountIndex < 0 ? 0 : accountIndex, mCalendarInitialId);
+        // The calendar-dependent refresh (reminders, availability, visibility) runs once the
+        // model is available: see setModel().
         mCalendarsInitPending = true;
 
         if (mSaveAfterQueryComplete) {
@@ -1191,7 +1232,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             if (TextUtils.isEmpty(mUrlTextView.getText())) {
                 mUrlGroup.setVisibility(View.GONE);
             }
-            setFieldEnabled(mCalendarsSpinner, false);
+            setCalendarSelectorEnabled(false);
         } else {
             for (View v : mViewOnlyList) {
                 v.setVisibility(View.GONE);
@@ -1224,7 +1265,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             mUrlGroup.setVisibility(View.VISIBLE);
 
             // disallow changing calendar for recurrences when not modifying all instances
-            setFieldEnabled(mCalendarsSpinner, mode == Utils.MODIFY_ALL);
+            setCalendarSelectorEnabled(mode == Utils.MODIFY_ALL);
         }
         setAllDayViewsVisibility(mAllDayCheckBox.isChecked());
     }
@@ -1235,59 +1276,227 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         updateHomeTime();
     }
 
-    private int findSelectedCalendarPosition(Cursor calendarsCursor, long calendarId) {
-        if (calendarsCursor.getCount() <= 0) {
-            return -1;
+    /** Reads every writable calendar row into plain values, in cursor order. */
+    private List<CalendarAccountGroups.Calendar> readWritableCalendars(Cursor cursor) {
+        List<CalendarAccountGroups.Calendar> calendars = new ArrayList<>(cursor.getCount());
+        cursor.moveToPosition(-1);
+        while (cursor.moveToNext()) {
+            calendars.add(new CalendarAccountGroups.Calendar(
+                    cursor.getLong(EditEventHelper.CALENDARS_INDEX_ID),
+                    cursor.getString(EditEventHelper.CALENDARS_INDEX_DISPLAY_NAME),
+                    cursor.getString(EditEventHelper.CALENDARS_INDEX_OWNER_ACCOUNT),
+                    cursor.getString(EditEventHelper.CALENDARS_INDEX_ACCOUNT_NAME),
+                    cursor.getString(EditEventHelper.CALENDARS_INDEX_ACCOUNT_TYPE),
+                    Utils.getDisplayColorFromColor(mActivity,
+                            cursor.getInt(EditEventHelper.CALENDARS_INDEX_COLOR))));
         }
-        int calendarIdColumn = calendarsCursor.getColumnIndexOrThrow(Calendars._ID);
-        int position = 0;
-        calendarsCursor.moveToPosition(-1);
-        while (calendarsCursor.moveToNext()) {
-            if (calendarsCursor.getLong(calendarIdColumn) == calendarId) {
-                return position;
-            }
-            position++;
-        }
-        return 0;
+        return calendars;
     }
 
-    // Find the calendar position in the cursor that matches calendar in
-    // preference
-    private int findDefaultCalendarPosition(Cursor calendarsCursor) {
-        if (calendarsCursor.getCount() <= 0) {
-            return -1;
-        }
+    /**
+     * Shows one account in the account row and binds its calendars as single-select chips.
+     * Binding is done in code and does not run the user-selection path.
+     */
+    private void showCalendarAccount(int accountIndex, long checkedCalendarId) {
+        mCalendarAccountIndex = accountIndex;
+        CalendarAccountGroups.Account account = mCalendarAccounts.get(accountIndex);
+        mCalendarAccountName.setText(calendarAccountName(account));
+        updateCalendarAccountRow();
+        boolean showType = !account.isLocal() && !TextUtils.isEmpty(account.accountType);
+        mCalendarAccountType.setText(showType ? account.accountType : null);
+        mCalendarAccountType.setVisibility(showType ? View.VISIBLE : View.GONE);
 
-        String defaultCalendar = Utils.getSharedPreference(
-                mActivity, GeneralPreferences.KEY_DEFAULT_CALENDAR, (String) null);
-
-        int calendarsOwnerIndex = calendarsCursor.getColumnIndexOrThrow(Calendars.OWNER_ACCOUNT);
-        int calendarNameIndex = calendarsCursor.getColumnIndexOrThrow(Calendars.CALENDAR_DISPLAY_NAME);
-        int accountNameIndex = calendarsCursor.getColumnIndexOrThrow(Calendars.ACCOUNT_NAME);
-        int accountTypeIndex = calendarsCursor.getColumnIndexOrThrow(Calendars.ACCOUNT_TYPE);
-        int position = 0;
-        calendarsCursor.moveToPosition(-1);
-        while (calendarsCursor.moveToNext()) {
-            String calendarOwner = calendarsCursor.getString(calendarsOwnerIndex);
-            String calendarName = calendarsCursor.getString(calendarNameIndex);
-            String currentCalendar = calendarOwner + "/" + calendarName;
-            if (defaultCalendar == null) {
-                // There is no stored default upon the first time running.  Use a primary
-                // calendar in this case.
-                if (calendarOwner != null &&
-                        calendarOwner.equals(calendarsCursor.getString(accountNameIndex)) &&
-                        !CalendarContract.ACCOUNT_TYPE_LOCAL.equals(
-                                calendarsCursor.getString(accountTypeIndex))) {
-                    return position;
-                }
-            } else if (defaultCalendar.equals(currentCalendar)) {
-                // Found the default calendar.
-                return position;
+        mBindingCalendarChips = true;
+        try {
+            mCalendarChipGroup.removeAllViews();
+            LayoutInflater inflater = LayoutInflater.from(mActivity);
+            for (CalendarAccountGroups.Calendar calendar : account.calendars) {
+                Chip chip = (Chip) inflater.inflate(R.layout.calendar_selector_chip,
+                        mCalendarChipGroup, false);
+                chip.setId(View.generateViewId());
+                chip.setText(TextUtils.isEmpty(calendar.displayName)
+                        ? calendar.ownerAccount : calendar.displayName);
+                // The calendar colour is the only colour marker, drawn inside its own chip.
+                chip.setChipIcon(calendarColorMarker(calendar.color));
+                chip.setChipIconTint(null);
+                chip.setTag(calendar.id);
+                chip.setChecked(calendar.id == checkedCalendarId);
+                chip.setEnabled(mCalendarSelectorEnabled);
+                mCalendarChipGroup.addView(chip);
             }
-            position++;
+        } finally {
+            mBindingCalendarChips = false;
         }
-        return 0;
+        updateCalendarStateText();
     }
+
+    private String calendarAccountName(CalendarAccountGroups.Account account) {
+        if (account.isLocal() || TextUtils.isEmpty(account.accountName)) {
+            return mActivity.getString(R.string.offline_account_name);
+        }
+        return account.accountName;
+    }
+
+    /** Account label for the chooser; the type is appended so same-name accounts differ. */
+    private String calendarAccountLabel(CalendarAccountGroups.Account account) {
+        if (account.isLocal() || TextUtils.isEmpty(account.accountType)) {
+            return calendarAccountName(account);
+        }
+        return calendarAccountName(account) + " (" + account.accountType + ")";
+    }
+
+    private Drawable calendarColorMarker(int color) {
+        GradientDrawable marker = new GradientDrawable();
+        marker.setShape(GradientDrawable.OVAL);
+        marker.setColor(color);
+        return marker;
+    }
+
+    private void updateCalendarStateText() {
+        if (mCalendarMissing) {
+            mCalendarStateText.setText(R.string.calendar_unavailable);
+            mCalendarStateText.setVisibility(View.VISIBLE);
+        } else {
+            mCalendarStateText.setVisibility(View.GONE);
+        }
+    }
+
+    private void setCalendarSelectorEnabled(boolean enabled) {
+        mCalendarSelectorEnabled = enabled;
+        mCalendarAccountName.setEnabled(enabled);
+        mCalendarAccountType.setEnabled(enabled);
+        for (int i = 0; i < mCalendarChipGroup.getChildCount(); i++) {
+            mCalendarChipGroup.getChildAt(i).setEnabled(enabled);
+        }
+        updateCalendarAccountRow();
+    }
+
+    /**
+     * The account row is a switch entry only when the form is editable and there is more than
+     * one account. With one account it is plain text with no ripple and no chevron.
+     */
+    private void updateCalendarAccountRow() {
+        boolean canSwitch = mCalendarSelectorEnabled && mCalendarAccounts.size() > 1;
+        mCalendarAccountRow.setEnabled(mCalendarSelectorEnabled);
+        mCalendarAccountRow.setClickable(canSwitch);
+        mCalendarAccountRow.setFocusable(canSwitch);
+        mCalendarAccountSwitch.setVisibility(canSwitch ? View.VISIBLE : View.GONE);
+        mCalendarAccountSwitch.setEnabled(mCalendarSelectorEnabled);
+    }
+
+    /** Opens the account chooser when there is more than one account. */
+    private void showCalendarAccountChooser() {
+        if (!mCalendarSelectorEnabled || mCalendarAccounts.size() < 2) {
+            return;
+        }
+        String[] labels = new String[mCalendarAccounts.size()];
+        for (int i = 0; i < labels.length; i++) {
+            labels[i] = calendarAccountLabel(mCalendarAccounts.get(i));
+        }
+        new MaterialAlertDialogBuilder(mActivity)
+                .setTitle(R.string.calendar_choose_account)
+                .setSingleChoiceItems(labels, mCalendarAccountIndex, (dialog, which) -> {
+                    dialog.dismiss();
+                    onCalendarAccountPicked(which);
+                })
+                .show();
+    }
+
+    /**
+     * The user switched account. The new account's primary calendar becomes the event calendar,
+     * through the same selection path as a chip tap. Re-choosing the current account keeps the
+     * current calendar.
+     */
+    private void onCalendarAccountPicked(int accountIndex) {
+        if (mModel == null || !mCalendarSelectorEnabled
+                || accountIndex < 0 || accountIndex >= mCalendarAccounts.size()) {
+            return;
+        }
+        if (!mCalendarMissing && CalendarAccountGroups.indexOfAccountContaining(
+                mCalendarAccounts, mModel.mCalendarId) == accountIndex) {
+            return;
+        }
+        CalendarAccountGroups.Calendar calendar =
+                CalendarAccountGroups.fallbackCalendarOf(mCalendarAccounts.get(accountIndex));
+        if (calendar == null) {
+            return;
+        }
+        showCalendarAccount(accountIndex, calendar.id);
+        onCalendarPicked(calendar.id);
+    }
+
+    /** A chip checked by the user. Programmatic binding never reaches this method. */
+    private void onCalendarChipChecked(List<Integer> checkedIds) {
+        if (mBindingCalendarChips || !mCalendarSelectorEnabled || checkedIds.isEmpty()) {
+            return;
+        }
+        View chip = mCalendarChipGroup.findViewById(checkedIds.get(0));
+        if (chip != null && chip.getTag() instanceof Long) {
+            onCalendarPicked((Long) chip.getTag());
+        }
+    }
+
+    /** The user picked a calendar: it becomes the event calendar. */
+    private void onCalendarPicked(long calendarId) {
+        if (mModel == null || mCalendarsCursor == null
+                || CalendarAccountGroups.findCalendar(mCalendarAccounts, calendarId) == null) {
+            return;
+        }
+        mCalendarMissing = false;
+        refreshForCalendar(calendarId);
+        updateCalendarStateText();
+    }
+
+    /**
+     * Loads one calendar's values into the model and refreshes the reminder, availability and
+     * visibility rows. The user pick and the initial backfill both run this same path.
+     */
+    private void refreshForCalendar(long calendarId) {
+        if (!moveCursorToCalendar(calendarId)) {
+            return;
+        }
+        mModel.mCalendarId = calendarId;
+        EditEventHelper.setModelFromCalendarCursor(mModel, mCalendarsCursor, mActivity);
+        // ensure model is up to date so that reminders don't get lost on calendar change
+        fillModelFromUI();
+
+        // try to find the event color in the new calendar, remove it otherwise
+        if (mModel.isEventColorInitialized() && mModel.getCalendarEventColors() != null) {
+            Arrays.stream(mModel.getCalendarEventColors())
+                    .filter(color -> color == mModel.getEventColor())
+                    .findFirst()
+                    .ifPresentOrElse(mModel::setEventColor, mModel::removeEventColor);
+        } else {
+            mModel.removeEventColor();
+        }
+        showEventColorIndicator(mModel.isEventColorInitialized(), mModel.getEventColor());
+        setColorPickerButtonStates(mModel.getCalendarEventColors());
+
+        // Update the UI elements.
+        mReminderItems.clear();
+        LinearLayout reminderLayout =
+            (LinearLayout) mScrollView.findViewById(R.id.reminder_items_container);
+        reminderLayout.removeAllViews();
+
+        prepareReminders();
+        prepareAvailability();
+        prepareAccess();
+    }
+
+    /** Moves the calendars cursor to the row with this _ID. Returns false if there is none. */
+    private boolean moveCursorToCalendar(long calendarId) {
+        if (mCalendarsCursor == null) {
+            return false;
+        }
+        mCalendarsCursor.moveToPosition(-1);
+        while (mCalendarsCursor.moveToNext()) {
+            if (mCalendarsCursor.getLong(EditEventHelper.CALENDARS_INDEX_ID) == calendarId) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 
     private void updateAttendees(HashMap<String, Attendee> attendeesList) {
         if (attendeesList == null || attendeesList.isEmpty()) {
@@ -1478,51 +1687,6 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
     }
 
     /**
-     * The user picked a calendar. Loads that calendar's values into the model
-     * and refreshes the reminder, availability and visibility lists. Also runs
-     * once after the calendars load (see setModel). Option positions index the
-     * calendars cursor directly.
-     */
-    private void onCalendarPicked(int position) {
-        if (mModel == null || mCalendarsCursor == null) {
-            return;
-        }
-        if (!mCalendarsCursor.moveToPosition(position)) {
-            Log.w(TAG, "Cursor not set on calendar item");
-            return;
-        }
-        Cursor c = mCalendarsCursor;
-
-        mModel.mCalendarId = c.getLong(EditEventHelper.CALENDARS_INDEX_ID);
-        EditEventHelper.setModelFromCalendarCursor(mModel, c, mActivity);
-        // ensure model is up to date so that reminders don't get lost on calendar change
-        fillModelFromUI();
-
-        // try to find the event color in the new calendar, remove it otherwise
-        if (mModel.isEventColorInitialized() && mModel.getCalendarEventColors() != null) {
-            Arrays.stream(mModel.getCalendarEventColors())
-                    .filter(color -> color == mModel.getEventColor())
-                    .findFirst()
-                    .ifPresentOrElse(mModel::setEventColor, mModel::removeEventColor);
-        } else {
-            mModel.removeEventColor();
-        }
-        setSpinnerBackgroundColor(mModel.isEventColorInitialized()
-                ? mModel.getEventColor() : mModel.getCalendarColor());
-        setColorPickerButtonStates(mModel.getCalendarEventColors());
-
-        // Update the UI elements.
-        mReminderItems.clear();
-        LinearLayout reminderLayout =
-            (LinearLayout) mScrollView.findViewById(R.id.reminder_items_container);
-        reminderLayout.removeAllViews();
-
-        prepareReminders();
-        prepareAvailability();
-        prepareAccess();
-    }
-
-    /**
      * Enables or disables a form field together with its TextInputLayout box, so
      * the outline and label reflect the state. Fields not wrapped in a TIL are
      * just disabled.
@@ -1533,19 +1697,6 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             ((TextInputLayout) parent).setEnabled(enabled);
         }
         field.setEnabled(enabled);
-    }
-
-    /** Dropdown labels for the calendars cursor, in cursor order (see DropdownValues). */
-    private static ArrayList<String> buildCalendarLabels(Cursor cursor) {
-        ArrayList<String> labels = new ArrayList<String>(cursor.getCount());
-        int nameColumn = cursor.getColumnIndexOrThrow(Calendars.CALENDAR_DISPLAY_NAME);
-        int ownerColumn = cursor.getColumnIndexOrThrow(Calendars.OWNER_ACCOUNT);
-        cursor.moveToPosition(-1);
-        while (cursor.moveToNext()) {
-            labels.add(DropdownValues.calendarLabel(
-                    cursor.getString(nameColumn), cursor.getString(ownerColumn)));
-        }
-        return labels;
     }
 
     /**

@@ -656,7 +656,7 @@ public class EditEventFragment extends Fragment implements EventHandler, OnColor
     public void onColorSelected(int color) {
         if (!mModel.isEventColorInitialized() || mModel.getEventColor() != color) {
             mModel.setEventColor(color);
-            mView.updateHeadlineColor(color);
+            mView.updateEventColorIndicator(color);
         }
     }
 
