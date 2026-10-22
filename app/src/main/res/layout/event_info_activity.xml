@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Container for the full-screen event detail page. Unlike simple_frame_layout it has no
-  DrawerLayout, so the illustrated header can run under the status bar (EventInfoActivity turns
-  off decor fitting for this page only).
+  navigation drawer, so the illustrated header can run under the status bar (EventInfoActivity
+  turns off decor fitting for this page only).
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/main_frame"
