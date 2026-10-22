@@ -977,4 +977,15 @@
     <string name="calendar_switch_account">Switch account</string>
     <string name="calendar_choose_account">Choose account</string>
     <string name="calendar_unavailable">This event\'s calendar is no longer available. Choose a calendar before saving.</string>
+
+    <!-- Event form: full-screen time zone search page. -->
+    <string name="timezone_search_title">Time zone</string>
+    <string name="timezone_search_hint">Search city, country or zone ID</string>
+    <string name="timezone_search_clear">Clear search</string>
+    <string name="timezone_search_back">Back</string>
+    <string name="timezone_search_current">Current time zone</string>
+    <string name="timezone_search_candidates">Time zones</string>
+    <string name="timezone_search_no_results">No time zones match \"%1$s\"</string>
+    <string name="timezone_search_unknown">Unrecognised time zone ID</string>
+    <string name="timezone_search_offset_note">GMT offset %1$s as of %2$s</string>
 </resources>

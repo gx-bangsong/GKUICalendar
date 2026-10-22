@@ -88,8 +88,7 @@ import com.android.calendar.chips.AccountSpecifier;
 import com.android.calendar.chips.BaseRecipientAdapter;
 import com.android.calendar.chips.ChipsUtil;
 import com.android.calendar.chips.RecipientEditTextView;
-import com.android.calendar.timezonepicker.TimeZoneInfo;
-import com.android.calendar.timezonepicker.TimeZonePickerDialog;
+import com.android.calendar.timezonepicker.TimeZoneSearchFragment;
 import com.android.calendar.timezonepicker.TimeZonePickerUtils;
 
 import com.google.android.material.datepicker.CalendarConstraints;
@@ -117,14 +116,12 @@ import ws.xsoh.etar.R;
 
 public class EditEventView implements View.OnClickListener, DialogInterface.OnCancelListener,
         DialogInterface.OnClickListener,
-        RecurrencePickerDialog.OnRecurrenceSetListener,
-        TimeZonePickerDialog.OnTimeZoneSetListener {
+        RecurrencePickerDialog.OnRecurrenceSetListener {
 
     private static final String TAG = "EditEvent";
     private static final String GOOGLE_SECONDARY_CALENDAR = "calendar.google.com";
     private static final String PERIOD_SPACE = ". ";
 
-    private static final String FRAG_TAG_TIME_ZONE_PICKER = "timeZonePickerDialogFragment";
     private static final String FRAG_TAG_RECUR_PICKER = "recurrencePickerDialogFragment";
     private static StringBuilder mSB = new StringBuilder(50);
     private static Formatter mF = new Formatter(mSB, Locale.getDefault());
@@ -284,7 +281,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         mTimezoneButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                showTimezoneDialog();
+                showTimezoneSearch();
             }
         });
         mTimezoneRow = view.findViewById(R.id.timezone_button_row);
@@ -379,11 +376,14 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         if (rpd != null) {
             rpd.setOnRecurrenceSetListener(this);
         }
-        TimeZonePickerDialog tzpd = (TimeZonePickerDialog) fm
-                .findFragmentByTag(FRAG_TAG_TIME_ZONE_PICKER);
-        if (tzpd != null) {
-            tzpd.setOnTimeZoneSetListener(this);
-        }
+        // Result of the full-screen time zone page: request-keyed, lifecycle-aware, delivered once.
+        fm.setFragmentResultListener(TimeZoneSearchFragment.REQUEST_KEY, activity,
+                (requestKey, result) -> {
+                    String timeZoneId = result.getString(TimeZoneSearchFragment.RESULT_TIME_ZONE_ID);
+                    if (timeZoneId != null) {
+                        applyTimeZone(timeZoneId);
+                    }
+                });
 
     }
 
@@ -428,10 +428,9 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         mEndTimeButton.setOnClickListener(this::showTimerPickerDialog);
     }
 
-    // Implements OnTimeZoneSetListener
-    @Override
-    public void onTimeZoneSet(TimeZoneInfo tzi) {
-        setTimezone(tzi.mTzId);
+    /** Applies the zone returned by the full-screen time zone page to the event draft. */
+    private void applyTimeZone(String timeZoneId) {
+        setTimezone(timeZoneId);
         updateHomeTime();
     }
 
@@ -456,21 +455,17 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         mTimezoneButton.setText(displayName);
     }
 
-    private void showTimezoneDialog() {
-        Bundle b = new Bundle();
-        b.putLong(TimeZonePickerDialog.BUNDLE_START_TIME_MILLIS, mStartTime.toMillis());
-        b.putString(TimeZonePickerDialog.BUNDLE_TIME_ZONE, mTimezone);
-
+    /** Opens the full-screen time zone page once; a restored page is not opened again. */
+    private void showTimezoneSearch() {
         FragmentManager fm = mActivity.getSupportFragmentManager();
-        TimeZonePickerDialog tzpd = (TimeZonePickerDialog) fm
-                .findFragmentByTag(FRAG_TAG_TIME_ZONE_PICKER);
-        if (tzpd != null) {
-            tzpd.dismiss();
+        if (fm.findFragmentByTag(TimeZoneSearchFragment.TAG) != null) {
+            return;
         }
-        tzpd = new TimeZonePickerDialog();
-        tzpd.setArguments(b);
-        tzpd.setOnTimeZoneSetListener(EditEventView.this);
-        tzpd.show(fm, FRAG_TAG_TIME_ZONE_PICKER);
+        TimeZoneSearchFragment page = TimeZoneSearchFragment.newInstance(
+                mTimezone, mStartTime.toMillis());
+        fm.beginTransaction()
+                .add(android.R.id.content, page, TimeZoneSearchFragment.TAG)
+                .commit();
     }
 
     private void populateRepeats() {

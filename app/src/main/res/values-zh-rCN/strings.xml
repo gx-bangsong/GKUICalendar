@@ -422,4 +422,15 @@
     <string name="calendar_switch_account">切换账号</string>
     <string name="calendar_choose_account">选择账号</string>
     <string name="calendar_unavailable">此事件的日历已不可用，请先选择其他日历再保存。</string>
+
+    <!-- Event form: full-screen time zone search page. -->
+    <string name="timezone_search_title">时区</string>
+    <string name="timezone_search_hint">搜索城市、国家或时区 ID</string>
+    <string name="timezone_search_clear">清除搜索</string>
+    <string name="timezone_search_back">返回</string>
+    <string name="timezone_search_current">当前时区</string>
+    <string name="timezone_search_candidates">时区列表</string>
+    <string name="timezone_search_no_results">没有与“%1$s”匹配的时区</string>
+    <string name="timezone_search_unknown">无法识别的时区 ID</string>
+    <string name="timezone_search_offset_note">GMT 偏移 %1$s（截至 %2$s）</string>
 </resources>
