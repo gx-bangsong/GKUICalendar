@@ -36,15 +36,17 @@ import android.provider.SearchRecentSuggestions
 import android.provider.Settings
 import android.text.TextUtils
 import android.util.SparseIntArray
+import android.view.LayoutInflater
+import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.content.ContextCompat
-import androidx.preference.CheckBoxPreference
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceManager
-import androidx.preference.SwitchPreference
+import androidx.preference.SwitchPreferenceCompat
+import androidx.recyclerview.widget.RecyclerView
 import com.android.calendar.CalendarController
 import com.android.calendar.CalendarRecentSuggestionsProvider
 import com.android.calendar.CalendarUtils
@@ -63,18 +65,18 @@ class GeneralPreferences : PreferenceFragmentCompat(),
         TimeZonePickerDialog.OnTimeZoneSetListener {
 
     private lateinit var themePref: ListPreference
-    private lateinit var realEventColors: SwitchPreference
-    private lateinit var pureBlackNightModePref: SwitchPreference
-    private lateinit var doNotCheckBatteryOptimizationPref: SwitchPreference
+    private lateinit var realEventColors: SwitchPreferenceCompat
+    private lateinit var pureBlackNightModePref: SwitchPreferenceCompat
+    private lateinit var doNotCheckBatteryOptimizationPref: SwitchPreferenceCompat
     private lateinit var defaultStartPref: ListPreference
     private lateinit var monthLayoutPref: ListPreference
-    private lateinit var hideDeclinedPref: SwitchPreference
+    private lateinit var hideDeclinedPref: SwitchPreferenceCompat
     private lateinit var weekStartPref: ListPreference
     private lateinit var dayWeekPref: ListPreference
     private lateinit var defaultEventDurationPref: ListPreference
-    private lateinit var useHomeTzPref: CheckBoxPreference
+    private lateinit var useHomeTzPref: SwitchPreferenceCompat
     private lateinit var homeTzPref: Preference
-    private lateinit var popupPref: SwitchPreference
+    private lateinit var popupPref: SwitchPreferenceCompat
     private lateinit var snoozeDelayPref: ListPreference
     private lateinit var useDefaultCustomSnoozeDelayPref: Preference
     private lateinit var defaultReminderPref: ListPreference
@@ -85,9 +87,9 @@ class GeneralPreferences : PreferenceFragmentCompat(),
     private lateinit var notificationPref: Preference
 
     // < 26
-    private lateinit var alertPref: CheckBoxPreference
+    private lateinit var alertPref: SwitchPreferenceCompat
     private lateinit var ringtonePref: Preference
-    private lateinit var vibratePref: SwitchPreference
+    private lateinit var vibratePref: SwitchPreferenceCompat
 
     private lateinit var tzPickerUtils: TimeZonePickerUtils
     private var timeZoneId: String? = null
@@ -269,6 +271,23 @@ class GeneralPreferences : PreferenceFragmentCompat(),
     override fun onStop() {
         preferenceScreen.sharedPreferences?.unregisterOnSharedPreferenceChangeListener(this)
         super.onStop()
+    }
+
+    override fun onCreateRecyclerView(
+        inflater: LayoutInflater,
+        parent: ViewGroup,
+        savedInstanceState: Bundle?
+    ): RecyclerView {
+        val list = super.onCreateRecyclerView(inflater, parent, savedInstanceState)
+        // Width limit in the measure pass; see SettingsListLayout.kt.
+        return wrapSettingsListWidth(list, parent, resources.displayMetrics.density)
+    }
+
+    override fun onDisplayPreferenceDialog(preference: Preference) {
+        // The list rows use the MD3 choice dialog. Other rows keep the framework behaviour.
+        if (!showSettingsChoiceDialog(preference)) {
+            super.onDisplayPreferenceDialog(preference)
+        }
     }
 
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String?) {

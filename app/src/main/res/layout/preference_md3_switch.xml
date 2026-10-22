@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Switch widget for the Material 3 lunar rows. It is used only by SwitchPreferenceCompat
+  Switch widget for the Material 3 settings rows (lunar, general, display details). It is used only by SwitchPreferenceCompat
   (androidx.preference 1.2.1).
 
   Binding: SwitchPreferenceCompat.onBindViewHolder looks up R.id.switchWidget. The id name

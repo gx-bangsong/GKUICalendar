@@ -4,7 +4,8 @@
 
   Keys and default values are unchanged. Only the grouping, the row layouts (app:layout) and
   the switch widget (app:widgetLayout) differ from the earlier screen. The rows use the
-  layouts in res/layout/preference_md3*.xml, which only this screen references.
+  layouts in res/layout/preference_md3*.xml, which the General and Display details pages
+  use too.
 -->
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">

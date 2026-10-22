@@ -9,7 +9,7 @@ import org.junit.Test
 import java.io.File
 
 /**
- * Static source checks for the lunar settings list width and choice dialogs, run by the JVM test
+ * Static source checks for the lunar settings list width and choice dialogs (shared helpers), run by the JVM test
  * task that CI executes.
  *
  * These are regression guards on the source text. They are NOT runtime proof. They do not show
@@ -33,20 +33,23 @@ class LunarSettingsSourceTest {
         val prefs = source("LunarPreferences.kt")
         assertFalse(prefs.contains("addOnLayoutChangeListener"))
         assertFalse(prefs.contains("setPaddingRelative"))
-        assertTrue(source("LunarListLayout.kt").contains("override fun onMeasure"))
+        assertTrue(source("SettingsListLayout.kt").contains("override fun onMeasure"))
     }
 
     @Test
     fun choiceDialogsUseMaterialBuilderWithActivityContext() {
-        val dialog = source("LunarChoiceDialogFragment.kt")
+        val dialog = source("SettingsChoiceDialogFragment.kt")
         assertTrue(dialog.contains("MaterialAlertDialogBuilder(requireActivity())"))
         assertFalse(dialog.contains("AlertDialog.Builder("))
     }
 
     @Test
-    fun onlyTheTwoChoiceRowsOpenTheLunarDialog() {
+    fun lunarChoiceRowsUseTheSharedMaterialDialog() {
+        // The lunar page's only ListPreference and MultiSelectListPreference rows go through the
+        // shared helper. The helper routes by preference type, not by lunar key.
         val prefs = source("LunarPreferences.kt")
-        assertTrue(prefs.contains("private val CHOICE_KEYS = setOf(KEY_MODE, KEY_FESTIVALS)"))
-        assertTrue(prefs.contains("LunarChoiceDialogFragment.newInstance(preference.key)"))
+        assertTrue(prefs.contains("showSettingsChoiceDialog(preference)"))
+        assertTrue(prefs.contains("super.onDisplayPreferenceDialog(preference)"))
+        assertFalse(source("SettingsChoiceDialogFragment.kt").contains("pref_lunar"))
     }
 }

@@ -26,23 +26,36 @@ import androidx.preference.PreferenceFragmentCompat
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 /**
- * Dialog for the two lunar choice rows: the mode (single choice) and the festivals (multi
- * choice). It is shown by [LunarPreferences] and replaces the AndroidX dialog for these keys.
+ * Shows a settings page's [ListPreference] or [MultiSelectListPreference] in an MD3 dialog.
  *
- * The AndroidX dialog builds a plain AlertDialog.Builder, which does not apply the MD3 dialog
- * shape. This fragment uses MaterialAlertDialogBuilder with the activity context, so the theme's
- * materialAlertDialogTheme (28dp corners) applies.
+ * Returns true when the dialog was requested. Returns false for any other preference, which
+ * then goes to the AndroidX dialog or to the page's own handling as before.
  *
- * Behaviour matches the AndroidX dialogs:
- * - Single choice: tapping an entry saves it at once, if the change listener accepts it, and
- *   closes the dialog. Cancel, back and an outside tap change nothing.
- * - Multi choice: Ok saves the pending selection when it changed and the change listener accepts
- *   it. Cancel, back and an outside tap leave the stored values unchanged.
+ * The AndroidX dialog builds a plain AlertDialog.Builder, so the MD3 dialog shape does not apply
+ * there. This fragment uses MaterialAlertDialogBuilder with the activity context, so the theme's
+ * materialAlertDialogTheme applies.
  *
- * The pending selection is kept in the saved state, so rotation keeps it. The dialog is restored
- * by the child FragmentManager, so rotation does not show a second one.
+ * Behaviour matches the AndroidX dialogs it replaces:
+ * - Single choice: tapping an entry closes the dialog, then calls the change listener and saves
+ *   the value if the listener accepts it. Cancel, back and an outside tap change nothing.
+ * - Multi choice: Ok saves the pending selection when it changed and the listener accepts it.
+ *   Cancel, back and an outside tap leave the stored values unchanged.
+ *
+ * The choices come from the runtime preference (entries and entryValues), so values set in code
+ * are shown. The pending selection is saved in the instance state, and the dialog is restored by
+ * the child FragmentManager, so rotation keeps the selection without showing a second dialog.
  */
-internal class LunarChoiceDialogFragment : DialogFragment() {
+internal fun PreferenceFragmentCompat.showSettingsChoiceDialog(preference: Preference): Boolean {
+    if (preference !is ListPreference && preference !is MultiSelectListPreference) return false
+    // After rotation the child FragmentManager restores the dialog itself. Do not show a second.
+    if (childFragmentManager.findFragmentByTag(SettingsChoiceDialogFragment.TAG) == null) {
+        SettingsChoiceDialogFragment.newInstance(preference.key)
+            .show(childFragmentManager, SettingsChoiceDialogFragment.TAG)
+    }
+    return true
+}
+
+internal class SettingsChoiceDialogFragment : DialogFragment() {
 
     private var pendingValues: MutableSet<String> = mutableSetOf()
     private var pendingChanged = false
@@ -72,35 +85,30 @@ internal class LunarChoiceDialogFragment : DialogFragment() {
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val pref = preference()
-            ?: throw IllegalStateException("No lunar preference for key ${key()}")
-        // dialogTitle lives on DialogPreference; fall back to the row title like the AndroidX dialog.
+            ?: throw IllegalStateException("No settings preference for key ${key()}")
+        // dialogTitle is on DialogPreference. Fall back to the row title, as the AndroidX dialog.
         val title = (pref as? DialogPreference)?.dialogTitle ?: pref.title
         val builder = MaterialAlertDialogBuilder(requireActivity()).setTitle(title)
         return when (pref) {
             is ListPreference -> singleChoice(pref, builder)
             is MultiSelectListPreference -> multiChoice(pref, builder)
-            else -> throw IllegalStateException("Unsupported lunar dialog preference")
+            else -> throw IllegalStateException("Unsupported preference for a choice dialog")
         }
     }
 
-    private fun singleChoice(
-        pref: ListPreference,
-        builder: MaterialAlertDialogBuilder,
-    ): Dialog {
+    private fun singleChoice(pref: ListPreference, builder: MaterialAlertDialogBuilder): Dialog {
         val entries = pref.entries
         val values = pref.entryValues.map { it.toString() }
-        builder.setSingleChoiceItems(
-            entries,
-            pref.findIndexOfValue(pref.value)
-        ) { dialog, which ->
-            val value = values[which]
-            // Same order as ListPreferenceDialogFragmentCompat: ask the listener, then save.
-            if (pref.callChangeListener(value)) {
+        builder.setSingleChoiceItems(entries, pref.findIndexOfValue(pref.value)) { dialog, which ->
+            // Close first, then save, as ListPreferenceDialogFragmentCompat does. A change that
+            // recreates the activity (theme) then runs without a dialog still attached.
+            dialog.dismiss()
+            val value = values.getOrNull(which)
+            if (value != null && pref.callChangeListener(value)) {
                 pref.value = value
             }
-            dialog.dismiss()
         }
-        // Single choice closes on tap, so there is no Ok button; Cancel stays.
+        // Choosing an entry closes the dialog, so there is no Ok button. Cancel stays.
         builder.setNegativeButton(
             pref.negativeButtonText ?: getString(android.R.string.cancel),
             null
@@ -116,11 +124,8 @@ internal class LunarChoiceDialogFragment : DialogFragment() {
         val values = pref.entryValues.map { it.toString() }
         val checked = BooleanArray(values.size) { pendingValues.contains(values[it]) }
         builder.setMultiChoiceItems(entries, checked) { _, which, isChecked ->
-            val changedNow = if (isChecked) {
-                pendingValues.add(values[which])
-            } else {
-                pendingValues.remove(values[which])
-            }
+            val value = values.getOrNull(which) ?: return@setMultiChoiceItems
+            val changedNow = if (isChecked) pendingValues.add(value) else pendingValues.remove(value)
             pendingChanged = pendingChanged or changedNow
         }
         builder.setPositiveButton(
@@ -147,13 +152,13 @@ internal class LunarChoiceDialogFragment : DialogFragment() {
         (requireParentFragment() as PreferenceFragmentCompat).findPreference<Preference>(key())
 
     companion object {
-        const val TAG = "lunar_choice_dialog"
-        private const val ARG_KEY = "lunar_choice_key"
-        private const val STATE_VALUES = "lunar_choice_values"
-        private const val STATE_CHANGED = "lunar_choice_changed"
+        const val TAG = "settings_choice_dialog"
+        private const val ARG_KEY = "settings_choice_key"
+        private const val STATE_VALUES = "settings_choice_values"
+        private const val STATE_CHANGED = "settings_choice_changed"
 
-        fun newInstance(key: String): LunarChoiceDialogFragment =
-            LunarChoiceDialogFragment().apply {
+        fun newInstance(key: String): SettingsChoiceDialogFragment =
+            SettingsChoiceDialogFragment().apply {
                 arguments = Bundle().apply { putString(ARG_KEY, key) }
             }
     }
