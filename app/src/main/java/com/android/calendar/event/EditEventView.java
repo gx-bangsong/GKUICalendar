@@ -171,7 +171,12 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
     View mAttendeesGroup;
     View mStartHomeGroup;
     View mEndHomeGroup;
-    private int[] mOriginalPadding = new int[4];
+    /**
+     * Each edit field's own padding, captured after inflation. The Material style gives the
+     * text box its 16dp inset, which the floating label is aligned to. Restoring a field's
+     * padding must use its own value, never another field's.
+     */
+    private final HashMap<View, int[]> mEditViewPadding = new HashMap<View, int[]>();
     private ProgressDialog mLoadingCalendarsDialog;
     private AlertDialog mNoCalendarsDialog;
 
@@ -310,15 +315,16 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         mDescriptionTextView.setTag(mDescriptionTextView.getBackground());
         mUrlTextView.setTag(mUrlTextView.getBackground());
         mAttendeesList.setTag(mAttendeesList.getBackground());
-        mOriginalPadding[0] = mLocationTextView.getPaddingLeft();
-        mOriginalPadding[1] = mLocationTextView.getPaddingTop();
-        mOriginalPadding[2] = mLocationTextView.getPaddingRight();
-        mOriginalPadding[3] = mLocationTextView.getPaddingBottom();
         mEditViewList.add(mTitleTextView);
         mEditViewList.add(mLocationTextView);
         mEditViewList.add(mDescriptionTextView);
         mEditViewList.add(mUrlTextView);
         mEditViewList.add(mAttendeesList);
+        for (View v : mEditViewList) {
+            mEditViewPadding.put(v, new int[] {
+                    v.getPaddingLeft(), v.getPaddingTop(),
+                    v.getPaddingRight(), v.getPaddingBottom() });
+        }
 
         mViewOnlyList.add(view.findViewById(R.id.when_row));
         mViewOnlyList.add(view.findViewById(R.id.timezone_textview_row));
@@ -1199,8 +1205,10 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
                 setFieldEnabled(v, true);
                 if (v.getTag() != null) {
                     v.setBackgroundDrawable((Drawable) v.getTag());
-                    v.setPadding(mOriginalPadding[0], mOriginalPadding[1], mOriginalPadding[2],
-                            mOriginalPadding[3]);
+                    int[] padding = mEditViewPadding.get(v);
+                    if (padding != null) {
+                        v.setPadding(padding[0], padding[1], padding[2], padding[3]);
+                    }
                 }
             }
             if (mModel.mOriginalSyncId == null) {

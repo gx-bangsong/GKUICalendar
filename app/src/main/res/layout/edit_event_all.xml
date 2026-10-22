@@ -26,27 +26,23 @@
         android:layout_height="wrap_content"
         android:paddingBottom="24dp">
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/title_layout"
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/title"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="24dp"
             android:layout_marginTop="16dp"
             android:layout_marginEnd="24dp"
+            android:background="@null"
+            android:focusable="true"
             android:hint="@string/hint_what"
+            android:inputType="textAutoCorrect|textCapSentences"
+            android:minHeight="48dip"
+            android:singleLine="true"
+            android:textSize="24sp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/title"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:focusable="true"
-                android:inputType="textAutoCorrect|textCapSentences"
-                android:singleLine="true"
-                android:textSize="18sp" />
-        </com.google.android.material.textfield.TextInputLayout>
+            app:layout_constraintTop_toTopOf="parent" />
 
         <HorizontalScrollView
             android:id="@+id/event_types_scroll"
@@ -55,8 +51,8 @@
             android:layout_marginTop="8dp"
             android:scrollbars="none"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="@+id/title_layout"
-            app:layout_constraintTop_toBottomOf="@+id/title_layout">
+            app:layout_constraintStart_toStartOf="@+id/title"
+            app:layout_constraintTop_toBottomOf="@+id/title">
 
             <com.google.android.material.chip.ChipGroup
                 android:id="@+id/event_types"
@@ -348,7 +344,7 @@
                 android:imeOptions="actionNext"
                 android:inputType="textEmailAddress|textMultiLine|textCapWords"
                 android:minHeight="48dp"
-                android:padding="0dp" />
+                style="@style/Widget.Material3.AutoCompleteTextView.OutlinedBox" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <View
@@ -390,8 +386,8 @@
                 android:imeOptions="actionDone"
                 android:inputType="textAutoCorrect|textCapSentences"
                 android:minHeight="48dip"
-                android:padding="0dp"
-                android:singleLine="false" />
+                android:singleLine="false"
+                style="@style/Widget.Material3.AutoCompleteTextView.OutlinedBox" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <!-- DESCRIPTION -->
@@ -424,8 +420,7 @@
                 android:hint="@string/hint_description"
                 android:imeOptions="actionDone"
                 android:inputType="textAutoCorrect|textCapSentences|textMultiLine"
-                android:minHeight="48dip"
-                android:padding="0dp" />
+                android:minHeight="48dip" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <!-- URL -->
@@ -458,8 +453,7 @@
                 android:hint="@string/hint_url"
                 android:imeOptions="actionDone"
                 android:inputType="textUri"
-                android:minHeight="48dip"
-                android:padding="0dp" />
+                android:minHeight="48dip" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <View
