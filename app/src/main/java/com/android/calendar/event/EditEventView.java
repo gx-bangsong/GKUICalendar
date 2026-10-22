@@ -68,6 +68,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.fragment.app.FragmentManager;
+import androidx.lifecycle.LifecycleOwner;
 
 import com.android.calendar.CalendarEventModel;
 import com.android.calendar.CalendarEventModel.Attendee;
@@ -91,6 +92,7 @@ import com.android.calendar.chips.ChipsUtil;
 import com.android.calendar.chips.RecipientEditTextView;
 import com.android.calendar.timezonepicker.TimeZoneSearchFragment;
 import com.android.calendar.timezonepicker.TimeZonePickerUtils;
+import com.android.calendar.timezonepicker.TimeZoneSelectionRouting;
 
 import com.google.android.material.datepicker.CalendarConstraints;
 import com.google.android.material.datepicker.MaterialDatePicker;
@@ -255,7 +257,12 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
     private ArrayList<ReminderEntry> mUnsupportedReminders = new ArrayList<ReminderEntry>();
     private String mRrule;
 
-    public EditEventView(AppCompatActivity activity, View view, EditDoneRunnable done) {
+    /**
+     * @param resultOwner the lifecycle that owns the time zone result listener, normally the
+     *         fragment that owns this view, so the listener goes away with it
+     */
+    public EditEventView(AppCompatActivity activity, View view, EditDoneRunnable done,
+            LifecycleOwner resultOwner) {
 
         mActivity = activity;
         mView = view;
@@ -381,11 +388,15 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         if (rpd != null) {
             rpd.setOnRecurrenceSetListener(this);
         }
-        // Result of the full-screen time zone page: request-keyed, lifecycle-aware, delivered once.
-        fm.setFragmentResultListener(TimeZoneSearchFragment.REQUEST_KEY, activity,
+        // Result of the full-screen time zone page. Only the event draft may change here; the
+        // home time zone and the saved event are never written by this result.
+        fm.setFragmentResultListener(TimeZoneSelectionRouting.REQUEST_KEY_EVENT, resultOwner,
                 (requestKey, result) -> {
                     String timeZoneId = result.getString(TimeZoneSearchFragment.RESULT_TIME_ZONE_ID);
-                    if (timeZoneId != null) {
+                    if (TimeZoneSelectionRouting.decide(
+                            TimeZoneSelectionRouting.Target.EVENT_DRAFT, timeZoneId,
+                            false, false)
+                            == TimeZoneSelectionRouting.Action.UPDATE_EVENT_DRAFT) {
                         applyTimeZone(timeZoneId);
                     }
                 });
@@ -460,17 +471,13 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         mTimezoneButton.setText(displayName);
     }
 
-    /** Opens the full-screen time zone page once; a restored page is not opened again. */
+    /**
+     * Opens the full-screen time zone page for the event draft. The offset text uses the event
+     * start time. A page that is already open is not opened again.
+     */
     private void showTimezoneSearch() {
-        FragmentManager fm = mActivity.getSupportFragmentManager();
-        if (fm.findFragmentByTag(TimeZoneSearchFragment.TAG) != null) {
-            return;
-        }
-        TimeZoneSearchFragment page = TimeZoneSearchFragment.newInstance(
-                mTimezone, mStartTime.toMillis());
-        fm.beginTransaction()
-                .add(android.R.id.content, page, TimeZoneSearchFragment.TAG)
-                .commit();
+        TimeZoneSearchFragment.open(mActivity.getSupportFragmentManager(),
+                TimeZoneSelectionRouting.REQUEST_KEY_EVENT, mTimezone, mStartTime.toMillis());
     }
 
     private void populateRepeats() {

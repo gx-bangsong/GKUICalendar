@@ -111,6 +111,16 @@ public class TimeZoneSearchMatcherTest {
     }
 
     @Test
+    public void offsetOfOneZoneDependsOnTheReferenceTimeOfItsOwnCaller() {
+        // The settings page uses "now", the event form uses the event start. The same zone
+        // must show the offset of the time each caller passes in, not a shared value.
+        long winter = date(2026, 1, 15);
+        long summer = date(2026, 7, 15);
+        assertEquals(1 * HOUR, TimeZoneSearchMatcher.offsetAt("Europe/Stockholm", winter));
+        assertEquals(2 * HOUR, TimeZoneSearchMatcher.offsetAt("Europe/Stockholm", summer));
+    }
+
+    @Test
     public void unknownIdIsNotKnownEvenThoughJavaWouldReturnGmt() {
         assertFalse(TimeZoneSearchMatcher.isKnownId("Mars/Olympus_Mons"));
         assertFalse(TimeZoneSearchMatcher.isKnownId(""));

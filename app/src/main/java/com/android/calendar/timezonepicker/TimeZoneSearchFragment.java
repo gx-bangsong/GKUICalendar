@@ -54,19 +54,20 @@ import ws.xsoh.etar.R;
  * Full-screen time zone search page for the event form. It is a Fragment placed over the whole
  * activity content, not a dialog, and it is not an immersive screen: the system bars stay.
  *
- * <p>Selecting a zone publishes its real zone ID through the Fragment result API on the parent
+ * <p>The page is shared by the event form and the settings page. Each caller passes its own
+ * request key, the current zone ID and the reference time for the offset text as arguments.
+ * Selecting a zone publishes its real zone ID under that request key on the parent
  * FragmentManager and removes the page. Back and the navigation arrow remove the page without a
- * result, so the original zone is kept. The page never saves the event.
+ * result, so the original zone is kept. The page never saves anything itself.
  */
 public class TimeZoneSearchFragment extends Fragment {
 
     public static final String TAG = "timeZoneSearchPage";
 
-    /** Request key for the result. The listener is registered by the event form. */
-    public static final String REQUEST_KEY = "com.android.calendar.timezonepicker.RESULT";
     /** Bundle key that holds the selected zone ID (for example "Asia/Shanghai"). */
     public static final String RESULT_TIME_ZONE_ID = "time_zone_id";
 
+    private static final String ARG_REQUEST_KEY = "request_key";
     private static final String ARG_CURRENT_ZONE_ID = "current_zone_id";
     private static final String ARG_REFERENCE_MILLIS = "reference_millis";
     private static final String STATE_HAS_FOCUS = "has_focus";
@@ -78,6 +79,7 @@ public class TimeZoneSearchFragment extends Fragment {
     private static final int TYPE_ZONE = 1;
     private static final int TYPE_MESSAGE = 2;
 
+    private String mRequestKey;
     private String mCurrentZoneId;
     private long mReferenceMillis;
 
@@ -101,19 +103,40 @@ public class TimeZoneSearchFragment extends Fragment {
     private ExecutorService mLoader;
     private final Handler mMainHandler = new Handler(Looper.getMainLooper());
 
-    public static TimeZoneSearchFragment newInstance(String currentZoneId, long referenceMillis) {
+    /** Creates a page. Only plain values go into the arguments, never a View or a callback. */
+    public static TimeZoneSearchFragment newInstance(String requestKey, String currentZoneId,
+            long referenceMillis) {
         TimeZoneSearchFragment page = new TimeZoneSearchFragment();
         Bundle args = new Bundle();
+        args.putString(ARG_REQUEST_KEY, requestKey);
         args.putString(ARG_CURRENT_ZONE_ID, currentZoneId);
         args.putLong(ARG_REFERENCE_MILLIS, referenceMillis);
         page.setArguments(args);
         return page;
     }
 
+    /**
+     * Opens one page on the given FragmentManager, which must be the activity's manager so the
+     * result reaches the caller. It does nothing and returns false when a page is already open
+     * or the state is already saved, so pages never stack and no commit is lost silently.
+     */
+    public static boolean open(FragmentManager fm, String requestKey, String currentZoneId,
+            long referenceMillis) {
+        if (fm == null || fm.isStateSaved() || fm.findFragmentByTag(TAG) != null) {
+            return false;
+        }
+        fm.beginTransaction()
+                .add(android.R.id.content,
+                        newInstance(requestKey, currentZoneId, referenceMillis), TAG)
+                .commit();
+        return true;
+    }
+
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Bundle args = getArguments();
+        mRequestKey = args != null ? args.getString(ARG_REQUEST_KEY) : null;
         mCurrentZoneId = args != null ? args.getString(ARG_CURRENT_ZONE_ID) : null;
         mReferenceMillis = args != null
                 ? args.getLong(ARG_REFERENCE_MILLIS) : System.currentTimeMillis();
@@ -205,7 +228,7 @@ public class TimeZoneSearchFragment extends Fragment {
 
         // The only back handler of this page. It is added to the view lifecycle, so it exists
         // only while this view is alive, and it is the newest callback, so it runs before the
-        // event form's handler.
+        // host screen's handler. While it is enabled, back never reaches the host Activity.
         OnBackPressedCallback backCallback = new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
@@ -380,7 +403,8 @@ public class TimeZoneSearchFragment extends Fragment {
 
     /** Publishes the real zone ID once, then removes this page. The event is not saved here. */
     private void selectTimeZone(String zoneId) {
-        if (!TimeZoneSearchRouting.canDeliverResult(mResultDelivered, isAdded())) {
+        if (mRequestKey == null
+                || !TimeZoneSearchRouting.canDeliverResult(mResultDelivered, isAdded())) {
             return;
         }
         mResultDelivered = true;
@@ -388,7 +412,7 @@ public class TimeZoneSearchFragment extends Fragment {
         Bundle result = new Bundle();
         result.putString(RESULT_TIME_ZONE_ID, zoneId);
         FragmentManager fm = getParentFragmentManager();
-        fm.setFragmentResult(REQUEST_KEY, result);
+        fm.setFragmentResult(mRequestKey, result);
         fm.beginTransaction().remove(this).commit();
     }
 

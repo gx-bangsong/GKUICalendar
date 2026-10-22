@@ -54,15 +54,14 @@ import com.android.calendar.DynamicTheme
 import com.android.calendar.Utils
 import com.android.calendar.alerts.AlertReceiver
 import com.android.calendar.event.EventViewUtils
-import com.android.calendar.timezonepicker.TimeZoneInfo
-import com.android.calendar.timezonepicker.TimeZonePickerDialog
 import com.android.calendar.timezonepicker.TimeZonePickerUtils
+import com.android.calendar.timezonepicker.TimeZoneSearchFragment
+import com.android.calendar.timezonepicker.TimeZoneSelectionRouting
 import ws.xsoh.etar.R
 import java.util.TimeZone
 
 class GeneralPreferences : PreferenceFragmentCompat(),
-        OnSharedPreferenceChangeListener, Preference.OnPreferenceChangeListener,
-        TimeZonePickerDialog.OnTimeZoneSetListener {
+        OnSharedPreferenceChangeListener, Preference.OnPreferenceChangeListener {
 
     private lateinit var themePref: ListPreference
     private lateinit var realEventColors: SwitchPreferenceCompat
@@ -128,6 +127,13 @@ class GeneralPreferences : PreferenceFragmentCompat(),
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Result of the shared full-screen time zone page. It is owned by this fragment, so it
+        // is removed with the fragment, and a rotation re-registers it on the new instance.
+        requireActivity().supportFragmentManager.setFragmentResultListener(
+                TimeZoneSelectionRouting.REQUEST_KEY_HOME, this) { _, result ->
+            onHomeTimeZoneResult(result)
+        }
 
         themePref = preferenceScreen.findPreference(KEY_THEME_PREF)!!
         realEventColors = preferenceScreen.findPreference(KEY_REAL_EVENT_COLORS)!!
@@ -212,31 +218,49 @@ class GeneralPreferences : PreferenceFragmentCompat(),
         val timezoneName = tzPickerUtils.getGmtDisplayName(activity, timeZoneId,
                 System.currentTimeMillis(), false)
         homeTzPref.summary = timezoneName ?: timeZoneId
-
-        val tzpd = requireActivity().supportFragmentManager
-                .findFragmentByTag(FRAG_TAG_TIME_ZONE_PICKER) as TimeZonePickerDialog?
-        tzpd?.setOnTimeZoneSetListener(this)
-
     }
 
     private fun handleUseCustomSnoozeDelayVisibility() {
         useDefaultCustomSnoozeDelayPref.isEnabled = Integer.parseInt(snoozeDelayPref.value) >= 0
     }
 
-    private fun showTimezoneDialog() {
-        val arguments = Bundle().apply {
-            putLong(TimeZonePickerDialog.BUNDLE_START_TIME_MILLIS, System.currentTimeMillis())
-            putString(TimeZonePickerDialog.BUNDLE_TIME_ZONE, Utils.getTimeZone(activity, null))
+    /**
+     * Opens the shared full-screen page for the home time zone. It starts from the stored home
+     * zone, not from Utils.getTimeZone, which returns the device zone while the switch is off.
+     * The offset text uses the current time.
+     */
+    private fun showHomeTimeZonePage() {
+        val a = activity ?: return
+        val prefs = CalendarUtils.getSharedPreferences(a, Utils.SHARED_PREFS_NAME)
+        val storedZoneId = prefs.getString(KEY_HOME_TZ, TimeZone.getDefault().id)
+        TimeZoneSearchFragment.open(a.supportFragmentManager,
+                TimeZoneSelectionRouting.REQUEST_KEY_HOME, storedZoneId,
+                System.currentTimeMillis())
+    }
+
+    /**
+     * Writes the home time zone only when the switch is on and the calendar permission is
+     * granted at the moment the result arrives. Cancel, an unknown ID or a changed state writes
+     * nothing. The event time and the event itself are never touched here.
+     */
+    private fun onHomeTimeZoneResult(result: Bundle) {
+        val a = activity ?: return
+        val zoneId = result.getString(TimeZoneSearchFragment.RESULT_TIME_ZONE_ID)
+        val prefs = CalendarUtils.getSharedPreferences(a, Utils.SHARED_PREFS_NAME)
+        val enabled = prefs.getBoolean(KEY_HOME_TZ_ENABLED, false)
+        val granted = enabled && Utils.isCalendarPermissionGranted(a, true)
+        val action = TimeZoneSelectionRouting.decide(
+                TimeZoneSelectionRouting.Target.HOME_PREFERENCE, zoneId, enabled, granted)
+        if (action != TimeZoneSelectionRouting.Action.WRITE_HOME_ZONE || zoneId == null) {
+            return
         }
-
-        val fm = requireActivity().supportFragmentManager
-        var tzpd: TimeZonePickerDialog? = fm.findFragmentByTag(FRAG_TAG_TIME_ZONE_PICKER) as TimeZonePickerDialog?
-        tzpd?.dismiss()
-
-        tzpd = TimeZonePickerDialog()
-        tzpd.arguments = arguments
-        tzpd.setOnTimeZoneSetListener(this)
-        tzpd.show(fm, FRAG_TAG_TIME_ZONE_PICKER)
+        // Keep the value used by the switch in step, so turning it off and on again keeps the
+        // zone the user chose.
+        timeZoneId = zoneId
+        val displayName = tzPickerUtils.getGmtDisplayName(
+                a, zoneId, System.currentTimeMillis(), false)
+        homeTzPref.summary = displayName ?: zoneId
+        Utils.setTimeZone(a, zoneId)
     }
 
     override fun onStart() {
@@ -437,7 +461,7 @@ class GeneralPreferences : PreferenceFragmentCompat(),
     override fun onPreferenceTreeClick(preference: Preference): Boolean {
         when (preference.key) {
             KEY_HOME_TZ -> {
-                showTimezoneDialog()
+                showHomeTimeZonePage()
                 return true
             }
             KEY_CLEAR_SEARCH_HISTORY -> {
@@ -527,13 +551,6 @@ class GeneralPreferences : PreferenceFragmentCompat(),
         }
     }
 
-    override fun onTimeZoneSet(tzi: TimeZoneInfo) {
-        val timeZoneDisplayName = tzPickerUtils.getGmtDisplayName(
-                activity, tzi.mTzId, System.currentTimeMillis(), false)
-        homeTzPref.summary = timeZoneDisplayName
-        Utils.setTimeZone(activity, tzi.mTzId)
-    }
-
     companion object {
         // Preference keys
         const val KEY_THEME_PREF = "pref_theme"
@@ -594,7 +611,6 @@ class GeneralPreferences : PreferenceFragmentCompat(),
         const val SHARED_PREFS_NAME_NO_BACKUP = "com.android.calendar_preferences_no_backup"
         private const val KEY_HOME_TZ_ENABLED = "preferences_home_tz_enabled"
         private const val KEY_HOME_TZ = "preferences_home_tz"
-        private const val FRAG_TAG_TIME_ZONE_PICKER = "TimeZonePicker"
 
         // experimental
         const val KEY_OTHER_COPY_DB = "preferences_copy_db"

@@ -328,7 +328,7 @@ public class EditEventFragment extends Fragment implements EventHandler, OnColor
         } else {
             view = inflater.inflate(R.layout.edit_event, null);
         }
-        mView = new EditEventView(mActivity, view, mOnDone);
+        mView = new EditEventView(mActivity, view, mOnDone, this);
 
         if (!Utils.isCalendarPermissionGranted(mActivity, true)) {
             //If permission is not granted
