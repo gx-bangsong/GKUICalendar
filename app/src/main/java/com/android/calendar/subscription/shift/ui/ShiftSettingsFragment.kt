@@ -195,7 +195,10 @@ class ShiftSettingsFragment : Fragment() {
         }
         v.text = shiftChipLabel(type)
         v.setBackgroundResource(chipBg)
-        v.setTextColor(ShiftPresets.badgeColor(type))
+        val surface = com.google.android.material.color.MaterialColors.getColor(
+            v, com.google.android.material.R.attr.colorSurface, android.graphics.Color.WHITE)
+        val surfaceIsDark = androidx.core.graphics.ColorUtils.calculateLuminance(surface) < 0.5
+        v.setTextColor(ShiftPresets.badgeColorOnSurface(type, surfaceIsDark))
     }
 
     /** "早班 07:30-15:30" — times come from the editable [ShiftTimes]. */

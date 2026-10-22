@@ -26,6 +26,8 @@ import com.android.calendar.settings.GeneralPreferences
 import com.android.calendar.settings.SettingsActivity
 import com.android.calendar.subscription.SubscriptionProvider
 import com.android.calendar.subscription.SubscriptionRegistry
+import com.android.calendar.theme.ThemeUtils
+import com.android.calendar.theme.applyThemeAndPrimaryColor
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.materialswitch.MaterialSwitch
 import ws.xsoh.etar.R
@@ -49,8 +51,16 @@ class SubscriptionHubActivity : AppCompatActivity() {
     private lateinit var scroll: View
     private lateinit var fragmentContainer: View
 
+    /** Effective theme key this instance was created with; see [onResume]. */
+    private var themeKey: String? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Theme must be applied before the content is inflated and before the
+        // status bar is matched, or colorSurface / colorBackgroundBlack are
+        // never resolved for this screen (AMOLED would not apply).
+        applyThemeAndPrimaryColor()
         super.onCreate(savedInstanceState)
+        themeKey = ThemeUtils.effectiveThemeKey(this)
         setContentView(R.layout.activity_subscription_hub)
 
         val toolbar = findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
@@ -78,6 +88,13 @@ class SubscriptionHubActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        // The theme can change in another screen. Recreate once; the new
+        // instance records the new key in onCreate, so this does not repeat.
+        // The NestedScrollView and back stack are restored by the framework.
+        if (themeKey != null && themeKey != ThemeUtils.effectiveThemeKey(this)) {
+            recreate()
+            return
+        }
         // Summaries ("3 days until next period", cycle length, ...) change in
         // the settings screens, so rebuild when coming back.
         buildList()

@@ -4,6 +4,7 @@
 package com.android.calendar.subscription.shift.data
 
 import androidx.annotation.ColorInt
+import androidx.core.graphics.ColorUtils
 
 /**
  * Xiaomi-MIUI/HyperOS quick presets for the built-in 轮班助手.
@@ -56,6 +57,23 @@ object ShiftPresets {
         ShiftType.NIGHT     -> 0xFF3949AB.toInt() // indigo-700
         ShiftType.REST      -> 0xFF9E9E9E.toInt() // grey-500
         else                -> 0xFF9E9E9E.toInt()
+    }
+
+    /**
+     * Text colour for a shift label drawn on a page surface. On a dark surface
+     * (pure black / dark theme) the badge colour is lifted towards white so
+     * the dark green and indigo stay readable. [badgeColor] itself is kept
+     * unchanged because calendar event colours use it.
+     */
+    @ColorInt
+    @JvmStatic
+    fun badgeColorOnSurface(code: Int, surfaceIsDark: Boolean): Int {
+        val base = badgeColor(code)
+        return if (surfaceIsDark) {
+            ColorUtils.blendARGB(base, 0xFFFFFFFF.toInt(), 0.45f)
+        } else {
+            base
+        }
     }
 
     @JvmStatic

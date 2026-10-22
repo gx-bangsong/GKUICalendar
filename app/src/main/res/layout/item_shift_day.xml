@@ -25,5 +25,5 @@
         android:focusable="true"
         android:minWidth="96dp"
         android:gravity="center"
-        android:textColor="#FF2E7D32" />
+        android:textColor="?attr/colorOnSurface" />
 </LinearLayout>

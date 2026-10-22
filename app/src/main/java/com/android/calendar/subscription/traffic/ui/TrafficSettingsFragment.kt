@@ -113,9 +113,17 @@ class TrafficSettingsFragment : Fragment() {
                 chip.setBackgroundResource(
                     if (on) R.drawable.bg_traffic_digit_selected
                     else R.drawable.bg_traffic_digit)
-                chip.setTextColor(
-                    if (on) 0xFFD32F2F.toInt()
-                    else resources.getColor(android.R.color.darker_gray, null))
+                // Theme-driven colours so text stays readable on pure black.
+                val color = if (on) {
+                    com.google.android.material.color.MaterialColors.getColor(
+                        chip, com.google.android.material.R.attr.colorError,
+                        0xFFD32F2F.toInt())
+                } else {
+                    com.google.android.material.color.MaterialColors.getColor(
+                        chip, com.google.android.material.R.attr.colorOnSurfaceVariant,
+                        0xFF757575.toInt())
+                }
+                chip.setTextColor(color)
             }
         }
     }
