@@ -59,9 +59,12 @@ final class DayGridGeometry {
         return (hour + 1) * slotHeight - inset;
     }
 
-    /** Visible gap between two neighbouring hour blocks: the slot gap plus both insets. */
-    static float hourBlockGap(float slotGap, float inset) {
-        return slotGap + 2f * inset;
+    /**
+     * Visible gap between two neighbouring hour blocks. The slot already contains the one-pixel
+     * slot gap, and each block is inset from both edges of its slot, so the gap is two insets.
+     */
+    static float hourBlockGap(float inset) {
+        return 2f * inset;
     }
 
     /** Horizontal centre of a day column, used for the header and the date circle. */

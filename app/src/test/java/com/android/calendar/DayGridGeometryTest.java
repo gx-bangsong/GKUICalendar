@@ -86,7 +86,7 @@ public class DayGridGeometryTest {
         for (int hour = 0; hour < 23; hour++) {
             float gap = DayGridGeometry.hourBlockTop(hour + 1, slot, INSET)
                     - DayGridGeometry.hourBlockBottom(hour, slot, INSET);
-            assertEquals(DayGridGeometry.hourBlockGap(ONE_PX, INSET), gap, 0.0001f);
+            assertEquals(DayGridGeometry.hourBlockGap(INSET), gap, 0.0001f);
             float gapDp = gap / DENSITY;
             assertTrue("gap dp " + gapDp, gapDp >= 2f && gapDp <= 4f);
         }
