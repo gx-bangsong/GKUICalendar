@@ -70,6 +70,30 @@ public final class AgendaItemStyle {
         return selected && showEventOnStart;
     }
 
+    /** How a selected row is marked on the tablet two-pane layout. */
+    public enum Selection {
+        /** No selection feedback (phone, or details are not shown beside the list). */
+        NONE,
+        /**
+         * Card rows (standalone agenda). Only the outline is the selection. The row background
+         * and the text colours belong to the card and are not repainted.
+         */
+        CARD_OUTLINE,
+        /** Classic month panel rows. The whole row is repainted and the text recoloured. */
+        CLASSIC_ROW
+    }
+
+    /**
+     * Picks the selection feedback for a row. A card row never gets {@link Selection#CLASSIC_ROW}:
+     * that path reads the classic GridLayout params, which card rows do not have.
+     */
+    public static Selection selectionFeedback(boolean cardStyle, boolean showEventOnStart) {
+        if (!showEventOnStart) {
+            return Selection.NONE;
+        }
+        return cardStyle ? Selection.CARD_OUTLINE : Selection.CLASSIC_ROW;
+    }
+
     /**
      * The date column shows on the first event row of each day. Later rows of the same day keep
      * the column in place but hidden, so the event blocks stay aligned.

@@ -168,4 +168,70 @@ public class DayGridGeometryTest {
         assertEquals(0f, DayGridGeometry.eventCornerRadius(0f, 12f), 0.001f);
         assertEquals(0f, DayGridGeometry.eventCornerRadius(-4f, 12f), 0.001f);
     }
+
+    // ---------- Date header position (single day in the time column, week per column) ----------
+
+    /** Time-label column width and the label margins, as in the phone dimens (4dp each side). */
+    private static final int HOURS_WIDTH = 44;
+    private static final int HOURS_LEFT = 4;
+    private static final int HOURS_RIGHT = 4;
+    private static final int[] WIDTHS = {360, 412, 600, 720, 1024, 1280};
+
+    private static float singleDayCentre(int viewWidth) {
+        int left = DayGridGeometry.dayColumnLeft(0, 1, viewWidth, HOURS_WIDTH);
+        int right = DayGridGeometry.dayColumnLeft(1, 1, viewWidth, HOURS_WIDTH);
+        return DayGridGeometry.dateHeaderCentreX(1, left, right, HOURS_WIDTH,
+                HOURS_LEFT, HOURS_RIGHT);
+    }
+
+    @Test
+    public void singleDayColumnStartsAfterTheTimeLabelsAtEveryWidth() {
+        for (int width : WIDTHS) {
+            assertEquals(HOURS_WIDTH, DayGridGeometry.dayColumnLeft(0, 1, width, HOURS_WIDTH));
+        }
+    }
+
+    @Test
+    public void singleDayDateCentreSitsInTheTimeLabelBand() {
+        for (int width : WIDTHS) {
+            float cx = singleDayCentre(width);
+            assertTrue("centre " + cx + " left of the label band at width " + width,
+                    cx >= HOURS_LEFT);
+            assertTrue("centre " + cx + " right of the label band at width " + width,
+                    cx <= HOURS_WIDTH - HOURS_RIGHT);
+            // Strictly inside the time column, so the all-day and event area on the right is
+            // never under the date block.
+            assertTrue(cx < HOURS_WIDTH);
+        }
+        assertEquals((HOURS_LEFT + HOURS_WIDTH - HOURS_RIGHT) / 2f, singleDayCentre(720), 0.001f);
+    }
+
+    @Test
+    public void singleDayDateCentreDoesNotMoveIntoTheEventAreaWhenWidened() {
+        float narrow = singleDayCentre(360);
+        float wide = singleDayCentre(1280);
+        assertEquals(narrow, wide, 0.001f);
+        // The old centring put the date over the event column, which moves right as the view
+        // grows. The label-column centre must not follow it.
+        float eventColumnCentre = DayGridGeometry.columnCenter(HOURS_WIDTH, 1280);
+        assertTrue(Math.abs(wide - eventColumnCentre) > HOURS_WIDTH);
+    }
+
+    @Test
+    public void multiDayDateCentreMatchesEachColumn() {
+        for (int numDays : new int[] {3, 7}) {
+            int width = 720;
+            for (int day = 0; day < numDays; day++) {
+                int left = DayGridGeometry.dayColumnLeft(day, numDays, width, HOURS_WIDTH);
+                int right = DayGridGeometry.dayColumnLeft(day + 1, numDays, width, HOURS_WIDTH);
+                float cx = DayGridGeometry.dateHeaderCentreX(numDays, left, right, HOURS_WIDTH,
+                        HOURS_LEFT, HOURS_RIGHT);
+                assertEquals(DayGridGeometry.columnCenter(left, right), cx, 0.001f);
+                assertTrue(cx > left && cx < right);
+            }
+            // The columns run from the label edge to the right edge of the view.
+            assertEquals(width, DayGridGeometry.dayColumnLeft(numDays, numDays, width,
+                    HOURS_WIDTH));
+        }
+    }
 }

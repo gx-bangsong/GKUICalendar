@@ -87,6 +87,28 @@ public class AgendaItemStyleTest {
     }
 
     @Test
+    public void cardRowsNeverTakeTheClassicGridSelectionPath() {
+        // The crash came from the classic GridLayout params on a card row. A card row must
+        // always get the outline-only path on the tablet two-pane layout.
+        assertEquals(AgendaItemStyle.Selection.CARD_OUTLINE,
+                AgendaItemStyle.selectionFeedback(true, true));
+    }
+
+    @Test
+    public void classicMonthPanelKeepsItsRowRepaintPath() {
+        assertEquals(AgendaItemStyle.Selection.CLASSIC_ROW,
+                AgendaItemStyle.selectionFeedback(false, true));
+    }
+
+    @Test
+    public void noSelectionFeedbackWithoutTheTwoPaneEventDisplay() {
+        assertEquals(AgendaItemStyle.Selection.NONE,
+                AgendaItemStyle.selectionFeedback(true, false));
+        assertEquals(AgendaItemStyle.Selection.NONE,
+                AgendaItemStyle.selectionFeedback(false, false));
+    }
+
+    @Test
     public void dateShowsOnTheFirstEventRowOfEachDay() {
         // First row of the list.
         assertTrue(AgendaItemStyle.isFirstEventOfDay(true, false, 0, 100));

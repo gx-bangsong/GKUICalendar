@@ -73,6 +73,29 @@ final class DayGridGeometry {
     }
 
     /**
+     * Left edge of a day column. Day 0 starts after the time-label column. DayView uses this for
+     * computeDayLeftPosition, so tests exercise the same arithmetic as the drawing code.
+     */
+    static int dayColumnLeft(int day, int numDays, int viewWidth, int hoursWidth) {
+        return day * (viewWidth - hoursWidth) / numDays + hoursWidth;
+    }
+
+    /**
+     * Horizontal centre of one day's header block (weekday, date number and circle).
+     * Single day: the centre of the left time-label band, from {@code hoursLeftMargin} to
+     * {@code hoursWidth - hoursRightMargin}. Hour labels are drawn from the left margin, so the
+     * band is the width of the widest label. The centre depends only on the label column, so it
+     * does not move when the view is widened. Several days: the centre of that day's own column.
+     */
+    static float dateHeaderCentreX(int numDays, float dayLeft, float dayRight, float hoursWidth,
+            float hoursLeftMargin, float hoursRightMargin) {
+        if (numDays == 1) {
+            return (hoursLeftMargin + hoursWidth - hoursRightMargin) / 2f;
+        }
+        return columnCenter(dayLeft, dayRight);
+    }
+
+    /**
      * Baseline that centres text on {@code centerY} using FontMetrics. {@code ascent} is negative,
      * as in {@link android.graphics.Paint.FontMetrics}.
      */

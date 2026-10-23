@@ -281,6 +281,31 @@ public class AgendaItemLayoutTest {
         assertEquals(0, root.getElementsByTagName("com.android.calendar.ColorChipView").getLength());
     }
 
+    /**
+     * The tag of the text container's parent. AgendaWindowAdapter reads GridLayout params only
+     * for the classic row, so this is the fact that decides which path a row may take.
+     */
+    private static String textContainerParentTag(String path) throws Exception {
+        Element container = findById(parse(path).getDocumentElement(),
+                "agenda_item_text_container");
+        assertNotNull("text container in " + path, container);
+        return ((Element) container.getParentNode()).getTagName();
+    }
+
+    @Test
+    public void tabletCardTextContainerIsNotAGridChild() throws Exception {
+        // The card row sits under a ConstraintLayout. A GridLayout cast on it throws
+        // ClassCastException, which is why card rows take the outline-only selection path.
+        assertEquals("androidx.constraintlayout.widget.ConstraintLayout",
+                textContainerParentTag(TABLET_CARD));
+    }
+
+    @Test
+    public void tabletClassicTextContainerIsAGridChild() throws Exception {
+        // The classic sw600dp row is still a GridLayout, so the classic path keeps its params.
+        assertEquals("GridLayout", textContainerParentTag(TABLET_CLASSIC));
+    }
+
     // ---------- Outline drawable ----------
 
     @Test

@@ -410,24 +410,20 @@ public class AgendaWindowAdapter extends BaseAdapter
         if (yy instanceof AgendaAdapter.ViewHolder) {
             AgendaAdapter.ViewHolder vh = (AgendaAdapter.ViewHolder) yy;
             selected = mSelectedInstanceId == vh.instanceId;
+            // Runs on every bind, so a recycled row loses the outline of the item it held before.
             vh.selectedMarker.setVisibility(
                     AgendaItemStyle.selectionOutlineVisible(selected, mShowEventOnStart)
                             ? View.VISIBLE : View.GONE);
-            if (mShowEventOnStart) {
-                GridLayout.LayoutParams lp =
-                        (GridLayout.LayoutParams)vh.textContainer.getLayoutParams();
-                if (selected) {
-                    mSelectedVH = vh;
-                    v.setBackgroundColor(mSelectedItemBackgroundColor);
-                    vh.title.setTextColor(mSelectedItemTextColor);
-                    vh.when.setTextColor(mSelectedItemTextColor);
-                    vh.where.setTextColor(mSelectedItemTextColor);
-                    lp.setMargins(0, 0, 0, 0);
-                    vh.textContainer.setLayoutParams(lp);
-                } else {
-                    lp.setMargins(0, 0, (int)mItemRightMargin, 0);
-                    vh.textContainer.setLayoutParams(lp);
-                }
+            switch (AgendaItemStyle.selectionFeedback(mCardStyle, mShowEventOnStart)) {
+                case CARD_OUTLINE:
+                    bindCardSelection(vh, selected);
+                    break;
+                case CLASSIC_ROW:
+                    bindClassicRowSelection(v, vh, selected);
+                    break;
+                case NONE:
+                default:
+                    break;
             }
         }
 
@@ -435,6 +431,46 @@ public class AgendaWindowAdapter extends BaseAdapter
             Log.e(TAG, "getView " + position + " = " + getViewTitle(v));
         }
         return v;
+    }
+
+    /**
+     * Card rows (standalone agenda, tablet). The outline set in getView is the selection. The row
+     * background and the text colours are left alone: the card keeps its event colour, and the
+     * text colour AgendaAdapter chose for that fill stays readable. Only the selected holder is
+     * kept, for the detail pane.
+     */
+    private void bindCardSelection(AgendaAdapter.ViewHolder vh, boolean selected) {
+        if (selected) {
+            mSelectedVH = vh;
+        }
+    }
+
+    /**
+     * Classic month-panel rows (tablet). The text container of the classic sw600dp row is a
+     * GridLayout child, so its params are read as GridLayout params. A row without those params
+     * is not repainted, rather than crashing.
+     */
+    private void bindClassicRowSelection(View v, AgendaAdapter.ViewHolder vh, boolean selected) {
+        ViewGroup.LayoutParams params = vh.textContainer.getLayoutParams();
+        if (!(params instanceof GridLayout.LayoutParams)) {
+            if (selected) {
+                mSelectedVH = vh;
+            }
+            return;
+        }
+        GridLayout.LayoutParams lp = (GridLayout.LayoutParams) params;
+        if (selected) {
+            mSelectedVH = vh;
+            v.setBackgroundColor(mSelectedItemBackgroundColor);
+            vh.title.setTextColor(mSelectedItemTextColor);
+            vh.when.setTextColor(mSelectedItemTextColor);
+            vh.where.setTextColor(mSelectedItemTextColor);
+            lp.setMargins(0, 0, 0, 0);
+            vh.textContainer.setLayoutParams(lp);
+        } else {
+            lp.setMargins(0, 0, (int) mItemRightMargin, 0);
+            vh.textContainer.setLayoutParams(lp);
+        }
     }
 
     private int findEventPositionNearestTime(Time time, long id) {

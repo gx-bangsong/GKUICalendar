@@ -2416,8 +2416,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
     // Computes the x position for the left side of the given day (base 0)
     private int computeDayLeftPosition(int day) {
-        int effectiveWidth = mViewWidth - mHoursWidth;
-        return day * effectiveWidth / mNumDays + mHoursWidth;
+        return DayGridGeometry.dayColumnLeft(day, mNumDays, mViewWidth, mHoursWidth);
     }
 
     private void drawAllDayHighlights(Rect r, Canvas canvas, Paint p) {
@@ -2679,8 +2678,11 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         final DayGridGeometry.DateState state =
                 DayGridGeometry.dateState(cell, mTodayJulianDay, mSelectionDay);
         final int weekdayColor = p.getColor();
-        final float cx = DayGridGeometry.columnCenter(
-                computeDayLeftPosition(day), computeDayLeftPosition(day + 1));
+        // Single day: the date block sits in the left time-label column, above the hour labels.
+        // Several days: centred over the day's own column. The all-day area keeps the right side.
+        final float cx = DayGridGeometry.dateHeaderCentreX(mNumDays,
+                computeDayLeftPosition(day), computeDayLeftPosition(day + 1),
+                mHoursWidth, HOURS_LEFT_MARGIN, HOURS_RIGHT_MARGIN);
 
         // Weekday, centred above the date circle
         p.setTypeface(Typeface.DEFAULT);
