@@ -114,4 +114,14 @@
     <dimen name="event_info_action_bar_padding">8dp</dimen>
     <dimen name="event_info_action_circle_size">40dp</dimen>
     <dimen name="event_info_color_marker_radius">4dp</dimen>
+
+    <!-- Shared day and week grid: date header circle and rounded hour blocks. -->
+    <dimen name="day_header_top_padding">4dp</dimen>
+    <dimen name="day_header_date_circle_gap">2dp</dimen>
+    <dimen name="day_header_date_circle_size">32dp</dimen>
+    <dimen name="day_header_bottom_padding">4dp</dimen>
+    <dimen name="hour_block_corner_radius">8dp</dimen>
+    <dimen name="hour_block_inset">1.5dp</dimen>
+    <dimen name="hour_block_column_inset">2dp</dimen>
+    <dimen name="agenda_card_corner_radius">12dp</dimen>
 </resources>
