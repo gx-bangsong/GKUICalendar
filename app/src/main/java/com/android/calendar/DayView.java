@@ -2767,9 +2767,15 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     }
 
     private void drawGridBackground(Rect r, Canvas canvas, Paint p) {
-        // Each hour of each day column is its own rounded block with a small gap. There are
-        // no table lines. Time labels stay outside the blocks (drawHours). Blocks are inset
-        // inside their slot, so the time positions do not change.
+        if (mNumDays > 1) {
+            // Week: light thin grid lines, as in the classic week view. Rounded hour blocks are
+            // for the single-day view only.
+            drawWeekGridLines(canvas, p);
+            return;
+        }
+        // Day: each hour is its own rounded block with a small gap. Time labels stay outside the
+        // blocks (drawHours). Blocks are inset inside their slot, so the time positions do not
+        // change.
         Paint.Style savedStyle = p.getStyle();
         int savedColor = p.getColor();
         p.setStyle(Style.FILL);
@@ -2789,6 +2795,52 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         }
         p.setColor(savedColor);
         p.setStyle(savedStyle);
+    }
+
+    /** Week: the thin hour and day lines of the classic week view. */
+    private void drawWeekGridLines(Canvas canvas, Paint p) {
+        Paint.Style savedStyle = p.getStyle();
+
+        final float stopX = computeDayLeftPosition(mNumDays);
+        float y = 0;
+        final float deltaY = mCellHeight + HOUR_GAP;
+        int linesIndex = 0;
+        final float startY = 0;
+        final float stopY = HOUR_GAP + 24 * (mCellHeight + HOUR_GAP);
+        float x = mHoursWidth;
+
+        // Draw the inner horizontal grid lines
+        p.setColor(mCalendarGridLineInnerHorizontalColor);
+        p.setStrokeWidth(GRID_LINE_INNER_WIDTH);
+        p.setAntiAlias(false);
+        y = 0;
+        linesIndex = 0;
+        for (int hour = 0; hour <= 24; hour++) {
+            mLines[linesIndex++] = GRID_LINE_LEFT_MARGIN;
+            mLines[linesIndex++] = y;
+            mLines[linesIndex++] = stopX;
+            mLines[linesIndex++] = y;
+            y += deltaY;
+        }
+        if (mCalendarGridLineInnerVerticalColor != mCalendarGridLineInnerHorizontalColor) {
+            canvas.drawLines(mLines, 0, linesIndex, p);
+            linesIndex = 0;
+            p.setColor(mCalendarGridLineInnerVerticalColor);
+        }
+
+        // Draw the inner vertical grid lines
+        for (int day = 0; day <= mNumDays; day++) {
+            x = computeDayLeftPosition(day);
+            mLines[linesIndex++] = x;
+            mLines[linesIndex++] = startY;
+            mLines[linesIndex++] = x;
+            mLines[linesIndex++] = stopY;
+        }
+        canvas.drawLines(mLines, 0, linesIndex, p);
+
+        // Restore the saved style.
+        p.setStyle(savedStyle);
+        p.setAntiAlias(true);
     }
 
     /**
@@ -3648,7 +3700,8 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         r.left += floorHalfStroke;
         r.right -= ceilHalfStroke;
         mRectF.set(r);
-        float radius = EVENT_CORNER_RADIUS;
+        // A short event keeps its corners inside its height, so its shape stays readable.
+        float radius = DayGridGeometry.eventCornerRadius(mRectF.height(), EVENT_CORNER_RADIUS);
         p.setStrokeWidth(EVENT_RECT_STROKE_WIDTH);
         p.setColor(color);
         int alpha = p.getAlpha();

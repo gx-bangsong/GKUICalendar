@@ -77,4 +77,27 @@ public class AgendaItemStyleTest {
         assertTrue(AgendaItemStyle.resolve(false, false, false, true).compact);
         assertFalse(AgendaItemStyle.resolve(false, false, false, false).compact);
     }
+
+    @Test
+    public void selectionOutlineShowsOnlyForTheSelectedItemWhileTheListShowsEvents() {
+        assertTrue(AgendaItemStyle.selectionOutlineVisible(true, true));
+        assertFalse(AgendaItemStyle.selectionOutlineVisible(false, true));
+        // Without the two-pane event display no item shows the outline, selected or not.
+        assertFalse(AgendaItemStyle.selectionOutlineVisible(true, false));
+    }
+
+    @Test
+    public void dateShowsOnTheFirstEventRowOfEachDay() {
+        // First row of the list.
+        assertTrue(AgendaItemStyle.isFirstEventOfDay(true, false, 0, 100));
+        // Previous row is a day header, not an event.
+        assertTrue(AgendaItemStyle.isFirstEventOfDay(false, false, 100, 100));
+        // Previous event is on an earlier day.
+        assertTrue(AgendaItemStyle.isFirstEventOfDay(false, true, 99, 100));
+    }
+
+    @Test
+    public void laterEventsOfTheSameDayDoNotRepeatTheDate() {
+        assertFalse(AgendaItemStyle.isFirstEventOfDay(false, true, 100, 100));
+    }
 }

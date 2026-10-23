@@ -225,6 +225,7 @@ if (System.getenv("CI") != null) {
 		filter.includeTestsMatching("com.android.calendar.DayTimeSlotPreviewTest")
 		filter.includeTestsMatching("com.android.calendar.DayViewTimeSlotSourceTest")
 		filter.includeTestsMatching("com.android.calendar.DayGridGeometryTest")
+		filter.includeTestsMatching("com.android.calendar.DayTimeGeometryTest")
 		filter.includeTestsMatching("com.android.calendar.agenda.AgendaItemStyleTest")
 		filter.includeTestsMatching("com.android.calendar.agenda.AgendaItemLayoutTest")
 		filter.includeTestsMatching("com.android.calendar.monthagenda.MonthAgendaLayoutProtectionTest")

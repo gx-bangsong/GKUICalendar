@@ -85,6 +85,14 @@ public class AgendaListView extends ListView implements OnItemClickListener {
         initView(context);
     }
 
+    /**
+     * Chooses the standalone agenda's card rows. The fragment calls this once after inflating the
+     * list, before any cursor is bound. The month panel never calls it and keeps the classic rows.
+     */
+    public void setCardStyle(boolean cardStyle) {
+        mWindowAdapter.setCardStyle(cardStyle);
+    }
+
     private void initView(Context context) {
         mContext = context;
         mTimeZone = Utils.getTimeZone(context, mTZUpdater);

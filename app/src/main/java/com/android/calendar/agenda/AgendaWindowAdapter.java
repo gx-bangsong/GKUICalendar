@@ -217,6 +217,13 @@ public class AgendaWindowAdapter extends BaseAdapter
     private String mSearchQuery;
     private long mSelectedInstanceId = -1;
     private AgendaAdapter.ViewHolder mSelectedVH = null;
+    // true for the standalone agenda's card rows; the month panel keeps the classic rows.
+    private boolean mCardStyle = false;
+
+    /** Chooses the card rows (standalone agenda) or the classic rows (month panel). */
+    public void setCardStyle(boolean cardStyle) {
+        mCardStyle = cardStyle;
+    }
 
     public AgendaWindowAdapter(Context context,
             AgendaListView agendaListView, boolean showEventOnStart) {
@@ -403,8 +410,9 @@ public class AgendaWindowAdapter extends BaseAdapter
         if (yy instanceof AgendaAdapter.ViewHolder) {
             AgendaAdapter.ViewHolder vh = (AgendaAdapter.ViewHolder) yy;
             selected = mSelectedInstanceId == vh.instanceId;
-            vh.selectedMarker.setVisibility((selected && mShowEventOnStart) ?
-                    View.VISIBLE : View.GONE);
+            vh.selectedMarker.setVisibility(
+                    AgendaItemStyle.selectionOutlineVisible(selected, mShowEventOnStart)
+                            ? View.VISIBLE : View.GONE);
             if (mShowEventOnStart) {
                 GridLayout.LayoutParams lp =
                         (GridLayout.LayoutParams)vh.textContainer.getLayoutParams();
@@ -1057,8 +1065,8 @@ public class AgendaWindowAdapter extends BaseAdapter
         int offset; // offset in position in the list view
         int size; // dayAdapter.getCount()
 
-        public DayAdapterInfo(Context context) {
-            dayAdapter = new AgendaByDayAdapter(context);
+        public DayAdapterInfo(Context context, boolean cardStyle) {
+            dayAdapter = new AgendaByDayAdapter(context, cardStyle);
         }
 
         @Override
@@ -1365,7 +1373,7 @@ public class AgendaWindowAdapter extends BaseAdapter
                 DayAdapterInfo info = pruneAdapterInfo(data.queryType);
                 int listPositionOffset = 0;
                 if (info == null) {
-                    info = new DayAdapterInfo(mContext);
+                    info = new DayAdapterInfo(mContext, mCardStyle);
                 } else {
                     if (DEBUGLOG)
                         Log.e(TAG, "processNewCursor listPositionOffsetA="

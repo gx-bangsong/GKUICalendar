@@ -104,4 +104,12 @@ final class DayGridGeometry {
     static boolean hasVisibleRoundedBottom(float bottom, float viewBottom) {
         return bottom <= viewBottom;
     }
+
+    /**
+     * The corner radius of an event block. It never exceeds half the block height, so a short
+     * event (for example a 15-minute one) is a rounded bar, not a shape whose corners overlap.
+     */
+    static float eventCornerRadius(float blockHeight, float maxRadius) {
+        return Math.max(0f, Math.min(maxRadius, blockHeight / 2f));
+    }
 }

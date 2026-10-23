@@ -151,4 +151,21 @@ public class DayGridGeometryTest {
         float boxBottom = baseline + descent;
         assertEquals(centerY, (boxTop + boxBottom) / 2f, 0.0001f);
     }
+
+    @Test
+    public void shortEventRadiusIsCappedAtHalfItsHeight() {
+        // A 10 px bar can have at most a 5 px radius, so its corners never overlap.
+        assertEquals(5f, DayGridGeometry.eventCornerRadius(10f, 12f), 0.001f);
+    }
+
+    @Test
+    public void tallEventKeepsTheFullRadius() {
+        assertEquals(12f, DayGridGeometry.eventCornerRadius(60f, 12f), 0.001f);
+    }
+
+    @Test
+    public void degenerateHeightGivesNoRadius() {
+        assertEquals(0f, DayGridGeometry.eventCornerRadius(0f, 12f), 0.001f);
+        assertEquals(0f, DayGridGeometry.eventCornerRadius(-4f, 12f), 0.001f);
+    }
 }

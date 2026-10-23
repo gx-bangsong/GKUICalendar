@@ -67,9 +67,19 @@ public class AgendaByDayAdapter extends BaseAdapter {
         }
     };
 
+    /** The classic row, used by the month view's secondary agenda panel. */
     public AgendaByDayAdapter(Context context) {
+        this(context, false);
+    }
+
+    /**
+     * @param cardStyle true for the standalone agenda (coloured cards with a left date column);
+     *     false keeps the classic row used by the month view's secondary agenda panel.
+     */
+    public AgendaByDayAdapter(Context context, boolean cardStyle) {
         mContext = context;
-        mAgendaAdapter = new AgendaAdapter(context, R.layout.agenda_item);
+        mAgendaAdapter = new AgendaAdapter(context,
+                cardStyle ? R.layout.agenda_item_card : R.layout.agenda_item, cardStyle);
         mInflater = (LayoutInflater) mContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         mStringBuilder = new StringBuilder(50);
         mFormatter = new Formatter(mStringBuilder, Locale.getDefault());
@@ -278,13 +288,15 @@ public class AgendaByDayAdapter extends BaseAdapter {
         } else if (row.mType == TYPE_MEETING) {
             View itemView = mAgendaAdapter.getView(row.mPosition, convertView, parent);
             AgendaAdapter.ViewHolder holder = ((AgendaAdapter.ViewHolder) itemView.getTag());
-            // The per-event date column only exists in the phone layout
-            // (layout/agenda_item.xml); the layout-sw600dp agenda row omits
-            // it and the day-header rows carry the date there instead.
+            // The date column is in the phone layouts and in the standalone card rows. The
+            // classic sw600dp row (month panel) has no column, so it is skipped there.
             if (holder.agendaDateColumn != null) {
-                boolean firstEventOfDay = position == 0
-                        || mRowInfo.get(position - 1).mType != TYPE_MEETING
-                        || mRowInfo.get(position - 1).mDay != row.mDay;
+                RowInfo previous = position > 0 ? mRowInfo.get(position - 1) : null;
+                boolean firstEventOfDay = AgendaItemStyle.isFirstEventOfDay(
+                        previous == null,
+                        previous != null && previous.mType == TYPE_MEETING,
+                        previous != null ? previous.mDay : 0,
+                        row.mDay);
                 holder.agendaDateColumn.setVisibility(firstEventOfDay ? View.VISIBLE : View.INVISIBLE);
                 Time eventDate = new Time(mTimeZone);
                 eventDate.setJulianDay(row.mDay);

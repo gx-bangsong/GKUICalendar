@@ -62,13 +62,22 @@ public class AgendaAdapter extends ResourceCursorAdapter {
             notifyDataSetChanged();
         }
     };
+    private final boolean mCardStyle;
     private float mScale;
     private int COLOR_CHIP_ALL_DAY_HEIGHT;
     private int COLOR_CHIP_HEIGHT;
 
     public AgendaAdapter(Context context, int resource) {
-        super(context, resource, null);
+        this(context, resource, false);
+    }
 
+    /**
+     * @param cardStyle true for the standalone agenda (coloured card rows, see AgendaItemStyle).
+     *     false keeps the classic row used by the month view's secondary agenda panel.
+     */
+    public AgendaAdapter(Context context, int resource, boolean cardStyle) {
+        super(context, resource, null);
+        mCardStyle = cardStyle;
         mResources = context.getResources();
         mNoTitleLabel = mResources.getString(R.string.no_title_label);
         mDeclinedColor = DynamicTheme.getColor(context, "agenda_item_declined_color");
@@ -89,8 +98,6 @@ public class AgendaAdapter extends ResourceCursorAdapter {
         }
 
     }
-
-    @Override
     public void bindView(View view, Context context, Cursor cursor) {
         // Resolve all view ids from the current view on every bind. The
         // previous version cached the lookup in a tag-attached ViewHolder
@@ -112,6 +119,7 @@ public class AgendaAdapter extends ResourceCursorAdapter {
                 view.findViewById(R.id.agenda_item_text_container);
         holder.selectedMarker = view.findViewById(R.id.selected_marker);
         holder.colorChip = (ColorChipView) view.findViewById(R.id.agenda_item_color);
+        holder.timelineLine = view.findViewById(R.id.agenda_timeline_line);
         holder.content = view.findViewById(R.id.agenda_item_content);
 
         // Re-attach the holder: AgendaByDayAdapter.getView reads the tag
@@ -123,102 +131,18 @@ public class AgendaAdapter extends ResourceCursorAdapter {
         view.setTag(holder);
 
         holder.startTimeMilli = cursor.getLong(AgendaWindowAdapter.INDEX_BEGIN);
-        // The attendee state decides the card style. It is recomputed on every bind, so a
-        // recycled view never keeps the fill, outline or strike-through of an earlier item.
         boolean allDay = cursor.getInt(AgendaWindowAdapter.INDEX_ALL_DAY) != 0;
         holder.allDay = allDay;
-        int selfAttendeeStatus = cursor.getInt(AgendaWindowAdapter.INDEX_SELF_ATTENDEE_STATUS);
-        boolean declined = selfAttendeeStatus == Attendees.ATTENDEE_STATUS_DECLINED;
-        boolean invited = selfAttendeeStatus == Attendees.ATTENDEE_STATUS_INVITED;
-        // Exchange events the owner cannot answer, where the owner is the organizer, stay solid.
-        int canRespond = cursor.getInt(AgendaWindowAdapter.INDEX_CAN_ORGANIZER_RESPOND);
-        if (canRespond == 0) {
-            String owner = cursor.getString(AgendaWindowAdapter.INDEX_OWNER_ACCOUNT);
-            String organizer = cursor.getString(AgendaWindowAdapter.INDEX_ORGANIZER);
-            if (owner.equals(organizer)) {
-                invited = false;
-            }
-        }
-        boolean canceled =
-                cursor.getInt(AgendaWindowAdapter.INDEX_STATUS) == Events.STATUS_CANCELED;
-        AgendaItemStyle style = AgendaItemStyle.resolve(declined, invited, canceled, allDay);
-
         TextView title = holder.title;
         TextView when = holder.when;
         TextView where = holder.where;
-
-        // Strike-through is set or cleared on every bind, so no flag survives a recycled view.
-        if (title != null) {
-            int flags = title.getPaintFlags();
-            title.setPaintFlags(style.strikeThrough
-                    ? flags | Paint.STRIKE_THRU_TEXT_FLAG
-                    : flags & ~Paint.STRIKE_THRU_TEXT_FLAG);
-        }
-
         holder.instanceId = cursor.getLong(AgendaWindowAdapter.INDEX_INSTANCE_ID);
 
-        /* Calendar colour: the full card fill, a faded fill when declined, or a surface card
-         * with an outline when invited. */
-        int color = Utils.getDisplayColorFromColor(context,
-                cursor.getInt(AgendaWindowAdapter.INDEX_COLOR));
-        int surface = com.google.android.material.color.MaterialColors.getColor(context,
-                com.google.android.material.R.attr.colorSurface, 0xFFFFFFFF);
-        int cardFill;
-        int strokeWidth = 0;
-        switch (style.fill) {
-            case FADED:
-                cardFill = Utils.getDeclinedColorFromColor(color);
-                break;
-            case OUTLINED:
-                cardFill = surface;
-                strokeWidth = mResources.getDimensionPixelSize(R.dimen.agenda_card_outline_width);
-                break;
-            case SOLID:
-            default:
-                cardFill = color;
-                break;
-        }
-        if (holder.card != null) {
-            holder.card.setCardBackgroundColor(cardFill);
-            holder.card.setStrokeWidth(strokeWidth);
-            holder.card.setStrokeColor(color);
-        }
-        // The colour chip is only in the tablet row. Keep it in step with the same state.
-        if (holder.colorChip != null) {
-            holder.colorChip.setColor(color);
-            holder.colorChip.setDrawStyle(declined ? ColorChipView.DRAW_FADED
-                    : (invited ? ColorChipView.DRAW_BORDER : ColorChipView.DRAW_FULL));
-            ViewGroup.LayoutParams params = holder.colorChip.getLayoutParams();
-            params.height = allDay ? COLOR_CHIP_ALL_DAY_HEIGHT : COLOR_CHIP_HEIGHT;
-            holder.colorChip.setLayoutParams(params);
-        }
-
-        // All-day items are compact. Timed items grow with their content.
-        if (holder.content != null) {
-            int padding = mResources.getDimensionPixelSize(allDay
-                    ? R.dimen.agenda_card_padding_all_day : R.dimen.agenda_card_padding);
-            holder.content.setPadding(padding, padding, padding, padding);
-            holder.content.setMinimumHeight(mResources.getDimensionPixelSize(allDay
-                    ? R.dimen.agenda_card_min_height_all_day : R.dimen.agenda_card_min_height));
-        }
-
-        // Text colour: whichever of on-surface and on-primary contrasts with the card fill.
-        int eventTextColor;
-        if (holder.title != null) {
-            int onSurface = com.google.android.material.color.MaterialColors.getColor(
-                    context, com.google.android.material.R.attr.colorOnSurface,
-                    "AgendaAdapter");
-            int onPrimary = com.google.android.material.color.MaterialColors.getColor(
-                    context, com.google.android.material.R.attr.colorOnPrimary,
-                    "AgendaAdapter");
-            eventTextColor = ColorUtils.calculateContrast(onSurface, cardFill)
-                    >= ColorUtils.calculateContrast(onPrimary, cardFill) ? onSurface : onPrimary;
-            holder.title.setTextColor(eventTextColor);
+        if (mCardStyle) {
+            bindCardStyle(holder, context, cursor, allDay);
         } else {
-            eventTextColor = 0;
+            bindLegacyStyle(holder, context, cursor, allDay);
         }
-        if (holder.when != null) holder.when.setTextColor(eventTextColor);
-        if (holder.where != null) holder.where.setTextColor(eventTextColor);
 
         // What
         String titleString = cursor.getString(AgendaWindowAdapter.INDEX_TITLE);
@@ -299,6 +223,179 @@ public class AgendaAdapter extends ResourceCursorAdapter {
         }
     }
 
+    /** The classic row (month panel): colour chip, timeline and card colour as before. */
+    private void bindLegacyStyle(ViewHolder holder, Context context, Cursor cursor,
+            boolean allDay) {
+        // Fade text if event was declined and set the color chip mode (response
+        int selfAttendeeStatus = cursor.getInt(AgendaWindowAdapter.INDEX_SELF_ATTENDEE_STATUS);
+        if (selfAttendeeStatus == Attendees.ATTENDEE_STATUS_DECLINED) {
+            if (holder.title != null) holder.title.setTextColor(mDeclinedColor);
+            if (holder.when != null) holder.when.setTextColor(mWhereDeclinedColor);
+            if (holder.where != null) holder.where.setTextColor(mWhereDeclinedColor);
+            if (holder.colorChip != null) holder.colorChip.setDrawStyle(ColorChipView.DRAW_FADED);
+        } else {
+            if (holder.title != null) holder.title.setTextColor(mStandardColor);
+            if (holder.when != null) holder.when.setTextColor(mWhereColor);
+            if (holder.where != null) holder.where.setTextColor(mWhereColor);
+            if (selfAttendeeStatus == Attendees.ATTENDEE_STATUS_INVITED) {
+                if (holder.colorChip != null) holder.colorChip.setDrawStyle(ColorChipView.DRAW_BORDER);
+            } else {
+                if (holder.colorChip != null) holder.colorChip.setDrawStyle(ColorChipView.DRAW_FULL);
+            }
+        }
+
+        // Set the size of the color chip
+        if (holder.colorChip != null) {
+            ViewGroup.LayoutParams params = holder.colorChip.getLayoutParams();
+            if (allDay) {
+                params.height = COLOR_CHIP_ALL_DAY_HEIGHT;
+            } else {
+                params.height = COLOR_CHIP_HEIGHT;
+            }
+            holder.colorChip.setLayoutParams(params);
+        }
+
+        // Deal with exchange events that the owner cannot respond to
+        int canRespond = cursor.getInt(AgendaWindowAdapter.INDEX_CAN_ORGANIZER_RESPOND);
+        if (canRespond == 0) {
+            String owner = cursor.getString(AgendaWindowAdapter.INDEX_OWNER_ACCOUNT);
+            String organizer = cursor.getString(AgendaWindowAdapter.INDEX_ORGANIZER);
+            if (owner.equals(organizer)) {
+                if (holder.colorChip != null) holder.colorChip.setDrawStyle(ColorChipView.DRAW_FULL);
+                if (holder.title != null) holder.title.setTextColor(mStandardColor);
+                if (holder.when != null) holder.when.setTextColor(mStandardColor);
+                if (holder.where != null) holder.where.setTextColor(mStandardColor);
+            }
+        }
+
+        int status = cursor.getInt(AgendaWindowAdapter.INDEX_STATUS);
+        if (status == Events.STATUS_CANCELED) {
+            if (holder.title != null) {
+                holder.title.setPaintFlags(holder.title.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
+            }
+        }
+        /* Calendar Color */
+        int color = Utils.getDisplayColorFromColor(context, cursor.getInt(AgendaWindowAdapter.INDEX_COLOR));
+        if (holder.colorChip != null) holder.colorChip.setColor(color);
+        if (holder.timelineLine != null) {
+            holder.timelineLine.setBackgroundTintList(ColorStateList.valueOf(color));
+        }
+        if (holder.card != null) holder.card.setCardBackgroundColor(color);
+        // Picking the contrasting text color used to pass holder.title as
+        // the View argument to MaterialColors.getColor, but that overload
+        // is declared @NonNull and reads view.getContext() on its first
+        // line. On the sw600dp layout agenda_item defines no @+id/title view,
+        // so holder.title is null and the call NPE'd on tablet. Use the
+        // Context-based overload (which is also @NonNull but we already
+        // have context as the bindView parameter) and only paint the
+        // computed event color onto text views that actually exist.
+        int eventTextColor;
+        if (holder.title != null) {
+            int onSurface = com.google.android.material.color.MaterialColors.getColor(
+                    context, com.google.android.material.R.attr.colorOnSurface,
+                    "AgendaAdapter");
+            int onPrimary = com.google.android.material.color.MaterialColors.getColor(
+                    context, com.google.android.material.R.attr.colorOnPrimary,
+                    "AgendaAdapter");
+            eventTextColor = ColorUtils.calculateContrast(onSurface, color)
+                    >= ColorUtils.calculateContrast(onPrimary, color) ? onSurface : onPrimary;
+            holder.title.setTextColor(eventTextColor);
+        } else {
+            eventTextColor = 0;
+        }
+        if (holder.when != null) holder.when.setTextColor(eventTextColor);
+        if (holder.where != null) holder.where.setTextColor(eventTextColor);
+    }
+
+    /**
+     * The standalone agenda card: the fill, outline and strike-through come from AgendaItemStyle,
+     * recomputed on every bind so a recycled view keeps nothing from an earlier item.
+     */
+    private void bindCardStyle(ViewHolder holder, Context context, Cursor cursor, boolean allDay) {
+        int selfAttendeeStatus = cursor.getInt(AgendaWindowAdapter.INDEX_SELF_ATTENDEE_STATUS);
+        boolean declined = selfAttendeeStatus == Attendees.ATTENDEE_STATUS_DECLINED;
+        boolean invited = selfAttendeeStatus == Attendees.ATTENDEE_STATUS_INVITED;
+        // Exchange events the owner cannot answer, where the owner is the organizer, stay solid.
+        int canRespond = cursor.getInt(AgendaWindowAdapter.INDEX_CAN_ORGANIZER_RESPOND);
+        if (canRespond == 0) {
+            String owner = cursor.getString(AgendaWindowAdapter.INDEX_OWNER_ACCOUNT);
+            String organizer = cursor.getString(AgendaWindowAdapter.INDEX_ORGANIZER);
+            if (owner != null && owner.equals(organizer)) {
+                invited = false;
+            }
+        }
+        boolean canceled =
+                cursor.getInt(AgendaWindowAdapter.INDEX_STATUS) == Events.STATUS_CANCELED;
+        AgendaItemStyle style = AgendaItemStyle.resolve(declined, invited, canceled, allDay);
+
+        // Strike-through is set or cleared on every bind.
+        if (holder.title != null) {
+            int flags = holder.title.getPaintFlags();
+            holder.title.setPaintFlags(style.strikeThrough
+                    ? flags | Paint.STRIKE_THRU_TEXT_FLAG
+                    : flags & ~Paint.STRIKE_THRU_TEXT_FLAG);
+        }
+
+        // The selection outline is set by AgendaWindowAdapter after binding; start hidden.
+        if (holder.selectedMarker != null) {
+            holder.selectedMarker.setVisibility(View.GONE);
+        }
+
+        // Calendar colour: a full fill, a faded fill when declined, or a surface card with an
+        // outline when invited.
+        int color = Utils.getDisplayColorFromColor(context,
+                cursor.getInt(AgendaWindowAdapter.INDEX_COLOR));
+        int surface = com.google.android.material.color.MaterialColors.getColor(context,
+                com.google.android.material.R.attr.colorSurface, 0xFFFFFFFF);
+        int cardFill;
+        int strokeWidth = 0;
+        switch (style.fill) {
+            case FADED:
+                cardFill = Utils.getDeclinedColorFromColor(color);
+                break;
+            case OUTLINED:
+                cardFill = surface;
+                strokeWidth = mResources.getDimensionPixelSize(R.dimen.agenda_card_outline_width);
+                break;
+            case SOLID:
+            default:
+                cardFill = color;
+                break;
+        }
+        if (holder.card != null) {
+            holder.card.setCardBackgroundColor(cardFill);
+            holder.card.setStrokeWidth(strokeWidth);
+            holder.card.setStrokeColor(color);
+        }
+
+        // All-day items are compact. Timed items grow with their content.
+        if (holder.content != null) {
+            int padding = mResources.getDimensionPixelSize(allDay
+                    ? R.dimen.agenda_card_padding_all_day : R.dimen.agenda_card_padding);
+            holder.content.setPadding(padding, padding, padding, padding);
+            holder.content.setMinimumHeight(mResources.getDimensionPixelSize(allDay
+                    ? R.dimen.agenda_card_min_height_all_day : R.dimen.agenda_card_min_height));
+        }
+
+        // Text colour: whichever of on-surface and on-primary contrasts with the card fill.
+        int eventTextColor;
+        if (holder.title != null) {
+            int onSurface = com.google.android.material.color.MaterialColors.getColor(
+                    context, com.google.android.material.R.attr.colorOnSurface,
+                    "AgendaAdapter");
+            int onPrimary = com.google.android.material.color.MaterialColors.getColor(
+                    context, com.google.android.material.R.attr.colorOnPrimary,
+                    "AgendaAdapter");
+            eventTextColor = ColorUtils.calculateContrast(onSurface, cardFill)
+                    >= ColorUtils.calculateContrast(onPrimary, cardFill) ? onSurface : onPrimary;
+            holder.title.setTextColor(eventTextColor);
+        } else {
+            eventTextColor = 0;
+        }
+        if (holder.when != null) holder.when.setTextColor(eventTextColor);
+        if (holder.where != null) holder.where.setTextColor(eventTextColor);
+    }
+
     static class ViewHolder {
 
         public static final int DECLINED_RESPONSE = 0;
@@ -313,15 +410,15 @@ public class AgendaAdapter extends ResourceCursorAdapter {
         LinearLayout textContainer;
         long instanceId;
         MaterialCardView card;
+        View content;
         View agendaDateColumn;
         TextView agendaDate;
         TextView agendaDay;
         ColorChipView colorChip;
-        View content;
+        View timelineLine;
         long startTimeMilli;
         boolean allDay;
         boolean grayed;
         int julianDay;
     }
 }
-

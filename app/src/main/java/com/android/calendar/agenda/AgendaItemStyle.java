@@ -61,4 +61,26 @@ public final class AgendaItemStyle {
         }
         return new AgendaItemStyle(fill, canceled, allDay);
     }
+
+    /**
+     * The selection outline shows only on the item that is selected while the list is showing
+     * the event (the two-pane tablet case). AgendaWindowAdapter sets it on every bind.
+     */
+    public static boolean selectionOutlineVisible(boolean selected, boolean showEventOnStart) {
+        return selected && showEventOnStart;
+    }
+
+    /**
+     * The date column shows on the first event row of each day. Later rows of the same day keep
+     * the column in place but hidden, so the event blocks stay aligned.
+     *
+     * @param firstRow this is the first row of the list
+     * @param previousIsEvent the row before this one is an event row
+     * @param previousDay the Julian day of the row before this one
+     * @param day the Julian day of this row
+     */
+    public static boolean isFirstEventOfDay(boolean firstRow, boolean previousIsEvent,
+            int previousDay, int day) {
+        return firstRow || !previousIsEvent || previousDay != day;
+    }
 }

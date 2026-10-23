@@ -130,4 +130,12 @@
     <dimen name="agenda_card_min_height">56dp</dimen>
     <dimen name="agenda_card_min_height_all_day">40dp</dimen>
     <dimen name="agenda_card_outline_width">2dp</dimen>
+    <!-- Standalone agenda card rows (phone). The tablet values are in values-sw600dp. -->
+    <dimen name="agenda_card_row_padding_horizontal">12dp</dimen>
+    <dimen name="agenda_date_column_width">72dp</dimen>
+    <dimen name="agenda_date_circle_size">44dp</dimen>
+    <dimen name="agenda_date_text_size">18sp</dimen>
+    <dimen name="agenda_weekday_text_size">12sp</dimen>
+    <dimen name="agenda_card_title_text_size">16sp</dimen>
+    <dimen name="agenda_card_meta_text_size">14sp</dimen>
 </resources>
