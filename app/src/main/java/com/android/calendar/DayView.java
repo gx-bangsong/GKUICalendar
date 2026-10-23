@@ -470,6 +470,12 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private static int mWeek_sundayColor;
     private static int mCalendarDateBannerTextColor;
     private static int mCalendarGridAreaSelected;
+    // Rounded hour blocks and the selected-hour block (see drawGridBackground).
+    private static int mHourBlockColor;
+    private static int mSelectedHourColor;
+    private static float HOUR_BLOCK_INSET;
+    private static float HOUR_BLOCK_COLUMN_INSET;
+    private static float HOUR_BLOCK_RADIUS;
     private static int mCalendarGridLineInnerHorizontalColor;
     private static int mCalendarGridLineInnerVerticalColor;
     private static int mFutureBgColor;
@@ -725,6 +731,9 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         HOURS_LEFT_MARGIN = (int) mResources.getDimension(R.dimen.hours_left_margin);
         HOURS_RIGHT_MARGIN = (int) mResources.getDimension(R.dimen.hours_right_margin);
         MULTI_DAY_HEADER_HEIGHT = (int) mResources.getDimension(R.dimen.day_header_height);
+        HOUR_BLOCK_INSET = mResources.getDimension(R.dimen.hour_block_inset);
+        HOUR_BLOCK_COLUMN_INSET = mResources.getDimension(R.dimen.hour_block_column_inset);
+        HOUR_BLOCK_RADIUS = mResources.getDimension(R.dimen.hour_block_corner_radius);
         int eventTextSizeId;
         if (mNumDays == 1) {
             eventTextSizeId = R.dimen.day_view_event_text_size;
@@ -908,6 +917,12 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         mCalendarGridAreaSelected = DynamicTheme.getColor(mContext, "calendar_grid_area_selected");
         mCalendarGridLineInnerHorizontalColor = DynamicTheme.getColor(mContext, "calendar_grid_line_inner_horizontal_color");
         mCalendarGridLineInnerVerticalColor = DynamicTheme.getColor(mContext, "calendar_grid_line_inner_vertical_color");
+        // Hour blocks: grid line colour at low opacity, so they stay quiet in both themes.
+        mHourBlockColor = (mCalendarGridLineInnerHorizontalColor & 0x00FFFFFF) | 0x33000000;
+        // Selected hour: theme primary at low opacity, not a fixed blue.
+        mSelectedHourColor = (com.google.android.material.color.MaterialColors.getColor(mContext,
+                com.google.android.material.R.attr.colorPrimary, mCalendarGridAreaSelected)
+                & 0x00FFFFFF) | 0x33000000;
         mPressedColor = DynamicTheme.getColor(mContext, "pressed");
         mClickedColor = DynamicTheme.getColor(mContext, "day_event_clicked_background_color");
         mEventTextColor = DynamicTheme.getColor(mContext, "calendar_event_text_color");
@@ -2571,37 +2586,18 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 return;
             }
 
-            // Draw the highlight on the grid
-            p.setColor(mCalendarGridAreaSelected);
-            r.top += HOUR_GAP;
-            r.right -= DAY_GAP;
-            p.setAntiAlias(false);
-            canvas.drawRect(r, p);
-
-            // Draw a "new event hint" on top of the highlight
-            // For the week view, show a "+", for day view, show "+ New event"
-            p.setColor(mNewEventHintColor);
-            if (mNumDays > 1) {
-                p.setStrokeWidth(NEW_EVENT_WIDTH);
-                int width = r.right - r.left;
-                int midX = r.left + width / 2;
-                int midY = r.top + mCellHeight / 2;
-                int length = Math.min(mCellHeight, width) - NEW_EVENT_MARGIN * 2;
-                length = Math.min(length, NEW_EVENT_MAX_LENGTH);
-                int verticalPadding = (mCellHeight - length) / 2;
-                int horizontalPadding = (width - length) / 2;
-                canvas.drawLine(r.left + horizontalPadding, midY, r.right - horizontalPadding,
-                        midY, p);
-                canvas.drawLine(midX, r.top + verticalPadding, midX, r.bottom - verticalPadding, p);
-            } else {
-                p.setStyle(Paint.Style.FILL);
-                p.setTextSize(NEW_EVENT_HINT_FONT_SIZE);
-                p.setTextAlign(Paint.Align.LEFT);
-                p.setAntiAlias(true);
-                p.setTypeface(Typeface.defaultFromStyle(Typeface.BOLD));
-                canvas.drawText(mNewEventHintString, r.left + EVENT_TEXT_LEFT_MARGIN,
-                        r.top + Math.abs(p.getFontMetrics().ascent) + EVENT_TEXT_TOP_MARGIN , p);
-            }
+            // The selected hour uses the same rounded block as the grid, in a translucent
+            // primary colour. There is no sharp rectangle and no "+" hint, so nothing sits
+            // under the rounded time block.
+            final float slotHeight = mCellHeight + HOUR_GAP;
+            mRectF.set(computeDayLeftPosition(daynum) + HOUR_BLOCK_COLUMN_INSET,
+                    DayGridGeometry.hourBlockTop(mSelectionHour, slotHeight, HOUR_BLOCK_INSET),
+                    computeDayLeftPosition(daynum + 1) - HOUR_BLOCK_COLUMN_INSET,
+                    DayGridGeometry.hourBlockBottom(mSelectionHour, slotHeight, HOUR_BLOCK_INSET));
+            p.setStyle(Style.FILL);
+            p.setColor(mSelectedHourColor);
+            p.setAntiAlias(true);
+            canvas.drawRoundRect(mRectF, HOUR_BLOCK_RADIUS, HOUR_BLOCK_RADIUS, p);
         }
     }
 
@@ -2745,48 +2741,28 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     }
 
     private void drawGridBackground(Rect r, Canvas canvas, Paint p) {
+        // Each hour of each day column is its own rounded block with a small gap. There are
+        // no table lines. Time labels stay outside the blocks (drawHours). Blocks are inset
+        // inside their slot, so the time positions do not change.
         Paint.Style savedStyle = p.getStyle();
-
-        final float stopX = computeDayLeftPosition(mNumDays);
-        float y = 0;
-        final float deltaY = mCellHeight + HOUR_GAP;
-        int linesIndex = 0;
-        final float startY = 0;
-        final float stopY = HOUR_GAP + 24 * (mCellHeight + HOUR_GAP);
-        float x = mHoursWidth;
-
-        // Draw the inner horizontal grid lines
-        p.setColor(mCalendarGridLineInnerHorizontalColor);
-        p.setStrokeWidth(GRID_LINE_INNER_WIDTH);
-        p.setAntiAlias(false);
-        y = 0;
-        linesIndex = 0;
-        for (int hour = 0; hour <= 24; hour++) {
-            mLines[linesIndex++] = GRID_LINE_LEFT_MARGIN;
-            mLines[linesIndex++] = y;
-            mLines[linesIndex++] = stopX;
-            mLines[linesIndex++] = y;
-            y += deltaY;
-        }
-        if (mCalendarGridLineInnerVerticalColor != mCalendarGridLineInnerHorizontalColor) {
-            canvas.drawLines(mLines, 0, linesIndex, p);
-            linesIndex = 0;
-            p.setColor(mCalendarGridLineInnerVerticalColor);
-        }
-
-        // Draw the inner vertical grid lines
-        for (int day = 0; day <= mNumDays; day++) {
-            x = computeDayLeftPosition(day);
-            mLines[linesIndex++] = x;
-            mLines[linesIndex++] = startY;
-            mLines[linesIndex++] = x;
-            mLines[linesIndex++] = stopY;
-        }
-        canvas.drawLines(mLines, 0, linesIndex, p);
-
-        // Restore the saved style.
-        p.setStyle(savedStyle);
+        int savedColor = p.getColor();
+        p.setStyle(Style.FILL);
+        p.setColor(mHourBlockColor);
         p.setAntiAlias(true);
+        final float slotHeight = mCellHeight + HOUR_GAP;
+        for (int day = 0; day < mNumDays; day++) {
+            final float left = computeDayLeftPosition(day) + HOUR_BLOCK_COLUMN_INSET;
+            final float right = computeDayLeftPosition(day + 1) - HOUR_BLOCK_COLUMN_INSET;
+            for (int hour = 0; hour < 24; hour++) {
+                mRectF.set(left,
+                        DayGridGeometry.hourBlockTop(hour, slotHeight, HOUR_BLOCK_INSET),
+                        right,
+                        DayGridGeometry.hourBlockBottom(hour, slotHeight, HOUR_BLOCK_INSET));
+                canvas.drawRoundRect(mRectF, HOUR_BLOCK_RADIUS, HOUR_BLOCK_RADIUS, p);
+            }
+        }
+        p.setColor(savedColor);
+        p.setStyle(savedStyle);
     }
 
     /**
@@ -3639,9 +3615,10 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
         int floorHalfStroke = (int) Math.floor(EVENT_RECT_STROKE_WIDTH / 2.0f);
         int ceilHalfStroke = (int) Math.ceil(EVENT_RECT_STROKE_WIDTH / 2.0f);
-        r.top = Math.max((int) event.top + EVENT_RECT_TOP_MARGIN + floorHalfStroke, visibleTop);
-        r.bottom = Math.min((int) event.bottom - EVENT_RECT_BOTTOM_MARGIN - ceilHalfStroke,
-                visibleBot);
+        // The rounded shape is the whole event. The viewport is applied as a canvas clip, so a
+        // clipped event keeps its real shape and never shows a false round end at the cut.
+        r.top = (int) event.top + EVENT_RECT_TOP_MARGIN + floorHalfStroke;
+        r.bottom = (int) event.bottom - EVENT_RECT_BOTTOM_MARGIN - ceilHalfStroke;
         r.left += floorHalfStroke;
         r.right -= ceilHalfStroke;
         mRectF.set(r);
@@ -3650,7 +3627,10 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         p.setColor(color);
         int alpha = p.getAlpha();
         p.setAlpha(mEventsAlpha);
+        canvas.save();
+        canvas.clipRect(0, visibleTop, mViewWidth, visibleBot);
         canvas.drawRoundRect(mRectF, radius, radius, p);
+        canvas.restore();
         p.setAlpha(alpha);
         p.setStyle(Style.FILL);
 
@@ -3672,7 +3652,10 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
             if (paintIt) {
                 p.setColor(color);
+                canvas.save();
+                canvas.clipRect(0, visibleTop, mViewWidth, visibleBot);
                 canvas.drawRoundRect(mRectF, radius, radius, p);
+                canvas.restore();
             }
         }
 
