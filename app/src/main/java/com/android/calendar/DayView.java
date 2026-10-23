@@ -476,6 +476,16 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private static float HOUR_BLOCK_INSET;
     private static float HOUR_BLOCK_COLUMN_INSET;
     private static float HOUR_BLOCK_RADIUS;
+    // Date header geometry (px). Sizes are set in computeDayHeaderHeight() on size change.
+    private static float DAY_HEADER_TOP_PADDING;
+    private static float DAY_HEADER_BOTTOM_PADDING;
+    private static float DATE_CIRCLE_GAP;
+    private static float DATE_CIRCLE_MIN_SIZE;
+    private static float DATE_CIRCLE_SIZE;
+    private static float DATE_CIRCLE_STROKE;
+    private static int mDateTodayFill;
+    private static int mDateTodayText;
+    private static int mDateSelectedOutline;
     private static int mCalendarGridLineInnerHorizontalColor;
     private static int mCalendarGridLineInnerVerticalColor;
     private static int mFutureBgColor;
@@ -734,6 +744,10 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         HOUR_BLOCK_INSET = mResources.getDimension(R.dimen.hour_block_inset);
         HOUR_BLOCK_COLUMN_INSET = mResources.getDimension(R.dimen.hour_block_column_inset);
         HOUR_BLOCK_RADIUS = mResources.getDimension(R.dimen.hour_block_corner_radius);
+        DAY_HEADER_TOP_PADDING = mResources.getDimension(R.dimen.day_header_top_padding);
+        DAY_HEADER_BOTTOM_PADDING = mResources.getDimension(R.dimen.day_header_bottom_padding);
+        DATE_CIRCLE_GAP = mResources.getDimension(R.dimen.day_header_date_circle_gap);
+        DATE_CIRCLE_MIN_SIZE = mResources.getDimension(R.dimen.day_header_date_circle_size);
         int eventTextSizeId;
         if (mNumDays == 1) {
             eventTextSizeId = R.dimen.day_view_event_text_size;
@@ -811,16 +825,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         // Must run after density scaling so the badge paint is sized correctly,
         // and before DAY_HEADER_HEIGHT is derived from the badge line count.
         refreshSubscriptionState();
-        DAY_HEADER_HEIGHT = mNumDays == 1 ? ONE_DAY_HEADER_HEIGHT : MULTI_DAY_HEADER_HEIGHT;
-        if (LunarUtils.showLunar(mContext) && mNumDays != 1) {
-            DAY_HEADER_HEIGHT = (int) (DAY_HEADER_HEIGHT + DAY_HEADER_FONT_SIZE + 2);
-        }
-        // Subscriptions (shift/traffic/...) each draw their own line under the
-        // date, so reserve height for every enabled provider rather than one.
-        if (mSubscriptionsEnabled && mNumDays != 1) {
-            DAY_HEADER_HEIGHT = (int) (DAY_HEADER_HEIGHT
-                    + mSubscriptionLineCount * (SUBSCRIPTION_TEXT_SIZE + 2));
-        }
+        DAY_HEADER_HEIGHT = computeDayHeaderHeight();
 
         mCurrentTimeLine = mResources.getDrawable(R.drawable.timeline_indicator_holo_light);
         mCurrentTimeAnimateLine = mResources
@@ -923,6 +928,12 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         mSelectedHourColor = (com.google.android.material.color.MaterialColors.getColor(mContext,
                 com.google.android.material.R.attr.colorPrimary, mCalendarGridAreaSelected)
                 & 0x00FFFFFF) | 0x33000000;
+        // Date header: today is a filled theme-primary circle, selected is a primary outline.
+        mDateTodayFill = com.google.android.material.color.MaterialColors.getColor(mContext,
+                com.google.android.material.R.attr.colorPrimary, mWeek_todayColor);
+        mDateTodayText = com.google.android.material.color.MaterialColors.getColor(mContext,
+                com.google.android.material.R.attr.colorOnPrimary, Color.WHITE);
+        mDateSelectedOutline = mDateTodayFill;
         mPressedColor = DynamicTheme.getColor(mContext, "pressed");
         mClickedColor = DynamicTheme.getColor(mContext, "day_event_clicked_background_color");
         mEventTextColor = DynamicTheme.getColor(mContext, "calendar_event_text_color");
@@ -1033,10 +1044,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         int previousLines = mSubscriptionLineCount;
         refreshSubscriptionState();
         if (previousLines != mSubscriptionLineCount && mNumDays != 1) {
-            DAY_HEADER_HEIGHT = (int) (
-                    (mNumDays == 1 ? ONE_DAY_HEADER_HEIGHT : MULTI_DAY_HEADER_HEIGHT)
-                    + (LunarUtils.showLunar(mContext) ? DAY_HEADER_FONT_SIZE + 2 : 0)
-                    + mSubscriptionLineCount * (SUBSCRIPTION_TEXT_SIZE + 2));
+            DAY_HEADER_HEIGHT = computeDayHeaderHeight();
             remeasure(getWidth(), getHeight());
         }
         mFutureBgColor = mFutureBgColorRes;
@@ -2478,7 +2486,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         // r.right = mViewWidth;
         // p.setColor(mCalendarGridAreaBackground);
         // canvas.drawRect(r, p);
-        if (mNumDays == 1 && ONE_DAY_HEADER_HEIGHT == 0) {
+        if (DAY_HEADER_HEIGHT <= 0) {
             return;
         }
 
@@ -2629,50 +2637,88 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         p.setAntiAlias(true);
     }
 
+    /**
+     * Header height from the current fonts and subscription count. The date circle grows with
+     * the date font so the number is never clipped or shrunk. Lunar and subscription lines sit
+     * below the circle and are only shown in the multi-day views, as before.
+     */
+    private int computeDayHeaderHeight() {
+        final float density = mResources.getDisplayMetrics().density;
+        DATE_CIRCLE_STROKE = 2f * density;
+        Paint measure = new Paint(Paint.ANTI_ALIAS_FLAG);
+        measure.setTextSize(DATE_HEADER_FONT_SIZE);
+        Paint.FontMetrics dateMetrics = measure.getFontMetrics();
+        final float dateLine = dateMetrics.descent - dateMetrics.ascent;
+        final float digitsWidth = measure.measureText("88");
+        final float innerPad = 2f * density;
+        DATE_CIRCLE_SIZE = Math.max(DATE_CIRCLE_MIN_SIZE,
+                Math.max(dateLine, digitsWidth) + 2f * innerPad);
+
+        measure.setTextSize(DAY_HEADER_FONT_SIZE);
+        Paint.FontMetrics weekdayMetrics = measure.getFontMetrics();
+        final float weekdayLine = weekdayMetrics.descent - weekdayMetrics.ascent;
+        final boolean multiDay = mNumDays != 1;
+        final float lunarLine = (multiDay && LunarUtils.showLunar(mContext))
+                ? DAY_HEADER_FONT_SIZE + 2 : 0;
+        final int subscriptionLines = (multiDay && mSubscriptionsEnabled)
+                ? mSubscriptionLineCount : 0;
+        final float height = DayGridGeometry.dateHeaderHeight(DAY_HEADER_TOP_PADDING,
+                weekdayLine, DATE_CIRCLE_GAP, DATE_CIRCLE_SIZE, lunarLine,
+                subscriptionLines, SUBSCRIPTION_TEXT_SIZE + 2, DAY_HEADER_BOTTOM_PADDING);
+        return (int) Math.ceil(height);
+    }
+
     private void drawDayHeader(String dayStr, int day, int cell, Canvas canvas, Paint p) {
         int dateNum = mFirstVisibleDate + day;
-        int x;
-        int color = p.getColor();
         if (dateNum > mMonthLength) {
             dateNum -= mMonthLength;
         }
         p.setAntiAlias(true);
 
-        int todayIndex = mTodayJulianDay - mFirstJulianDay;
-        // Draw day of the month
-        String dateNumStr = String.valueOf(dateNum);
+        // Today and selected are separate inputs. The state picks at most one circle.
+        final DayGridGeometry.DateState state =
+                DayGridGeometry.dateState(cell, mTodayJulianDay, mSelectionDay);
+        final int weekdayColor = p.getColor();
+        final float cx = DayGridGeometry.columnCenter(
+                computeDayLeftPosition(day), computeDayLeftPosition(day + 1));
+
+        // Weekday, centred above the date circle
+        p.setTypeface(Typeface.DEFAULT);
+        p.setTextAlign(Align.CENTER);
+        p.setTextSize(DAY_HEADER_FONT_SIZE);
+        Paint.FontMetrics fm = p.getFontMetrics();
+        canvas.drawText(dayStr, cx, DAY_HEADER_TOP_PADDING - fm.ascent, p);
+
+        // Date circle: width equals height and it is centred on the column
+        final float circleTop = DAY_HEADER_TOP_PADDING + (fm.descent - fm.ascent) + DATE_CIRCLE_GAP;
+        final float radius = DATE_CIRCLE_SIZE / 2f;
+        final float cy = circleTop + radius;
+        int numberColor = weekdayColor;
+        p.setStyle(Style.FILL);
+        if (state == DayGridGeometry.DateState.TODAY) {
+            p.setColor(mDateTodayFill);
+            canvas.drawCircle(cx, cy, radius, p);
+            numberColor = mDateTodayText;
+        } else if (state == DayGridGeometry.DateState.SELECTED) {
+            p.setStyle(Style.STROKE);
+            p.setStrokeWidth(DATE_CIRCLE_STROKE);
+            p.setColor(mDateSelectedOutline);
+            canvas.drawCircle(cx, cy, radius - DATE_CIRCLE_STROKE / 2f, p);
+            p.setStyle(Style.FILL);
+        }
+
+        // Date number, centred by FontMetrics. Drawn last so the press feedback never covers it.
+        p.setTypeface(state == DayGridGeometry.DateState.TODAY ? mBold : Typeface.DEFAULT);
+        p.setTextSize(DATE_HEADER_FONT_SIZE);
+        fm = p.getFontMetrics();
+        p.setColor(numberColor);
+        canvas.drawText(String.valueOf(dateNum), cx,
+                DayGridGeometry.centredBaseline(cy, fm.ascent, fm.descent), p);
+
+        float y = circleTop + DATE_CIRCLE_SIZE;
         if (mNumDays > 1) {
-            // The header is bottom-anchored: the date sits at `y` and the
-            // weekday is drawn *above* it. Badges render below the date, so
-            // lift the whole block by the space they need.
-            float subscriptionBlock = mSubscriptionsEnabled
-                    ? mSubscriptionLineCount * (SUBSCRIPTION_TEXT_SIZE + 2) : 0;
-            float y = -1;
+            // Lunar line, below the circle, in its own area
             if (LunarUtils.showLunar(mContext)) {
-                y = DAY_HEADER_HEIGHT - DAY_HEADER_BOTTOM_MARGIN - DATE_HEADER_FONT_SIZE - 2
-                        - subscriptionBlock;
-            } else {
-                y = DAY_HEADER_HEIGHT - DAY_HEADER_BOTTOM_MARGIN - subscriptionBlock;
-            }
-            final float dateBaseline = y;
-            // Draw day of the month
-            x = computeDayLeftPosition(day) + DAY_HEADER_RIGHT_MARGIN;
-            p.setTextAlign(Align.LEFT);
-            p.setTextSize(DATE_HEADER_FONT_SIZE);
-
-            p.setTypeface(todayIndex == day ? mBold : Typeface.DEFAULT);
-            p.setColor(todayIndex == day? mWeek_todayColor : color);
-            canvas.drawText(dateNumStr, x, y, p);
-
-            // Draw day of the week
-            y -= DATE_HEADER_FONT_SIZE;
-            p.setTextSize(DAY_HEADER_FONT_SIZE);
-            p.setTypeface(Typeface.DEFAULT);
-            canvas.drawText(dayStr, x, y, p);
-
-            // To show the lunar info.
-            if (LunarUtils.showLunar(mContext)) {
-                // adjust the year and month
                 int month = mBaseDate.getMonth();
                 int year = mBaseDate.getYear();
                 if (dateNum > mMonthLength || dateNum < mFirstVisibleDate) {
@@ -2682,62 +2728,42 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                         year = year + 1;
                     }
                 }
-
                 String lunarInfo = LunarUtils.get(mContext, year, month, dateNum,
                         LunarUtils.FORMAT_LUNAR_SHORT | LunarUtils.FORMAT_ONE_FESTIVAL,
                         false, null);
+                p.setTextSize(DAY_HEADER_FONT_SIZE);
+                p.setColor(weekdayColor);
+                fm = p.getFontMetrics();
                 if (!TextUtils.isEmpty(lunarInfo)) {
-                    canvas.drawText(lunarInfo, x, y + DAY_HEADER_FONT_SIZE + 2, p);
+                    canvas.drawText(lunarInfo, cx, y - fm.ascent, p);
                 }
+                y += DAY_HEADER_FONT_SIZE + 2;
             }
 
-            // Subscription badges: one line per provider so four enabled
-            // subscriptions stack vertically instead of overrunning the
-            // column and colliding with the neighbouring day.
+            // Subscription badges: one centred line per provider, inside the column
             if (mSubscriptionsEnabled) {
                 java.util.List<String> subs =
                         SubscriptionText.lines(mContext, mFirstJulianDay + day);
                 if (!subs.isEmpty()) {
                     java.util.List<Integer> subColors =
                             SubscriptionText.lineColors(mContext, mFirstJulianDay + day);
-                    // Anchor to the date baseline, not the weekday line
-                    // (which sits above it), so badges never overlap the date.
-                    float subY = dateBaseline + SUBSCRIPTION_TEXT_SIZE + 2;
-                    // Keep each badge inside its own column.
                     float columnWidth = (float) (mViewWidth - mHoursWidth) / mNumDays
                             - DAY_HEADER_RIGHT_MARGIN * 2;
-                    int prevColor = p.getColor();
-                    float prevSize = p.getTextSize();
                     p.setTextSize(SUBSCRIPTION_TEXT_SIZE);
+                    fm = p.getFontMetrics();
                     for (int i = 0; i < subs.size(); i++) {
                         Integer c = i < subColors.size() ? subColors.get(i) : null;
                         p.setColor(c != null ? c : mSubscriptionTextColor);
                         String line = TextUtils.ellipsize(subs.get(i), mSubscriptionEllipsizePaint,
                                 columnWidth, TextUtils.TruncateAt.END).toString();
-                        canvas.drawText(line, x, subY, p);
-                        subY += SUBSCRIPTION_TEXT_SIZE + 2;
+                        canvas.drawText(line, cx, y - fm.ascent, p);
+                        y += SUBSCRIPTION_TEXT_SIZE + 2;
                     }
-                    p.setTextSize(prevSize);
-                    p.setColor(prevColor);
                 }
             }
-        } else {
-            float y = ONE_DAY_HEADER_HEIGHT - DAY_HEADER_ONE_DAY_BOTTOM_MARGIN;
-            p.setTextAlign(Align.LEFT);
-
-
-            // Draw day of the week
-            x = computeDayLeftPosition(day) + DAY_HEADER_ONE_DAY_LEFT_MARGIN;
-            p.setTextSize(DAY_HEADER_FONT_SIZE);
-            p.setTypeface(Typeface.DEFAULT);
-            canvas.drawText(dayStr, x, y, p);
-
-            // Draw day of the month
-            x += p.measureText(dayStr) + DAY_HEADER_ONE_DAY_RIGHT_MARGIN;
-            p.setTextSize(DATE_HEADER_FONT_SIZE);
-            p.setTypeface(todayIndex == day ? mBold : Typeface.DEFAULT);
-            canvas.drawText(dateNumStr, x, y, p);
         }
+        p.setTextAlign(Align.LEFT);
+        p.setTypeface(null);
     }
 
     private void drawGridBackground(Rect r, Canvas canvas, Paint p) {
