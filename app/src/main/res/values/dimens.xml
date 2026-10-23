@@ -124,4 +124,10 @@
     <dimen name="hour_block_inset">1.5dp</dimen>
     <dimen name="hour_block_column_inset">2dp</dimen>
     <dimen name="agenda_card_corner_radius">12dp</dimen>
+    <!-- Standalone agenda: card padding, minimum height and the invited outline. -->
+    <dimen name="agenda_card_padding">12dp</dimen>
+    <dimen name="agenda_card_padding_all_day">8dp</dimen>
+    <dimen name="agenda_card_min_height">56dp</dimen>
+    <dimen name="agenda_card_min_height_all_day">40dp</dimen>
+    <dimen name="agenda_card_outline_width">2dp</dimen>
 </resources>
