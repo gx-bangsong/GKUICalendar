@@ -1002,4 +1002,8 @@
     <string name="preferences_day_week_view">Day and week view</string>
     <string name="preferences_time_background_mask">Time background mask</string>
     <string name="preferences_time_background_mask_summary">Grey tint for the time after now and the time column. Off by default.</string>
+
+    <!-- Day and week time column: 12-hour patterns. %1$s = AM/PM word, %2$d = hour, %3$02d = minute. -->
+    <string name="time_label_hour_12h">%2$d %1$s</string>
+    <string name="time_label_minute_12h">%2$d:%3$02d %1$s</string>
 </resources>

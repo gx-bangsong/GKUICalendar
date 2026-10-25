@@ -97,6 +97,16 @@ final class DayGridGeometry {
     }
 
     /**
+     * Corner radius of one hour block, limited by its size. A narrow column or a short hour gets a
+     * smaller radius, so a block never turns into a capsule. It is at most a quarter of the
+     * shorter side.
+     */
+    static float hourBlockRadius(float radius, float width, float height) {
+        float limit = Math.max(0f, Math.min(width, height) * 0.25f);
+        return Math.max(0f, Math.min(radius, limit));
+    }
+
+    /**
      * Horizontal distance from a block side to the centre of a handle. The handle sits just past
      * the rounded corner, on the top edge (START) or bottom edge (END). It never goes past the
      * block's centre line, and it never sits closer to the side than the ring radius when the

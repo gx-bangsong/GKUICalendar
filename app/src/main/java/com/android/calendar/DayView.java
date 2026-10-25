@@ -88,6 +88,7 @@ import com.android.calendar.event.NewEventCalendarColor;
 import com.android.calendar.subscription.SubscriptionText;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
+import java.text.DateFormatSymbols;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -590,6 +591,8 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     /** Distance between the mFirstCell and the top of first fully visible hour. */
     private int mFirstHourOffset;
     private String[] mHourStrs;
+    // Hour and exact-time labels for the current locale and clock. Rebuilt on resume only.
+    private TimeLabelFormat mTimeLabels;
     private String[] mDayStrs;
     private String[] mDayStrs2Letter;
     private boolean mIs24HourFormat;
@@ -997,12 +1000,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         p.setTypeface(null);
         handleOnResume();
 
-        String[] timeStrs = {"12 AM", "12 PM", "22:00"};
-        p.setTextSize(HOURS_TEXT_SIZE);
-        mHoursWidth = HOURS_MARGIN + computeMaxStringWidth(mHoursWidth, timeStrs, p);
-
-        GRID_LINE_LEFT_MARGIN = mHoursWidth;
-
         LayoutInflater inflater;
         inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         mPopupView = inflater.inflate(R.layout.bubble_event, null);
@@ -1050,6 +1047,50 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         }
     }
 
+    /**
+     * Rebuilds the hour labels and the exact-time labels when the locale the app uses, or the
+     * 12/24-hour setting, has changed. Called on resume for both ViewSwitcher views, never while
+     * drawing. When the labels change, the time column is measured again.
+     */
+    private void refreshTimeLabels() {
+        Resources res = mContext.getResources();
+        Locale locale = res.getConfiguration().locale;
+        boolean is24 = DateFormat.is24HourFormat(mContext);
+        String tag = locale.toLanguageTag();
+        if (mTimeLabels != null && mTimeLabels.isFor(tag, is24)) {
+            return;
+        }
+        // The AM and PM words come from the same locale as the resource patterns.
+        String[] ampm = DateFormatSymbols.getInstance(locale).getAmPmStrings();
+        mTimeLabels = new TimeLabelFormat(tag, is24, ampm[Calendar.AM], ampm[Calendar.PM],
+                res.getString(R.string.time_label_hour_12h),
+                res.getString(R.string.time_label_minute_12h));
+        mIs24HourFormat = is24;
+        if (mHourStrs == null) {
+            mHourStrs = new String[24];
+        }
+        for (int hour = 0; hour < 24; hour++) {
+            mHourStrs[hour] = mTimeLabels.hourLabel(hour);
+        }
+        updateHoursWidth();
+        if (getWidth() > 0) {
+            remeasure(getWidth(), getHeight());
+            invalidate();
+        }
+    }
+
+    /**
+     * Width of the time column: the widest label of the current format, measured with the real
+     * text. Chinese labels such as "下午12点" and exact times such as "下午12:45" are included, so
+     * nothing is cut or squeezed into the column.
+     */
+    private void updateHoursWidth() {
+        Paint p = new Paint();
+        p.setTextSize(HOURS_TEXT_SIZE);
+        mHoursWidth = HOURS_MARGIN + computeMaxStringWidth(0, mTimeLabels.sampleLabels(), p);
+        GRID_LINE_LEFT_MARGIN = mHoursWidth;
+    }
+
     public void handleOnResume() {
         initAccessibilityVariables();
         // Pick up subscriptions toggled while we were in the background, and
@@ -1066,8 +1107,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             mBackgroundMaskOn = maskOn;
             invalidate();
         }
-        mIs24HourFormat = DateFormat.is24HourFormat(mContext);
-        mHourStrs = mIs24HourFormat ? CalendarData.s24Hours : CalendarData.s12Hours;
+        refreshTimeLabels();
         mFirstDayOfWeek = Utils.getFirstDayOfWeek(mContext);
         mLastSelectionDayForAccessibility = 0;
         mLastSelectionHourForAccessibility = 0;
@@ -2841,7 +2881,9 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                         DayGridGeometry.hourBlockTop(hour, slotHeight, HOUR_BLOCK_INSET),
                         right,
                         DayGridGeometry.hourBlockBottom(hour, slotHeight, HOUR_BLOCK_INSET));
-                canvas.drawRoundRect(mRectF, HOUR_BLOCK_RADIUS, HOUR_BLOCK_RADIUS, p);
+                final float radius = DayGridGeometry.hourBlockRadius(
+                        HOUR_BLOCK_RADIUS, right - left, mRectF.height());
+                canvas.drawRoundRect(mRectF, radius, radius, p);
             }
         }
         p.setColor(savedColor);
@@ -4283,10 +4325,9 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             flags |= DateUtils.FORMAT_SHOW_DATE;
         }
         mSlotRangeLabel = Utils.formatDateRange(mContext, mSlotStartMillis, mSlotEndMillis, flags);
-        mSlotStartLabel = Utils.formatDateRange(mContext, mSlotStartMillis, mSlotStartMillis,
-                DateUtils.FORMAT_SHOW_TIME);
-        mSlotEndLabel = Utils.formatDateRange(mContext, mSlotEndMillis, mSlotEndMillis,
-                DateUtils.FORMAT_SHOW_TIME | (flags & DateUtils.FORMAT_SHOW_DATE));
+        // The gutter labels are the exact times of the block edges, in the view's format.
+        mSlotStartLabel = mTimeLabels.preciseLabel(mSlotPreview.getStartMinute());
+        mSlotEndLabel = mTimeLabels.preciseLabel(mSlotPreview.getEndMinute());
         mSlotDescription = getResources().getString(R.string.day_slot_description, mSlotRangeLabel);
     }
 

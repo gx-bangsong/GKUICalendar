@@ -366,4 +366,8 @@
     <string name="day_slot_start_later">延後 15 分鐘開始</string>
     <string name="day_slot_end_earlier">提前 15 分鐘結束</string>
     <string name="day_slot_end_later">延後 15 分鐘結束</string>
+
+    <!-- Day and week time column: 12-hour patterns. %1$s = AM/PM word, %2$d = hour, %3$02d = minute. -->
+    <string name="time_label_hour_12h">%1$s%2$d點</string>
+    <string name="time_label_minute_12h">%1$s%2$d:%3$02d</string>
 </resources>
