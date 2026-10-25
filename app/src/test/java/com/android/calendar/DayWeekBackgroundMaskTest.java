@@ -77,7 +77,7 @@ public class DayWeekBackgroundMaskTest {
     }
 
     @Test
-    public void keyIsTheDedicatedDayWeekKeyAndDefaultsOff() {
+    public void keyIsTheDedicatedDayWeekKeyAndDefaultsOff() throws Exception {
         assertEquals(KEY, GeneralPreferences.KEY_DAY_WEEK_BACKGROUND_MASK);
         String xml = read(DETAILS_XML);
         int at = xml.indexOf("app:key=\"" + KEY + "\"");
