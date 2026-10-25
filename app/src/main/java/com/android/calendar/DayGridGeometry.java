@@ -88,11 +88,50 @@ final class DayGridGeometry {
     }
 
     /**
-     * Whether the view draws rounded hour blocks. Only the single day view does, and only when the
-     * background mask is on. Otherwise the hours are separated by the thin grid lines.
+     * Whether the view draws rounded hour blocks. Only the single day view does. This is a base
+     * layer and does not depend on the background mask, which is a separate layer drawn beneath
+     * it. The week view keeps the thin grid lines.
      */
-    static boolean drawsRoundedHourBlocks(int numDays, boolean backgroundMaskOn) {
-        return numDays == 1 && backgroundMaskOn;
+    static boolean drawsRoundedHourBlocks(int numDays) {
+        return numDays == 1;
+    }
+
+    /**
+     * Horizontal distance from a block side to the centre of a handle. The handle sits just past
+     * the rounded corner, on the top edge (START) or bottom edge (END). It never goes past the
+     * block's centre line, and it never sits closer to the side than the ring radius when the
+     * block is wide enough to hold it.
+     */
+    static float handleInset(float blockWidth, float corner, float handleRadius) {
+        float half = Math.max(0f, blockWidth / 2f);
+        float inset = Math.min(corner + handleRadius, half);
+        return Math.max(inset, Math.min(handleRadius, half));
+    }
+
+    /** Centre X of a handle. START is near the left side, END near the right side. */
+    static float handleCentreX(boolean start, float left, float right, float corner,
+            float handleRadius) {
+        float inset = handleInset(right - left, corner, handleRadius);
+        return start ? left + inset : right - inset;
+    }
+
+    /**
+     * Which handle a touch point hits, using the same centres as the drawing. Returns 1 for START,
+     * 2 for END and 0 for none. When both are in reach, the nearer one wins.
+     */
+    static int nearestHandle(float x, float y, float startX, float startY, float endX,
+            float endY, float touchRadius) {
+        double dStart = Math.hypot(x - startX, y - startY);
+        double dEnd = Math.hypot(x - endX, y - endY);
+        boolean startHit = dStart <= touchRadius;
+        boolean endHit = dEnd <= touchRadius;
+        if (startHit && endHit) {
+            return dStart <= dEnd ? 1 : 2;
+        }
+        if (startHit) {
+            return 1;
+        }
+        return endHit ? 2 : 0;
     }
 
     /**

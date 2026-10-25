@@ -177,6 +177,22 @@ public class DayViewTimeSlotSourceTest {
         assertTrue(body.contains("slotVisibleBottom()"));
     }
 
+    @Test
+    public void handleDrawHoleAndTouchShareOneCentreSource() throws Exception {
+        // The drawing, the holes and the touch test all take the handle centre from slotHandleX.
+        // No shared centre X (the middle of the block) is left in any of them.
+        String source = read(DAY_VIEW);
+        String draw = method(source, "private void drawSlotPreview(");
+        String touch = method(source, "private int slotHandleAt(");
+        assertTrue(draw.contains("slotHandleX(SLOT_DRAG_START)"));
+        assertTrue(draw.contains("slotHandleX(SLOT_DRAG_END)"));
+        assertFalse("drawing must not use the block centre", draw.contains("(left + right) / 2f"));
+        assertTrue(touch.contains("slotHandleX(SLOT_DRAG_START)"));
+        assertTrue(touch.contains("slotHandleX(SLOT_DRAG_END)"));
+        assertFalse("touch must not use the block centre",
+                touch.contains("(slotLeft() + slotRight()) / 2f"));
+    }
+
     private static int count(String text, String needle) {
         int count = 0;
         int index = 0;

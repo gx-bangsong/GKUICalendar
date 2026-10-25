@@ -2818,8 +2818,9 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     }
 
     private void drawGridBackground(Rect r, Canvas canvas, Paint p) {
-        if (!DayGridGeometry.drawsRoundedHourBlocks(mNumDays, mBackgroundMaskOn)) {
-            // Week always, and day when the mask is off: the thin grid lines of the classic views.
+        if (!DayGridGeometry.drawsRoundedHourBlocks(mNumDays)) {
+            // Week: the thin grid lines. The rounded hour blocks are a base layer of the day view
+            // and do not depend on the background mask, which is drawn separately underneath.
             drawWeekGridLines(canvas, p);
             return;
         }
@@ -4215,21 +4216,27 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         if (!isSlotPreviewShown()) {
             return SLOT_DRAG_NONE;
         }
-        float centreX = (slotLeft() + slotRight()) / 2f;
         float x = slotContentX(viewX);
         float y = slotContentY(viewY);
         float touch = SLOT_HANDLE_TOUCH_RADIUS_DP * slotDensity();
-        float dStart = (float) Math.hypot(x - centreX, y - slotHandleY(SLOT_DRAG_START));
-        float dEnd = (float) Math.hypot(x - centreX, y - slotHandleY(SLOT_DRAG_END));
-        boolean startHit = dStart <= touch;
-        boolean endHit = dEnd <= touch;
-        if (startHit && endHit) {
-            return dStart <= dEnd ? SLOT_DRAG_START : SLOT_DRAG_END;
-        }
-        if (startHit) {
+        int hit = DayGridGeometry.nearestHandle(x, y,
+                slotHandleX(SLOT_DRAG_START), slotHandleY(SLOT_DRAG_START),
+                slotHandleX(SLOT_DRAG_END), slotHandleY(SLOT_DRAG_END), touch);
+        if (hit == 1) {
             return SLOT_DRAG_START;
         }
-        return endHit ? SLOT_DRAG_END : SLOT_DRAG_NONE;
+        return hit == 2 ? SLOT_DRAG_END : SLOT_DRAG_NONE;
+    }
+
+    /**
+     * Centre X of a handle, in grid coordinates. START is on the left inside the top edge, END is
+     * on the right inside the bottom edge. Drawing, the holes and the touch test all use this.
+     */
+    private float slotHandleX(int edge) {
+        float corner = SLOT_CORNER_DP * slotDensity();
+        float radius = SLOT_HANDLE_RADIUS_DP * slotDensity();
+        return DayGridGeometry.handleCentreX(edge == SLOT_DRAG_START,
+                slotLeft(), slotRight(), corner, radius);
     }
 
     private boolean isInSlotBlock(float viewX, float viewY) {
@@ -4429,20 +4436,25 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         float corner = SLOT_CORNER_DP * density;
         float stroke = SLOT_STROKE_DP * density;
         float radius = SLOT_HANDLE_RADIUS_DP * density;
-        float centreX = (left + right) / 2f;
-        float[] handleYs = {slotHandleY(SLOT_DRAG_START), slotHandleY(SLOT_DRAG_END)};
+        // START sits on the top edge, left of centre; END on the bottom edge, right of centre.
+        float startX = slotHandleX(SLOT_DRAG_START);
+        float endX = slotHandleX(SLOT_DRAG_END);
+        float startY = slotHandleY(SLOT_DRAG_START);
+        float endY = slotHandleY(SLOT_DRAG_END);
         int calendarColor = 0xFF000000 | mSlotCalendarColor;
 
         mSlotBlockPath.reset();
         mSlotBlockPath.addRoundRect(left, top, right, bottom, corner, corner, Path.Direction.CW);
         mSlotHoleFillPath.reset();
         mSlotHoleOutlinePath.reset();
-        for (float handleY : handleYs) {
-            mSlotHoleFillPath.addCircle(centreX, handleY,
-                    DayGridGeometry.handleFillHoleRadius(radius, stroke), Path.Direction.CW);
-            mSlotHoleOutlinePath.addCircle(centreX, handleY,
-                    DayGridGeometry.handleOutlineHoleRadius(radius, stroke), Path.Direction.CW);
-        }
+        mSlotHoleFillPath.addCircle(startX, startY,
+                DayGridGeometry.handleFillHoleRadius(radius, stroke), Path.Direction.CW);
+        mSlotHoleFillPath.addCircle(endX, endY,
+                DayGridGeometry.handleFillHoleRadius(radius, stroke), Path.Direction.CW);
+        mSlotHoleOutlinePath.addCircle(startX, startY,
+                DayGridGeometry.handleOutlineHoleRadius(radius, stroke), Path.Direction.CW);
+        mSlotHoleOutlinePath.addCircle(endX, endY,
+                DayGridGeometry.handleOutlineHoleRadius(radius, stroke), Path.Direction.CW);
         mSlotFillPath.reset();
         mSlotFillPath.op(mSlotBlockPath, mSlotHoleFillPath, Path.Op.DIFFERENCE);
         mSlotOutlinePath.reset();
@@ -4461,10 +4473,9 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         p.setStrokeWidth(stroke);
         p.setColor(calendarColor);
         canvas.drawPath(mSlotOutlinePath, p);
-        // 3. Hollow ring per handle.
-        for (float handleY : handleYs) {
-            canvas.drawCircle(centreX, handleY, radius, p);
-        }
+        // 3. Hollow ring per handle, each at its own position.
+        canvas.drawCircle(startX, startY, radius, p);
+        canvas.drawCircle(endX, endY, radius, p);
         p.setStyle(savedStyle);
         p.setColor(savedColor);
         p.setStrokeWidth(savedStrokeWidth);

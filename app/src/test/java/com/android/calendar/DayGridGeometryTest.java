@@ -264,11 +264,111 @@ public class DayGridGeometryTest {
     }
 
     @Test
-    public void roundedHourBlocksOnlyForDayWithMaskOn() {
-        assertFalse(DayGridGeometry.drawsRoundedHourBlocks(1, false));
-        assertTrue(DayGridGeometry.drawsRoundedHourBlocks(1, true));
-        assertFalse(DayGridGeometry.drawsRoundedHourBlocks(3, true));
-        assertFalse(DayGridGeometry.drawsRoundedHourBlocks(7, true));
+    public void roundedHourBlocksAreDayOnlyAndDoNotDependOnTheMask() {
+        // The function has no mask parameter: the day base layer is the same with the mask off
+        // or on. Week keeps the thin grid lines.
+        assertTrue(DayGridGeometry.drawsRoundedHourBlocks(1));
+        assertFalse(DayGridGeometry.drawsRoundedHourBlocks(3));
+        assertFalse(DayGridGeometry.drawsRoundedHourBlocks(7));
+    }
+
+    // ---- Preview handles: START top-left inside, END bottom-right inside ----
+
+    private static final float CORNER = 8f;
+    private static final float RADIUS = 7f;
+
+    @Test
+    public void startHandleSitsNearTheLeftOfTheTopEdge() {
+        float left = 0f;
+        float right = 300f;
+        float x = DayGridGeometry.handleCentreX(true, left, right, CORNER, RADIUS);
+        assertEquals(CORNER + RADIUS, x, 0.001f);
+        assertTrue(x < (left + right) / 2f);
+    }
+
+    @Test
+    public void endHandleSitsNearTheRightOfTheBottomEdge() {
+        float left = 0f;
+        float right = 300f;
+        float x = DayGridGeometry.handleCentreX(false, left, right, CORNER, RADIUS);
+        assertEquals(right - CORNER - RADIUS, x, 0.001f);
+        assertTrue(x > (left + right) / 2f);
+    }
+
+    @Test
+    public void handlesStayOnTheirSideWhenTheWindowWidens() {
+        // Same inset from each side at any width: they do not drift back to the centre line.
+        float[] widths = {200f, 400f, 900f};
+        for (float w : widths) {
+            float left = 10f;
+            float right = left + w;
+            float start = DayGridGeometry.handleCentreX(true, left, right, CORNER, RADIUS);
+            float end = DayGridGeometry.handleCentreX(false, left, right, CORNER, RADIUS);
+            assertEquals(CORNER + RADIUS, start - left, 0.001f);
+            assertEquals(CORNER + RADIUS, right - end, 0.001f);
+            assertTrue(start < end);
+        }
+    }
+
+    @Test
+    public void handleRingStaysInsideTheBlockWhenItFits() {
+        for (float w = 2 * RADIUS; w <= 600f; w += 10f) {
+            float left = 50f;
+            float right = left + w;
+            float start = DayGridGeometry.handleCentreX(true, left, right, CORNER, RADIUS);
+            float end = DayGridGeometry.handleCentreX(false, left, right, CORNER, RADIUS);
+            assertTrue(start - RADIUS >= left - 0.001f);
+            assertTrue(end + RADIUS <= right + 0.001f);
+        }
+    }
+
+    @Test
+    public void narrowBlockPutsBothHandlesOnTheCentreLineInsteadOfOutside() {
+        float left = 0f;
+        float right = 12f;
+        float start = DayGridGeometry.handleCentreX(true, left, right, CORNER, RADIUS);
+        float end = DayGridGeometry.handleCentreX(false, left, right, CORNER, RADIUS);
+        assertEquals(6f, start, 0.001f);
+        assertEquals(6f, end, 0.001f);
+    }
+
+    @Test
+    public void touchOnStartHandleSelectsStartOnly() {
+        float sx = 15f;
+        float sy = 100f;
+        float ex = 285f;
+        float ey = 300f;
+        float touch = 24f;
+        assertEquals(1, DayGridGeometry.nearestHandle(sx, sy, sx, sy, ex, ey, touch));
+        assertEquals(2, DayGridGeometry.nearestHandle(ex, ey, sx, sy, ex, ey, touch));
+    }
+
+    @Test
+    public void touchAwayFromBothHandlesDoesNothing() {
+        // The middle of a tall block is not a handle, even though the old centre was there.
+        assertEquals(0, DayGridGeometry.nearestHandle(150f, 200f, 15f, 100f, 285f, 300f, 24f));
+    }
+
+    @Test
+    public void touchCentreIsNotAHandleAnyMore() {
+        // Regression: the old shared centre X is 150. A touch there, at the start Y, must miss.
+        assertEquals(0, DayGridGeometry.nearestHandle(150f, 100f, 15f, 100f, 285f, 300f, 24f));
+    }
+
+    @Test
+    public void touchRangeIsWiderThanTheVisualRing() {
+        // Visual ring is RADIUS; the touch test uses a larger radius, so a point just outside the
+        // ring still hits the handle.
+        float touch = 24f;
+        assertEquals(1, DayGridGeometry.nearestHandle(15f + RADIUS + 5f, 100f, 15f, 100f, 285f,
+                300f, touch));
+    }
+
+    @Test
+    public void nearerHandleWinsWhenBothAreInReach() {
+        // Handles are close together in a short block: the nearer one is taken.
+        assertEquals(1, DayGridGeometry.nearestHandle(10f, 100f, 15f, 100f, 25f, 110f, 24f));
+        assertEquals(2, DayGridGeometry.nearestHandle(24f, 110f, 15f, 100f, 25f, 110f, 24f));
     }
 
     @Test

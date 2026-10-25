@@ -152,9 +152,31 @@ public class DayWeekBackgroundMaskTest {
     }
 
     @Test
-    public void offMeansNoRoundedBlocksAndOnMeansRoundedBlocksOnlyInDay() {
-        assertFalse(DayGridGeometry.drawsRoundedHourBlocks(1, false));
-        assertTrue(DayGridGeometry.drawsRoundedHourBlocks(1, true));
-        assertFalse(DayGridGeometry.drawsRoundedHourBlocks(7, true));
+    public void dayAlwaysDrawsRoundedHourBlocksAndWeekNever() {
+        // The mask switch does not decide the base layer. Day has the rounded blocks whether the
+        // mask is on or off; week has none.
+        assertTrue(DayGridGeometry.drawsRoundedHourBlocks(1));
+        assertFalse(DayGridGeometry.drawsRoundedHourBlocks(7));
+    }
+
+    @Test
+    public void grayMaskIsASeparateLayerFromTheHourBlocks() throws Exception {
+        // Source guard: the grid background (hour blocks and week lines) does not read the mask.
+        // The mask is drawn by drawBgColors, a separate call in doDraw.
+        String source = read(DAY_VIEW);
+        String grid = method(source, "private void drawGridBackground(");
+        assertFalse("hour blocks must not depend on the mask", grid.contains("mBackgroundMaskOn"));
+        String draw = method(source, "private void doDraw(Canvas canvas)");
+        int mask = draw.indexOf("drawBgColors(r, canvas, p)");
+        int blocks = draw.indexOf("drawGridBackground(r, canvas, p)");
+        assertTrue("mask is drawn before the blocks", mask >= 0 && mask < blocks);
+    }
+
+    @Test
+    public void summaryDoesNotClaimRoundedBlocksAnyMore() throws Exception {
+        String en = read(STRINGS);
+        int start = en.indexOf("preferences_time_background_mask_summary");
+        String enSummary = en.substring(start, en.indexOf("</string>", start));
+        assertFalse(enSummary.toLowerCase().contains("rounded"));
     }
 }
