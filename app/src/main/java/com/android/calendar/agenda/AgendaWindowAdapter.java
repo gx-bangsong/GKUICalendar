@@ -220,9 +220,26 @@ public class AgendaWindowAdapter extends BaseAdapter
     // true for the standalone agenda's card rows; the month panel keeps the classic rows.
     private boolean mCardStyle = false;
 
-    /** Chooses the card rows (standalone agenda) or the classic rows (month panel). */
+    /**
+     * Chooses the card rows (standalone agenda) or the classic rows (month panel). A day adapter
+     * fixes its row layout when it is built, so the ones already loaded are rebuilt on their own
+     * cursors. Otherwise a recycled day would keep the row style it was first built with.
+     */
     public void setCardStyle(boolean cardStyle) {
+        if (cardStyle == mCardStyle) {
+            return;
+        }
         mCardStyle = cardStyle;
+        synchronized (mAdapterInfos) {
+            for (DayAdapterInfo info : mAdapterInfos) {
+                info.dayAdapter = new AgendaByDayAdapter(mContext, cardStyle);
+                if (info.cursor != null) {
+                    info.dayAdapter.changeCursor(info);
+                    info.size = info.dayAdapter.getCount();
+                }
+            }
+        }
+        notifyDataSetChanged();
     }
 
     public AgendaWindowAdapter(Context context,

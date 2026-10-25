@@ -229,6 +229,11 @@ if (System.getenv("CI") != null) {
 		filter.includeTestsMatching("com.android.calendar.agenda.AgendaItemStyleTest")
 		filter.includeTestsMatching("com.android.calendar.agenda.AgendaItemLayoutTest")
 		filter.includeTestsMatching("com.android.calendar.monthagenda.MonthAgendaLayoutProtectionTest")
+		filter.includeTestsMatching("com.android.calendar.SlotTimeLabelsTest")
+		filter.includeTestsMatching("com.android.calendar.NowIndicatorTest")
+		filter.includeTestsMatching("com.android.calendar.DayWeekBackgroundMaskTest")
+		filter.includeTestsMatching("com.android.calendar.event.NewEventCalendarColorTest")
+		filter.includeTestsMatching("com.android.calendar.agenda.AgendaCardWiringTest")
 		// List every passing lunar test in the Actions log so the runs are
 		// auditable there directly.
 		testLogging.events(TestLogEvent.PASSED)

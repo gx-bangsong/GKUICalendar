@@ -50,6 +50,8 @@ public class AgendaByDayAdapter extends BaseAdapter {
     private static final int TYPE_MEETING = 1;
     private final Context mContext;
     private final AgendaAdapter mAgendaAdapter;
+    // Standalone card rows. The row root keeps no background of its own in this style.
+    private final boolean mCardStyle;
     private final LayoutInflater mInflater;
     // Note: Formatter is not thread safe. Fine for now as it is only used by the main thread.
     private final Formatter mFormatter;
@@ -78,6 +80,7 @@ public class AgendaByDayAdapter extends BaseAdapter {
      */
     public AgendaByDayAdapter(Context context, boolean cardStyle) {
         mContext = context;
+        mCardStyle = cardStyle;
         mAgendaAdapter = new AgendaAdapter(context,
                 cardStyle ? R.layout.agenda_item_card : R.layout.agenda_item, cardStyle);
         mInflater = (LayoutInflater) mContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
@@ -332,11 +335,15 @@ public class AgendaByDayAdapter extends BaseAdapter {
             // if event in the past or started already, un-bold the title and set the background
             if ((!allDay && row.mEventStartTimeMilli <= System.currentTimeMillis()) ||
                     (allDay && row.mDay <= mTodayJulianDay)) {
-                itemView.setBackgroundResource(DynamicTheme.getDrawableId(mContext, "agenda_item_bg_secondary"));
+                if (!mCardStyle) {
+                    itemView.setBackgroundResource(DynamicTheme.getDrawableId(mContext, "agenda_item_bg_secondary"));
+                }
                 title.setTypeface(Typeface.DEFAULT);
                 holder.grayed = true;
             } else {
-                itemView.setBackgroundResource(DynamicTheme.getDrawableId(mContext, "agenda_item_bg_primary"));
+                if (!mCardStyle) {
+                    itemView.setBackgroundResource(DynamicTheme.getDrawableId(mContext, "agenda_item_bg_primary"));
+                }
                 title.setTypeface(Typeface.DEFAULT_BOLD);
                 holder.grayed = false;
             }
