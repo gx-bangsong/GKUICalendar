@@ -65,7 +65,7 @@ public class DayViewTimeSlotSourceTest {
                 "private boolean handleSlotPreviewTouch(", "private void cancelSlotDrag(",
                 "private void refreshSlotPreview(", "private void startSlotPreview(",
                 "private void openSlotPreviewEditor(", "private void drawSlotPreview(",
-                "private void drawSlotLabel(", "private boolean isSlotPreviewShown(",
+                "private void drawSlotTimeLabels(", "private boolean isSlotPreviewShown(", "private float[] slotTimeLabelLayout(", "private int resolveSlotCalendarColor(",
                 "private int slotHandleAt(", "private boolean isInSlotBlock("
         };
         for (String signature : helpers) {
@@ -82,7 +82,7 @@ public class DayViewTimeSlotSourceTest {
         // onDraw runs every frame: no time-zone or formatting lookups, no controller calls
         String source = read(DAY_VIEW);
         for (String signature : new String[] {
-                "private void drawSlotPreview(", "private void drawSlotLabel("}) {
+                "private void drawSlotPreview(", "private void drawSlotTimeLabels(", "private void drawNowIndicator("}) {
             String body = method(source, signature);
             assertFalse(signature + " must not call Utils", body.contains("Utils."));
             assertFalse(signature + " must not dispatch", body.contains("mController"));

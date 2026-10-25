@@ -612,6 +612,9 @@ class GeneralPreferences : PreferenceFragmentCompat(),
         private const val KEY_HOME_TZ_ENABLED = "preferences_home_tz_enabled"
         private const val KEY_HOME_TZ = "preferences_home_tz"
 
+        // Day and week view background mask (Display details). Off by default.
+        const val KEY_DAY_WEEK_BACKGROUND_MASK = "pref_day_week_background_mask"
+
         // experimental
         const val KEY_OTHER_COPY_DB = "preferences_copy_db"
         const val KEY_OTHER_REMINDERS_RESPONDED = "preferences_reminders_responded"
@@ -621,6 +624,15 @@ class GeneralPreferences : PreferenceFragmentCompat(),
         /** Return a properly configured SharedPreferences instance  */
         fun getSharedPreferences(context: Context): SharedPreferences {
             return context.getSharedPreferences(SHARED_PREFS_NAME, Context.MODE_PRIVATE)
+        }
+
+        /**
+         * Whether the day and week views draw the grey time-background mask. Read when the view
+         * resumes, never per frame.
+         */
+        @JvmStatic
+        fun isDayWeekBackgroundMaskEnabled(context: Context): Boolean {
+            return getSharedPreferences(context).getBoolean(KEY_DAY_WEEK_BACKGROUND_MASK, false)
         }
 
         /** Set the default shared preferences in the proper context */

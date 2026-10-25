@@ -73,6 +73,53 @@ final class DayGridGeometry {
     }
 
     /**
+     * Y of a time of day, in grid coordinates. {@code minute} counts from midnight. Hour lines sit
+     * at {@code hour * (cellHeight + hourGap)}, so minute 60 * h lands on the h-th hour line. The
+     * current-time line, the time block edges and their labels all use this function.
+     */
+    static float minuteToY(float minute, float cellHeight, float hourGap) {
+        return minute * (cellHeight + hourGap) / 60f;
+    }
+
+    /** Index of today among the visible columns, or -1 when today is not visible. */
+    static int todayColumn(int todayJulianDay, int firstJulianDay, int numDays) {
+        int index = todayJulianDay - firstJulianDay;
+        return index >= 0 && index < numDays ? index : -1;
+    }
+
+    /**
+     * Whether the view draws rounded hour blocks. Only the single day view does, and only when the
+     * background mask is on. Otherwise the hours are separated by the thin grid lines.
+     */
+    static boolean drawsRoundedHourBlocks(int numDays, boolean backgroundMaskOn) {
+        return numDays == 1 && backgroundMaskOn;
+    }
+
+    /**
+     * Radius of the hole cut from the block fill for a hollow handle. It is the inside of the
+     * handle ring, so the fill stops at the inner edge of the stroke.
+     */
+    static float handleFillHoleRadius(float radius, float strokeWidth) {
+        return Math.max(0f, radius - strokeWidth / 2f);
+    }
+
+    /**
+     * Radius of the gap cut from the block outline around a hollow handle. It reaches the outer
+     * edge of the handle ring, so the outline meets the ring and does not cross the hole.
+     */
+    static float handleOutlineHoleRadius(float radius, float strokeWidth) {
+        return radius + strokeWidth / 2f;
+    }
+
+    /**
+     * Centre X of the current-time dot. The dot starts {@code inset} to the right of the column
+     * edge, so its whole circle stays inside the column and clear of the hour labels.
+     */
+    static float nowDotCentreX(float columnLeft, float dotRadius, float inset) {
+        return columnLeft + inset + dotRadius;
+    }
+
+    /**
      * Left edge of a day column. Day 0 starts after the time-label column. DayView uses this for
      * computeDayLeftPosition, so tests exercise the same arithmetic as the drawing code.
      */

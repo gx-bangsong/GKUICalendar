@@ -69,4 +69,18 @@
             app:layout="@layout/preference_md3"
             app:widgetLayout="@layout/preference_md3_switch" />
     </PreferenceCategory>
+
+    <PreferenceCategory
+        app:layout="@layout/preference_md3_category"
+        app:title="@string/preferences_day_week_view">
+
+        <SwitchPreferenceCompat
+            app:key="pref_day_week_background_mask"
+            app:title="@string/preferences_time_background_mask"
+            app:summary="@string/preferences_time_background_mask_summary"
+            app:defaultValue="false"
+            app:iconSpaceReserved="false"
+            app:layout="@layout/preference_md3"
+            app:widgetLayout="@layout/preference_md3_switch" />
+    </PreferenceCategory>
 </PreferenceScreen>

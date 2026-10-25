@@ -444,4 +444,7 @@
     <string name="day_slot_start_later">推迟 15 分钟开始</string>
     <string name="day_slot_end_earlier">提前 15 分钟结束</string>
     <string name="day_slot_end_later">推迟 15 分钟结束</string>
+    <string name="preferences_day_week_view">日/周视图</string>
+    <string name="preferences_time_background_mask">时间背景遮罩</string>
+    <string name="preferences_time_background_mask_summary">为当前时间之后的时段和时间栏显示灰色背景；日视图还显示圆角小时底板。默认关闭。</string>
 </resources>

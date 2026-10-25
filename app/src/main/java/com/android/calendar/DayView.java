@@ -32,6 +32,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Paint.Align;
+import android.graphics.Path;
 import android.graphics.Paint.Style;
 import android.graphics.Rect;
 import android.graphics.RectF;
@@ -83,6 +84,7 @@ import com.android.calendar.CalendarController.EventType;
 import com.android.calendar.CalendarController.ViewType;
 import com.android.calendar.settings.GeneralPreferences;
 import com.android.calendar.calendarcommon2.Time;
+import com.android.calendar.event.NewEventCalendarColor;
 import com.android.calendar.subscription.SubscriptionText;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
@@ -409,8 +411,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private static int NEW_EVENT_WIDTH = 2;
     private static int NEW_EVENT_MAX_LENGTH = 16;
 
-    private static int CURRENT_TIME_LINE_SIDE_BUFFER = 4;
-    private static int CURRENT_TIME_LINE_TOP_OFFSET = 2;
 
     /* package */ static final int MINUTES_PER_HOUR = 60;
     /* package */ static final int MINUTES_PER_DAY = MINUTES_PER_HOUR * 24;
@@ -458,7 +458,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     // sizing for "box +n" in allDay events
     private static int EVENT_SQUARE_WIDTH = 10;
     private static int EVENT_LINE_PADDING = 4;
-    private static int NEW_EVENT_HINT_FONT_SIZE = 12;
 
     private static int mPressedColor;
     private static int mClickedColor;
@@ -491,7 +490,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private static int mFutureBgColor;
     private static int mFutureBgColorRes;
     private static int mBgColor;
-    private static int mNewEventHintColor;
     private static int mCalendarHourLabelColor;
     private static int mMoreAlldayEventsTextAlpha = MORE_EVENTS_MAX_ALPHA;
 
@@ -603,8 +601,22 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private Event mPrevSelectedEvent;
     private final Rect mPrevBox = new Rect();
     protected final Resources mResources;
-    protected final Drawable mCurrentTimeLine;
-    protected final Drawable mCurrentTimeAnimateLine;
+    // Current-time line and dot: colour and sizes from resources, set in the constructor.
+    private int mNowLineColor;
+    private float mNowLineThickness;
+    private float mNowDotRadius;
+    private float mNowDotInset;
+    // Day and week background mask from Display details. Read in handleOnResume, never onDraw.
+    private boolean mBackgroundMaskOn = false;
+    // Calendar colour of the time block, resolved when the block starts. 0 until then.
+    private int mSlotCalendarColor;
+    private final Paint mSlotLabelPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    // Reused paths for the block fill and outline, with the handle holes cut out.
+    private final Path mSlotBlockPath = new Path();
+    private final Path mSlotFillPath = new Path();
+    private final Path mSlotOutlinePath = new Path();
+    private final Path mSlotHoleFillPath = new Path();
+    private final Path mSlotHoleOutlinePath = new Path();
     protected final Drawable mTodayHeaderDrawable;
     protected final Drawable mExpandAlldayDrawable;
     protected final Drawable mCollapseAlldayDrawable;
@@ -659,6 +671,12 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private static final float SLOT_CORNER_DP = 8f;
     private static final float SLOT_INSET_DP = 2f;
     private static final float SLOT_STROKE_DP = 2f;
+    // Start and end time chips in the left time column of the block preview.
+    private static final float SLOT_TIME_PAD_X_DP = 4f;
+    private static final float SLOT_TIME_PAD_Y_DP = 2f;
+    private static final float SLOT_TIME_CORNER_DP = 4f;
+    // Smallest scale for the chip text so the time fits the gutter. Times are never cut.
+    private static final float SLOT_TIME_MIN_SCALE = 0.75f;
     private static final int SLOT_ACTION_OPEN = R.id.day_slot_action_open;
     private static final int SLOT_ACTION_START_EARLIER = R.id.day_slot_action_start_earlier;
     private static final int SLOT_ACTION_START_LATER = R.id.day_slot_action_start_later;
@@ -679,7 +697,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private int mSlotDownStartMinute;
     private int mSlotDownEndMinute;
     private int mSlotTouchSlop;
-    private final TextPaint mSlotTextPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
 
     private boolean mScrolling = false;
 
@@ -744,6 +761,10 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         HOUR_BLOCK_INSET = mResources.getDimension(R.dimen.hour_block_inset);
         HOUR_BLOCK_COLUMN_INSET = mResources.getDimension(R.dimen.hour_block_column_inset);
         HOUR_BLOCK_RADIUS = mResources.getDimension(R.dimen.hour_block_corner_radius);
+        mNowLineColor = mResources.getColor(R.color.now_line_color);
+        mNowLineThickness = mResources.getDimension(R.dimen.now_line_thickness);
+        mNowDotRadius = mResources.getDimension(R.dimen.now_dot_radius);
+        mNowDotInset = mResources.getDimension(R.dimen.now_dot_inset);
         DAY_HEADER_TOP_PADDING = mResources.getDimension(R.dimen.day_header_top_padding);
         DAY_HEADER_BOTTOM_PADDING = mResources.getDimension(R.dimen.day_header_bottom_padding);
         DATE_CIRCLE_GAP = mResources.getDimension(R.dimen.day_header_date_circle_gap);
@@ -755,7 +776,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             eventTextSizeId = R.dimen.week_view_event_text_size;
         }
         EVENT_TEXT_FONT_SIZE = (int) mResources.getDimension(eventTextSizeId);
-        NEW_EVENT_HINT_FONT_SIZE = (int) mResources.getDimension(R.dimen.new_event_hint_text_size);
         EVENT_TEXT_TOP_MARGIN = (int) mResources.getDimension(R.dimen.event_text_vertical_margin);
         EVENT_CORNER_RADIUS = mResources.getDimension(R.dimen.event_corner_radius);
         EVENT_TEXT_BOTTOM_MARGIN = EVENT_TEXT_TOP_MARGIN;
@@ -781,9 +801,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 HOURS_TOP_MARGIN *= mScale;
                 MIN_CELL_WIDTH_FOR_TEXT *= mScale;
                 MAX_UNEXPANDED_ALLDAY_HEIGHT *= mScale;
-
-                CURRENT_TIME_LINE_SIDE_BUFFER *= mScale;
-                CURRENT_TIME_LINE_TOP_OFFSET *= mScale;
 
                 MIN_Y_SPAN *= mScale;
                 MAX_CELL_HEIGHT *= mScale;
@@ -827,13 +844,9 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         refreshSubscriptionState();
         DAY_HEADER_HEIGHT = computeDayHeaderHeight();
 
-        mCurrentTimeLine = mResources.getDrawable(R.drawable.timeline_indicator_holo_light);
-        mCurrentTimeAnimateLine = mResources
-                .getDrawable(R.drawable.timeline_indicator_activated_holo_light);
         mTodayHeaderDrawable = mResources.getDrawable(R.drawable.today_blue_week_holo_light);
         mExpandAlldayDrawable = mResources.getDrawable(R.drawable.ic_expand_holo_light);
         mCollapseAlldayDrawable = mResources.getDrawable(R.drawable.ic_collapse_holo_light);
-        mNewEventHintColor =  mResources.getColor(R.color.new_event_hint_text_color);
         mAcceptedOrTentativeEventBoxDrawable = mResources
                 .getDrawable(R.drawable.panel_month_event_holo_light);
 
@@ -923,7 +936,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         mCalendarGridLineInnerHorizontalColor = DynamicTheme.getColor(mContext, "calendar_grid_line_inner_horizontal_color");
         mCalendarGridLineInnerVerticalColor = DynamicTheme.getColor(mContext, "calendar_grid_line_inner_vertical_color");
         // Hour blocks: grid line colour at low opacity, so they stay quiet in both themes.
-        mHourBlockColor = (mCalendarGridLineInnerHorizontalColor & 0x00FFFFFF) | 0x33000000;
+        mHourBlockColor = (mCalendarGridLineInnerHorizontalColor & 0x00FFFFFF) | 0x26000000;
         // Selected hour: theme primary at low opacity, not a fixed blue.
         mSelectedHourColor = (com.google.android.material.color.MaterialColors.getColor(mContext,
                 com.google.android.material.R.attr.colorPrimary, mCalendarGridAreaSelected)
@@ -1048,6 +1061,11 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             remeasure(getWidth(), getHeight());
         }
         mFutureBgColor = mFutureBgColorRes;
+        boolean maskOn = GeneralPreferences.isDayWeekBackgroundMaskEnabled(mContext);
+        if (maskOn != mBackgroundMaskOn) {
+            mBackgroundMaskOn = maskOn;
+            invalidate();
+        }
         mIs24HourFormat = DateFormat.is24HourFormat(mContext);
         mHourStrs = mIs24HourFormat ? CalendarData.s24Hours : CalendarData.s12Hours;
         mFirstDayOfWeek = Utils.getFirstDayOfWeek(mContext);
@@ -2420,7 +2438,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     }
 
     private void drawAllDayHighlights(Rect r, Canvas canvas, Paint p) {
-        if (mFutureBgColor != 0) {
+        if (mBackgroundMaskOn) {
             // First, color the labels area light gray
             r.top = 0;
             r.bottom = DAY_HEADER_HEIGHT;
@@ -2524,28 +2542,51 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         p.setTypeface(null);
     }
 
-    private void drawCurrentTimeLine(Rect r, final int day, final int top, Canvas canvas,
-            Paint p) {
-        r.left = computeDayLeftPosition(day) - CURRENT_TIME_LINE_SIDE_BUFFER + 1;
-        r.right = computeDayLeftPosition(day + 1) + CURRENT_TIME_LINE_SIDE_BUFFER + 1;
+    /** Y of the current time, in grid coordinates. Same mapping as the block edges. */
+    private float nowY() {
+        int minute = mCurrentTime.getHour() * 60 + mCurrentTime.getMinute();
+        return DayGridGeometry.minuteToY(minute, mCellHeight, HOUR_GAP);
+    }
 
-        r.top = top - CURRENT_TIME_LINE_TOP_OFFSET;
-        r.bottom = r.top + mCurrentTimeLine.getIntrinsicHeight();
-
-        mCurrentTimeLine.setBounds(r);
-        mCurrentTimeLine.draw(canvas);
-        if (mAnimateToday) {
-            mCurrentTimeAnimateLine.setBounds(r);
-            mCurrentTimeAnimateLine.setAlpha(mAnimateTodayAlpha);
-            mCurrentTimeAnimateLine.draw(canvas);
+    /**
+     * The current-time line and its dot, in today's column only. Nothing is drawn when today is
+     * not one of the visible columns or when the time is off the visible grid. Drawn after the
+     * events, in grid coordinates, so the header and the all-day area are never covered.
+     */
+    private void drawNowIndicator(Canvas canvas, Paint p) {
+        int column = DayGridGeometry.todayColumn(mTodayJulianDay, mFirstJulianDay, mNumDays);
+        if (column < 0) {
+            return;
         }
+        float y = nowY();
+        if (y < mViewStartY || y >= mViewStartY + mViewHeight - 2) {
+            return;
+        }
+        float columnLeft = computeDayLeftPosition(column);
+        float columnRight = computeDayLeftPosition(column + 1);
+        float dotX = DayGridGeometry.nowDotCentreX(columnLeft, mNowDotRadius, mNowDotInset);
+        Paint.Style savedStyle = p.getStyle();
+        int savedColor = p.getColor();
+        int savedAlpha = p.getAlpha();
+        p.setStyle(Style.FILL);
+        p.setColor(mNowLineColor);
+        p.setAlpha(mAnimateToday ? mAnimateTodayAlpha : 255);
+        p.setAntiAlias(true);
+        float half = mNowLineThickness / 2f;
+        canvas.drawRect(dotX, y - half, columnRight, y + half, p);
+        canvas.drawCircle(dotX, y, mNowDotRadius, p);
+        p.setStyle(savedStyle);
+        p.setColor(savedColor);
+        p.setAlpha(savedAlpha);
     }
 
     private void doDraw(Canvas canvas) {
         Paint p = mPaint;
         Rect r = mRect;
 
-        if (mFutureBgColor != 0) {
+        // Layers from the back: the optional mask, then the hour blocks or thin lines, then the
+        // events, then the current-time line, the selection and the time block.
+        if (mBackgroundMaskOn) {
             drawBgColors(r, canvas, p);
         }
         drawGridBackground(r, canvas, p);
@@ -2559,20 +2600,11 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             // TODO Wow, this needs cleanup. drawEvents loop through all the
             // events on every call.
             drawEvents(cell, day, HOUR_GAP, canvas, p);
-            // If this is today
-            if (cell == mTodayJulianDay) {
-                int lineY = mCurrentTime.getHour() * (mCellHeight + HOUR_GAP)
-                        + ((mCurrentTime.getMinute() * mCellHeight) / 60) + 1;
-
-                // And the current time shows up somewhere on the screen
-                if (lineY >= mViewStartY && lineY < mViewStartY + mViewHeight - 2) {
-                    drawCurrentTimeLine(r, day, lineY, canvas, p);
-                }
-            }
         }
         p.setAntiAlias(true);
         p.setAlpha(alpha);
 
+        drawNowIndicator(canvas, p);
         drawSelectedRect(r, canvas, p);
         drawSlotPreview(canvas, p);
     }
@@ -2621,11 +2653,28 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         }
         int deltaY = hourStep * totCellHeight;
         int y = i * totCellHeight + mHoursTextHeight / 2 - HOUR_GAP;
+        // While a block is shown, an hour label that would touch one of its time chips is left out.
+        float[] slotLayout = isSlotPreviewShown() ? slotTimeLabelLayout() : null;
+        Paint.FontMetrics hourMetrics = p.getFontMetrics();
+        float hourHeight = hourMetrics.descent - hourMetrics.ascent;
+        float hourOffset = (hourMetrics.ascent + hourMetrics.descent) / 2f;
         for (; i < 24; i += hourStep) {
             String time = mHourStrs[i];
-            canvas.drawText(time, HOURS_LEFT_MARGIN, y, p);
+            if (slotLayout == null || !hourLabelHidden(y + hourOffset, hourHeight, slotLayout)) {
+                canvas.drawText(time, HOURS_LEFT_MARGIN, y, p);
+            }
             y += deltaY;
         }
+        if (slotLayout != null) {
+            drawSlotTimeLabels(canvas, slotLayout);
+        }
+    }
+
+    /** Whether an hour label would touch either of the block's time chips. */
+    private static boolean hourLabelHidden(float hourCentre, float hourHeight, float[] slotLayout) {
+        float chipHeight = slotLayout[2];
+        return SlotTimeLabels.overlaps(hourCentre, hourHeight, slotLayout[0], chipHeight)
+                || SlotTimeLabels.overlaps(hourCentre, hourHeight, slotLayout[1], chipHeight);
     }
 
     private void setupHourTextPaint(Paint p) {
@@ -2769,9 +2818,8 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     }
 
     private void drawGridBackground(Rect r, Canvas canvas, Paint p) {
-        if (mNumDays > 1) {
-            // Week: light thin grid lines, as in the classic week view. Rounded hour blocks are
-            // for the single-day view only.
+        if (!DayGridGeometry.drawsRoundedHourBlocks(mNumDays, mBackgroundMaskOn)) {
+            // Week always, and day when the mask is off: the thin grid lines of the classic views.
             drawWeekGridLines(canvas, p);
             return;
         }
@@ -2865,8 +2913,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         // Draw background for grid area
         if (mNumDays == 1 && todayIndex == 0) {
             // Draw a white background for the time later than current time
-            int lineY = mCurrentTime.getHour() * (mCellHeight + HOUR_GAP)
-                    + ((mCurrentTime.getMinute() * mCellHeight) / 60) + 1;
+            int lineY = Math.round(nowY());
             if (lineY < mViewStartY + mViewHeight) {
                 lineY = Math.max(lineY, mViewStartY);
                 r.left = mHoursWidth;
@@ -2878,8 +2925,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             }
         } else if (todayIndex >= 0 && todayIndex < mNumDays) {
             // Draw today with a white background for the time later than current time
-            int lineY = mCurrentTime.getHour() * (mCellHeight + HOUR_GAP)
-                    + ((mCurrentTime.getMinute() * mCellHeight) / 60) + 1;
+            int lineY = Math.round(nowY());
             if (lineY < mViewStartY + mViewHeight) {
                 lineY = Math.max(lineY, mViewStartY);
                 r.left = computeDayLeftPosition(todayIndex) + 1;
@@ -4125,7 +4171,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     }
 
     private float slotEdgeY(int minute) {
-        return minute * slotPixelsPerHour() / 60f;
+        return DayGridGeometry.minuteToY(minute, mCellHeight, HOUR_GAP);
     }
 
     private float slotLeft() {
@@ -4203,6 +4249,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         int durationMinutes = (int) (durationMillis / DateUtils.MINUTE_IN_MILLIS);
         mSlotPreview = DayTimeSlotPreview.forTap(minute, durationMinutes);
         mSlotPreviewDay = mSelectionDay;
+        mSlotCalendarColor = resolveSlotCalendarColor();
         refreshSlotPreview();
     }
 
@@ -4364,6 +4411,12 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         }
     }
 
+    /**
+     * Draws the block and its two hollow handles. The fill is the calendar colour at low opacity,
+     * with the handle holes cut out of the path, so nothing refills a hole. The outline is cut
+     * around the handles too, then each handle is a hollow ring in the solid calendar colour. No
+     * text is drawn here: the times are in the left time column (drawSlotTimeLabels).
+     */
     private void drawSlotPreview(Canvas canvas, Paint p) {
         if (!isSlotPreviewShown()) {
             return;
@@ -4374,58 +4427,123 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         float top = slotEdgeY(mSlotPreview.getStartMinute());
         float bottom = slotEdgeY(mSlotPreview.getEndMinute());
         float corner = SLOT_CORNER_DP * density;
-        int solid = 0xFF000000 | mCalendarGridAreaSelected;
-
-        p.setAntiAlias(true);
-        p.setStyle(Paint.Style.FILL);
-        p.setColor(mCalendarGridAreaSelected);
-        canvas.drawRoundRect(left, top, right, bottom, corner, corner, p);
-        p.setStyle(Paint.Style.STROKE);
-        p.setStrokeWidth(SLOT_STROKE_DP * density);
-        p.setColor(solid);
-        canvas.drawRoundRect(left, top, right, bottom, corner, corner, p);
-
-        drawSlotLabel(canvas, left, top, right, bottom);
-
-        float centreX = (left + right) / 2f;
+        float stroke = SLOT_STROKE_DP * density;
         float radius = SLOT_HANDLE_RADIUS_DP * density;
+        float centreX = (left + right) / 2f;
         float[] handleYs = {slotHandleY(SLOT_DRAG_START), slotHandleY(SLOT_DRAG_END)};
+        int calendarColor = 0xFF000000 | mSlotCalendarColor;
+
+        mSlotBlockPath.reset();
+        mSlotBlockPath.addRoundRect(left, top, right, bottom, corner, corner, Path.Direction.CW);
+        mSlotHoleFillPath.reset();
+        mSlotHoleOutlinePath.reset();
         for (float handleY : handleYs) {
-            p.setStyle(Paint.Style.FILL);
-            p.setColor(mNewEventHintColor);
-            canvas.drawCircle(centreX, handleY, radius, p);
-            p.setStyle(Paint.Style.STROKE);
-            p.setStrokeWidth(SLOT_STROKE_DP * density);
-            p.setColor(solid);
+            mSlotHoleFillPath.addCircle(centreX, handleY,
+                    DayGridGeometry.handleFillHoleRadius(radius, stroke), Path.Direction.CW);
+            mSlotHoleOutlinePath.addCircle(centreX, handleY,
+                    DayGridGeometry.handleOutlineHoleRadius(radius, stroke), Path.Direction.CW);
+        }
+        mSlotFillPath.reset();
+        mSlotFillPath.op(mSlotBlockPath, mSlotHoleFillPath, Path.Op.DIFFERENCE);
+        mSlotOutlinePath.reset();
+        mSlotOutlinePath.op(mSlotBlockPath, mSlotHoleOutlinePath, Path.Op.DIFFERENCE);
+
+        Paint.Style savedStyle = p.getStyle();
+        int savedColor = p.getColor();
+        float savedStrokeWidth = p.getStrokeWidth();
+        p.setAntiAlias(true);
+        // 1. Block fill, calendar colour at low opacity, holes removed.
+        p.setStyle(Style.FILL);
+        p.setColor((calendarColor & 0x00FFFFFF) | 0x33000000);
+        canvas.drawPath(mSlotFillPath, p);
+        // 2. Block outline in the solid calendar colour, broken around the handles.
+        p.setStyle(Style.STROKE);
+        p.setStrokeWidth(stroke);
+        p.setColor(calendarColor);
+        canvas.drawPath(mSlotOutlinePath, p);
+        // 3. Hollow ring per handle.
+        for (float handleY : handleYs) {
             canvas.drawCircle(centreX, handleY, radius, p);
         }
-        p.setStyle(Paint.Style.FILL);
+        p.setStyle(savedStyle);
+        p.setColor(savedColor);
+        p.setStrokeWidth(savedStrokeWidth);
     }
 
     /**
-     * Draws the range inside the block when it fits. The full range, then start and end on two
-     * lines, then nothing. A time is never cut to "1…", and the handles and accessibility
-     * actions still carry the times.
+     * The colour of the calendar a new event would use. Read once when a block starts, then
+     * cached. Falls back to the theme primary when no calendar can be determined.
      */
-    private void drawSlotLabel(Canvas canvas, float left, float top, float right, float bottom) {
-        float density = slotDensity();
-        float pad = 4f * density;
-        float available = right - left - 2 * pad;
-        mSlotTextPaint.setTextSize(NEW_EVENT_HINT_FONT_SIZE * density);
-        mSlotTextPaint.setColor(mNewEventHintColor);
-        float lineHeight = mSlotTextPaint.getTextSize() * 1.25f;
-        float height = bottom - top - 2 * pad;
-        if (height < lineHeight || available <= 0) {
-            return;
+    private int resolveSlotCalendarColor() {
+        int color = NewEventCalendarColor.resolve(mContext);
+        if (color != 0) {
+            return color;
         }
-        float baseline = top + pad + mSlotTextPaint.getTextSize();
-        if (mSlotTextPaint.measureText(mSlotRangeLabel) <= available) {
-            canvas.drawText(mSlotRangeLabel, left + pad, baseline, mSlotTextPaint);
-        } else if (height >= 2 * lineHeight
-                && mSlotTextPaint.measureText(mSlotStartLabel) <= available
-                && mSlotTextPaint.measureText(mSlotEndLabel) <= available) {
-            canvas.drawText(mSlotStartLabel, left + pad, baseline, mSlotTextPaint);
-            canvas.drawText(mSlotEndLabel, left + pad, baseline + lineHeight, mSlotTextPaint);
+        return com.google.android.material.color.MaterialColors.getColor(mContext,
+                com.google.android.material.R.attr.colorPrimary, mCalendarGridAreaSelected);
+    }
+
+    /**
+     * Layout of the start and end time chips in the left time column, in grid coordinates:
+     * {startCentreY, endCentreY, chipHeight, textSize}. Each chip sits on its block edge. Short
+     * blocks spread the two chips apart, and both stay inside the visible grid. The block's real
+     * boundaries are not moved. Sets the text size on mSlotLabelPaint, and only that paint.
+     */
+    private float[] slotTimeLabelLayout() {
+        float density = slotDensity();
+        Paint m = mSlotLabelPaint;
+        m.setTypeface(Typeface.DEFAULT_BOLD);
+        float maxWidth = computeDayLeftPosition(0) - HOURS_LEFT_MARGIN - HOURS_RIGHT_MARGIN
+                - 2 * SLOT_TIME_PAD_X_DP * density;
+        float size = HOURS_TEXT_SIZE;
+        float minSize = HOURS_TEXT_SIZE * SLOT_TIME_MIN_SCALE;
+        m.setTextSize(size);
+        while (size > minSize
+                && Math.max(m.measureText(mSlotStartLabel), m.measureText(mSlotEndLabel))
+                        > maxWidth) {
+            size -= 0.5f;
+            m.setTextSize(size);
+        }
+        Paint.FontMetrics fm = m.getFontMetrics();
+        float height = (fm.descent - fm.ascent) + 2 * SLOT_TIME_PAD_Y_DP * density;
+        float low = slotVisibleTop();
+        float high = slotVisibleBottom();
+        float[] edges = SlotTimeLabels.centres(slotEdgeY(mSlotPreview.getStartMinute()),
+                slotEdgeY(mSlotPreview.getEndMinute()), height);
+        return new float[] {
+                SlotTimeLabels.clampCentre(edges[0], height, low, high),
+                SlotTimeLabels.clampCentre(edges[1], height, low, high),
+                height,
+                size
+        };
+    }
+
+    /**
+     * The start time at the top of the block and the end time at the bottom, in the left time
+     * column. Each is a solid chip in the calendar colour with text picked for contrast. Drawn
+     * from drawHours, so the gutter layer is not clipped by the event area.
+     */
+    private void drawSlotTimeLabels(Canvas canvas, float[] layout) {
+        float density = slotDensity();
+        Paint m = mSlotLabelPaint;
+        float height = layout[2];
+        float padX = SLOT_TIME_PAD_X_DP * density;
+        float radius = SLOT_TIME_CORNER_DP * density;
+        int chipColor = 0xFF000000 | mSlotCalendarColor;
+        int textColor = SlotTimeLabels.textOn(chipColor);
+        Paint.FontMetrics fm = m.getFontMetrics();
+        String[] texts = {mSlotStartLabel, mSlotEndLabel};
+        for (int i = 0; i < texts.length; i++) {
+            float centre = layout[i];
+            float width = m.measureText(texts[i]) + 2 * padX;
+            mRectF.set(HOURS_LEFT_MARGIN, centre - height / 2f,
+                    HOURS_LEFT_MARGIN + width, centre + height / 2f);
+            m.setStyle(Style.FILL);
+            m.setColor(chipColor);
+            canvas.drawRoundRect(mRectF, radius, radius, m);
+            m.setColor(textColor);
+            float baseline = centre - (fm.ascent + fm.descent) / 2f;
+            canvas.drawText(texts[i], HOURS_LEFT_MARGIN + padX, baseline, m);
         }
     }
 

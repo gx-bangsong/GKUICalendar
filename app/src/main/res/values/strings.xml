@@ -999,4 +999,7 @@
     <string name="day_slot_start_later">Start 15 minutes later</string>
     <string name="day_slot_end_earlier">End 15 minutes earlier</string>
     <string name="day_slot_end_later">End 15 minutes later</string>
+    <string name="preferences_day_week_view">Day and week view</string>
+    <string name="preferences_time_background_mask">Time background mask</string>
+    <string name="preferences_time_background_mask_summary">Grey tint for the time after now and the time column. In day view, also rounded hour blocks. Off by default.</string>
 </resources>

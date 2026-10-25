@@ -138,4 +138,8 @@
     <dimen name="agenda_weekday_text_size">12sp</dimen>
     <dimen name="agenda_card_title_text_size">16sp</dimen>
     <dimen name="agenda_card_meta_text_size">14sp</dimen>
+    <!-- Current-time line: clean line and dot, drawn in code. -->
+    <dimen name="now_line_thickness">2dp</dimen>
+    <dimen name="now_dot_radius">4dp</dimen>
+    <dimen name="now_dot_inset">1dp</dimen>
 </resources>

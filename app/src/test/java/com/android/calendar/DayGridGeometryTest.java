@@ -234,4 +234,59 @@ public class DayGridGeometryTest {
                     HOURS_WIDTH));
         }
     }
+
+    // Current-time line, background mask and handle geometry (fix pass 2).
+
+    @Test
+    public void minuteToYLandsOnHourLinesAtEveryZoom() {
+        // Zoom changes the cell height. The time mapping must still hit the hour lines exactly.
+        for (float cell : new float[] {30f, 60f, 120f}) {
+            for (int hour = 0; hour <= 24; hour++) {
+                assertEquals(hour * (cell + 1f),
+                        DayGridGeometry.minuteToY(60f * hour, cell, 1f), 0.001f);
+            }
+        }
+    }
+
+    @Test
+    public void minuteToYIsLinearInsideAnHour() {
+        assertEquals(0f, DayGridGeometry.minuteToY(0f, 60f, 1f), 0f);
+        assertEquals(579.5f, DayGridGeometry.minuteToY(570f, 60f, 1f), 0.001f);
+    }
+
+    @Test
+    public void todayColumnIsOnlyTodayWhenVisible() {
+        assertEquals(0, DayGridGeometry.todayColumn(98, 98, 1));
+        assertEquals(-1, DayGridGeometry.todayColumn(100, 98, 1));
+        assertEquals(2, DayGridGeometry.todayColumn(100, 98, 3));
+        assertEquals(-1, DayGridGeometry.todayColumn(97, 98, 7));
+        assertEquals(-1, DayGridGeometry.todayColumn(105, 98, 7));
+    }
+
+    @Test
+    public void roundedHourBlocksOnlyForDayWithMaskOn() {
+        assertFalse(DayGridGeometry.drawsRoundedHourBlocks(1, false));
+        assertTrue(DayGridGeometry.drawsRoundedHourBlocks(1, true));
+        assertFalse(DayGridGeometry.drawsRoundedHourBlocks(3, true));
+        assertFalse(DayGridGeometry.drawsRoundedHourBlocks(7, true));
+    }
+
+    @Test
+    public void nowDotCentreKeepsTheWholeDotInsideTheColumn() {
+        float left = 120f;
+        float radius = 4f;
+        float inset = 1f;
+        float centre = DayGridGeometry.nowDotCentreX(left, radius, inset);
+        assertEquals(125f, centre, 0f);
+        assertTrue(centre - radius >= left);
+    }
+
+    @Test
+    public void handleHolesSitInsideTheRingAndOutlineStopsAtItsOuterEdge() {
+        float radius = 7f;
+        float stroke = 2f;
+        assertEquals(6f, DayGridGeometry.handleFillHoleRadius(radius, stroke), 0f);
+        assertEquals(8f, DayGridGeometry.handleOutlineHoleRadius(radius, stroke), 0f);
+        assertTrue(DayGridGeometry.handleFillHoleRadius(0.5f, 2f) >= 0f);
+    }
 }
