@@ -168,9 +168,19 @@ class SettingsPagesSourceTest {
     fun displayDetailsKeysAndOrientationGroupsAreUnchanged() {
         val root = xmlRoot("xml/view_details_preferences.xml")
         val groups = root.walk().filter { it.tagName == "PreferenceCategory" }
-        assertEquals(2, groups.size)
+        // Month portrait and landscape keep their two groups. The day and week background switch
+        // has its own third group, so the month groups are never mixed with it.
+        assertEquals(3, groups.size)
         val portrait = groups[0].walk().filter { it.tagName in ROW_TAGS }.map { it.app("key") }
         val landscape = groups[1].walk().filter { it.tagName in ROW_TAGS }.map { it.app("key") }
+        assertEquals(
+            listOf("pref_day_week_background_mask"),
+            groups[2].walk().filter { it.tagName in ROW_TAGS }.map { it.app("key") },
+        )
+        assertEquals(
+            "false",
+            root.walk().first { it.app("key") == "pref_day_week_background_mask" }.app("defaultValue"),
+        )
         assertEquals(
             listOf(
                 "pref_number_of_lines_vertical",
