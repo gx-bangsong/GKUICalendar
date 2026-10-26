@@ -98,6 +98,24 @@ public class AgendaAdapter extends ResourceCursorAdapter {
         }
 
     }
+    /**
+     * A recycled row is reused only when it was built for the same row style. A card row and a
+     * classic row have different ids and backgrounds, so a row of the other style is dropped and
+     * a new one is inflated.
+     */
+    @Override
+    public View getView(int position, View convertView, ViewGroup parent) {
+        if (convertView != null && !canReuseRow(convertView.getTag(), mCardStyle)) {
+            convertView = null;
+        }
+        return super.getView(position, convertView, parent);
+    }
+
+    /** Whether a recycled row's tag was bound for the given row style. */
+    static boolean canReuseRow(Object tag, boolean cardStyle) {
+        return tag instanceof ViewHolder && ((ViewHolder) tag).cardLayout == cardStyle;
+    }
+
     public void bindView(View view, Context context, Cursor cursor) {
         // Resolve all view ids from the current view on every bind. The
         // previous version cached the lookup in a tag-attached ViewHolder
@@ -108,6 +126,7 @@ public class AgendaAdapter extends ResourceCursorAdapter {
         // null in the next, leading to the NPEs the original 7d993e7
         // commit only patched one symptom of.
         ViewHolder holder = new ViewHolder();
+        holder.cardLayout = mCardStyle;
         holder.card = view.findViewById(R.id.agenda_event_card);
         holder.agendaDateColumn = view.findViewById(R.id.agenda_event_date_column);
         holder.agendaDate = view.findViewById(R.id.agenda_event_date);
@@ -397,6 +416,9 @@ public class AgendaAdapter extends ResourceCursorAdapter {
     }
 
     static class ViewHolder {
+
+        /** The row style this holder was bound for, see canReuseRow. */
+        boolean cardLayout;
 
         public static final int DECLINED_RESPONSE = 0;
         public static final int TENTATIVE_RESPONSE = 1;

@@ -35,11 +35,32 @@ public class AgendaCardWiringTest {
 
     private static final String AGENDA_FRAGMENT = "src/main/java/com/android/calendar/agenda/AgendaFragment.java";
     private static final String WINDOW = "src/main/java/com/android/calendar/agenda/AgendaWindowAdapter.java";
+    private static final String AGENDA_ADAPTER = "src/main/java/com/android/calendar/agenda/AgendaAdapter.java";
     private static final String BY_DAY = "src/main/java/com/android/calendar/agenda/AgendaByDayAdapter.java";
     private static final String ALL_IN_ONE = "src/main/java/com/android/calendar/AllInOneActivity.java";
     private static final String SEARCH = "src/main/java/com/android/calendar/SearchActivity.java";
     private static final String CARD_PHONE = "src/main/res/layout/agenda_item_card.xml";
     private static final String CARD_TABLET = "src/main/res/layout-sw600dp/agenda_item_card.xml";
+
+    /** Text of one method, from its signature to the matching closing brace. */
+    private static String method(String source, String signature) {
+        int start = source.indexOf(signature);
+        assertTrue("missing " + signature, start >= 0);
+        int open = source.indexOf('{', start);
+        int depth = 0;
+        for (int i = open; i < source.length(); i++) {
+            char c = source.charAt(i);
+            if (c == '{') {
+                depth++;
+            } else if (c == '}') {
+                depth--;
+                if (depth == 0) {
+                    return source.substring(start, i + 1);
+                }
+            }
+        }
+        throw new AssertionError("unterminated " + signature);
+    }
 
     private static String read(String path) throws Exception {
         return new String(Files.readAllBytes(new File(path).toPath()), StandardCharsets.UTF_8);
@@ -109,5 +130,48 @@ public class AgendaCardWiringTest {
             assertTrue(path, day > 0 && date > 0);
             assertTrue(path + ": weekday must come before the number", day < date);
         }
+    }
+
+    @Test
+    public void recycledRowsOfTheOtherStyleAreNotReused() throws Exception {
+        // The list recycles rows across style changes. A classic row handed to the card adapter
+        // (or the reverse) kept the old look; the guard drops it and inflates a row of the right
+        // style. The tag records the style each row was bound for.
+        String source = read(AGENDA_ADAPTER);
+        String getView = method(source, "public View getView(int position, View convertView, ViewGroup parent)");
+        assertTrue(getView.contains("canReuseRow(convertView.getTag(), mCardStyle)"));
+        assertTrue(getView.contains("convertView = null"));
+        assertTrue(method(source, "static boolean canReuseRow(")
+                .contains("((ViewHolder) tag).cardLayout == cardStyle"));
+        assertTrue(source.contains("holder.cardLayout = mCardStyle;"));
+    }
+
+    @Test
+    public void standaloneAgendaUsesCardRowsAndMonthPanelDoesNot() throws Exception {
+        // Entry-to-layout transfer: the standalone agenda passes cardStyle=true, the month
+        // secondary panel and the search keep the classic rows. No static flag decides it.
+        String allInOne = read(ALL_IN_ONE);
+        assertTrue(allInOne.contains("new AgendaFragment(timeMillis, false, true)"));
+        assertTrue(allInOne.contains("new AgendaFragment(timeMillis, false)"));
+        String search = read(SEARCH);
+        assertTrue(search.contains("new AgendaFragment(timeMillis, true)"));
+        String fragment = read(AGENDA_FRAGMENT);
+        assertFalse("no static style flag", fragment.matches("(?s).*static\\s+boolean\\s+m?[cC]ardStyle.*"));
+    }
+
+    @Test
+    public void restoredCardStyleReachesTheRowAdapterOnRotation() throws Exception {
+        // Rotation recreates the fragment with the no-argument constructor (classic style). The
+        // saved style is read in onCreate and applied to the list in onCreateView.
+        String fragment = read(AGENDA_FRAGMENT);
+        assertTrue(fragment.contains("outState.putBoolean(BUNDLE_KEY_CARD_STYLE, mCardStyle)"));
+        assertTrue(fragment.contains("mCardStyle = icicle.getBoolean(BUNDLE_KEY_CARD_STYLE, mCardStyle)"));
+        assertTrue(fragment.contains("mAgendaListView.setCardStyle(mCardStyle)"));
+    }
+
+    @Test
+    public void rowAdapterChoosesItsLayoutByStyle() throws Exception {
+        String byDay = read(BY_DAY);
+        assertTrue(byDay.contains("cardStyle ? R.layout.agenda_item_card : R.layout.agenda_item"));
     }
 }
