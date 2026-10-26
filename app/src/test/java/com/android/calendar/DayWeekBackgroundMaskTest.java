@@ -25,6 +25,7 @@ import com.android.calendar.settings.GeneralPreferences;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.regex.Pattern;
 
 import org.junit.Test;
 
@@ -152,16 +153,65 @@ public class DayWeekBackgroundMaskTest {
     }
 
     @Test
-    public void dayAlwaysDrawsRoundedHourBlocksAndWeekNever() {
-        // The mask switch does not decide the base layer. Day has the rounded blocks whether the
-        // mask is on or off; week has none.
+    public void dayDrawsRoundedHourBlocks() {
         assertTrue(DayGridGeometry.drawsRoundedHourBlocks(1));
-        assertFalse(DayGridGeometry.drawsRoundedHourBlocks(7));
+    }
+
+    @Test
+    public void weekDrawsRoundedHourBlocksPerDayColumnToo() {
+        // Week is a multi-day grid: every day column gets its own blocks, one per hour.
+        for (int days = 2; days <= 7; days++) {
+            assertTrue("days " + days, DayGridGeometry.drawsRoundedHourBlocks(days));
+        }
+        assertFalse(DayGridGeometry.drawsRoundedHourBlocks(0));
+    }
+
+    @Test
+    public void hourBlocksDoNotDependOnTheMaskSwitch() throws Exception {
+        // The blocks are the base layer. They are called at method level in doDraw, not inside
+        // the mask's if block, and the block code never reads the mask.
+        String source = read(DAY_VIEW);
+        String grid = method(source, "private void drawGridBackground(");
+        assertFalse("hour blocks must not depend on the mask", grid.contains("mBackgroundMaskOn"));
+        String draw = method(source, "private void doDraw(Canvas canvas)");
+        assertTrue(draw.contains("\n        drawGridBackground(r, canvas, p);"));
+        assertFalse(draw.contains("if (mBackgroundMaskOn) {\n            drawGridBackground"));
+    }
+
+    @Test
+    public void backgroundIsOneRoundRectPathWithNoThinLineFallback() throws Exception {
+        String source = read(DAY_VIEW);
+        assertFalse("the thin week lines are gone", source.contains("drawWeekGridLines"));
+        String grid = method(source, "private void drawGridBackground(");
+        assertEquals(1, countOf(grid, "drawRoundRect("));
+        assertFalse(grid.contains("drawLines("));
+    }
+
+    @Test
+    public void backgroundDrawsPerColumnInsideItsOwnDayEdges() throws Exception {
+        // Each block is limited to its day column (edge plus the column inset), and the vertical
+        // positions come from the same helpers the events and the time labels use.
+        String grid = method(read(DAY_VIEW), "private void drawGridBackground(");
+        assertTrue(grid.contains("computeDayLeftPosition(day) + HOUR_BLOCK_COLUMN_INSET"));
+        assertTrue(grid.contains("computeDayLeftPosition(day + 1) - HOUR_BLOCK_COLUMN_INSET"));
+        assertTrue(grid.contains("DayGridGeometry.hourBlockTop(hour, slotHeight, HOUR_BLOCK_INSET)"));
+        assertTrue(grid.contains("DayGridGeometry.hourBlockBottom(hour, slotHeight, HOUR_BLOCK_INSET)"));
+    }
+
+    @Test
+    public void backgroundNeverWritesStateOrChangesHitGeometry() throws Exception {
+        // The background only reads its inputs and draws. It assigns no field, so time-to-Y
+        // mapping, column edges, event layout, touch hit testing and preview length are unchanged.
+        String grid = method(read(DAY_VIEW), "private void drawGridBackground(");
+        assertFalse("no field assignment in the background",
+                Pattern.compile("\\bm[A-Z]\\w*\\s*=[^=]").matcher(grid).find());
+        assertFalse(grid.contains("remeasure("));
+        assertFalse(grid.contains("setCellHeight"));
     }
 
     @Test
     public void grayMaskIsASeparateLayerFromTheHourBlocks() throws Exception {
-        // Source guard: the grid background (hour blocks and week lines) does not read the mask.
+        // Source guard: the grid background (the rounded hour blocks) does not read the mask.
         // The mask is drawn by drawBgColors, a separate call in doDraw.
         String source = read(DAY_VIEW);
         String grid = method(source, "private void drawGridBackground(");

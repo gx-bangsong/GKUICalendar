@@ -88,12 +88,13 @@ final class DayGridGeometry {
     }
 
     /**
-     * Whether the view draws rounded hour blocks. Only the single day view does. This is a base
-     * layer and does not depend on the background mask, which is a separate layer drawn beneath
-     * it. The week view keeps the thin grid lines.
+     * Whether the view draws rounded hour blocks. Both the single day view and the multi-day
+     * (week) time grid do, one block per day column and hour. The blocks are the base layer and
+     * do not depend on the background mask, which is a separate optional layer drawn beneath
+     * them. A grid with no day columns has no blocks.
      */
     static boolean drawsRoundedHourBlocks(int numDays) {
-        return numDays == 1;
+        return numDays >= 1;
     }
 
     /**

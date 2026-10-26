@@ -264,12 +264,40 @@ public class DayGridGeometryTest {
     }
 
     @Test
-    public void roundedHourBlocksAreDayOnlyAndDoNotDependOnTheMask() {
-        // The function has no mask parameter: the day base layer is the same with the mask off
-        // or on. Week keeps the thin grid lines.
+    public void roundedHourBlocksAreDrawnForDayAndWeekAlike() {
+        // The function has no mask parameter: the base layer is the same with the mask off or on.
         assertTrue(DayGridGeometry.drawsRoundedHourBlocks(1));
-        assertFalse(DayGridGeometry.drawsRoundedHourBlocks(3));
-        assertFalse(DayGridGeometry.drawsRoundedHourBlocks(7));
+        assertTrue(DayGridGeometry.drawsRoundedHourBlocks(3));
+        assertTrue(DayGridGeometry.drawsRoundedHourBlocks(7));
+        assertFalse(DayGridGeometry.drawsRoundedHourBlocks(0));
+    }
+
+    @Test
+    public void wideBlockKeepsItsFullCorner() {
+        // 40dp wide, 60dp tall: a quarter of the shorter side is 10dp, so the 8dp corner stays.
+        float radius = DayGridGeometry.hourBlockRadius(8f * DENSITY, 40f * DENSITY, 60f * DENSITY);
+        assertEquals(8f * DENSITY, radius, 0.0001f);
+    }
+
+    @Test
+    public void narrowWeekColumnRadiusIsLimitedNotACapsule() {
+        // 20dp wide: a quarter of 20dp is 5dp, so the corner shrinks instead of making a capsule.
+        float width = 20f * DENSITY;
+        float radius = DayGridGeometry.hourBlockRadius(8f * DENSITY, width, 60f * DENSITY);
+        assertEquals(width / 4f, radius, 0.0001f);
+        assertTrue(radius < width / 2f);
+    }
+
+    @Test
+    public void everyBlockRadiusStaysWithinAQuarterOfItsSmallerSide() {
+        for (float width = 8f; width <= 80f; width += 1f) {
+            for (float height = 10f; height <= 120f; height += 5f) {
+                float r = DayGridGeometry.hourBlockRadius(8f * DENSITY, width * DENSITY,
+                        height * DENSITY);
+                assertTrue(r >= 0f);
+                assertTrue(r <= Math.min(width, height) * DENSITY * 0.25f + 0.0001f);
+            }
+        }
     }
 
     // ---- Preview handles: START top-left inside, END bottom-right inside ----
