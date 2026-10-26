@@ -191,11 +191,11 @@ public class DayWeekBackgroundMaskTest {
     public void backgroundDrawsPerColumnInsideItsOwnDayEdges() throws Exception {
         // Each block is limited to its day column (edge plus the column inset), and the vertical
         // positions come from the same helpers the events and the time labels use.
-        String grid = method(read(DAY_VIEW), "private void drawGridBackground(");
-        assertTrue(grid.contains("computeDayLeftPosition(day) + HOUR_BLOCK_COLUMN_INSET"));
-        assertTrue(grid.contains("computeDayLeftPosition(day + 1) - HOUR_BLOCK_COLUMN_INSET"));
-        assertTrue(grid.contains("DayGridGeometry.hourBlockTop(hour, slotHeight, HOUR_BLOCK_INSET)"));
-        assertTrue(grid.contains("DayGridGeometry.hourBlockBottom(hour, slotHeight, HOUR_BLOCK_INSET)"));
+        String rect = method(read(DAY_VIEW), "private float fillHourBlockRect(");
+        assertTrue(rect.contains("computeDayLeftPosition(day) + HOUR_BLOCK_COLUMN_INSET"));
+        assertTrue(rect.contains("computeDayLeftPosition(day + 1) - HOUR_BLOCK_COLUMN_INSET"));
+        assertTrue(rect.contains("DayGridGeometry.hourBlockTop(hour, slotHeight, HOUR_BLOCK_INSET)"));
+        assertTrue(rect.contains("DayGridGeometry.hourBlockBottom(hour, slotHeight, HOUR_BLOCK_INSET)"));
     }
 
     @Test
@@ -220,6 +220,49 @@ public class DayWeekBackgroundMaskTest {
         int mask = draw.indexOf("drawBgColors(r, canvas, p)");
         int blocks = draw.indexOf("drawGridBackground(r, canvas, p)");
         assertTrue("mask is drawn before the blocks", mask >= 0 && mask < blocks);
+    }
+
+    @Test
+    public void maskIsHourBlockShapedAndNotAWholeRectangle() throws Exception {
+        // The future mask is painted per hour block, with the same radius and rectangle as the
+        // grid. The old right-angled rectangle is gone from the label-column path.
+        String source = read(DAY_VIEW);
+        String bg = method(source, "private void drawBgColors(");
+        assertFalse("no whole-column rectangle for the mask", bg.contains("mFutureBgColor"));
+        String mask = method(source, "private void drawFutureHourBlocks(");
+        assertTrue(mask.contains("fillHourBlockRect(day, hour, slotHeight)"));
+        assertTrue(mask.contains("DayGridGeometry.futureStartY(day, todayIndex, nowTop)"));
+        assertTrue(mask.contains("canvas.drawRoundRect(mRectF, radius, radius, p)"));
+        assertFalse("the mask must not paint a rectangle", mask.contains("drawRect("));
+    }
+
+    @Test
+    public void maskAndBlocksShareOneRectangleHelper() throws Exception {
+        // The column edge arithmetic exists once; the grid and the mask both call it.
+        String source = read(DAY_VIEW);
+        assertEquals(1, countOf(source, "computeDayLeftPosition(day) + HOUR_BLOCK_COLUMN_INSET"));
+        assertTrue(method(source, "private void drawGridBackground(")
+                .contains("fillHourBlockRect(day, hour, slotHeight)"));
+    }
+
+    @Test
+    public void maskClipAndPaintStateAreRestored() throws Exception {
+        // A block cut by the current time is clipped inside save/restore, and the paint colour
+        // and style are put back. Nothing is left on the shared Paint.
+        String mask = method(read(DAY_VIEW), "private void drawFutureHourBlocks(");
+        assertEquals(1, countOf(mask, "canvas.save()"));
+        assertEquals(1, countOf(mask, "canvas.restore()"));
+        assertTrue(mask.contains("canvas.clipRect("));
+        assertTrue(mask.contains("p.setColor(savedColor)"));
+        assertTrue(mask.contains("p.setStyle(savedStyle)"));
+    }
+
+    @Test
+    public void maskOnlyDrawsWhenTheSwitchIsOn() throws Exception {
+        String draw = method(read(DAY_VIEW), "private void doDraw(Canvas canvas)");
+        int gate = draw.indexOf("if (mBackgroundMaskOn)");
+        int call = draw.indexOf("drawBgColors(r, canvas, p)");
+        assertTrue(gate >= 0 && gate < call);
     }
 
     @Test

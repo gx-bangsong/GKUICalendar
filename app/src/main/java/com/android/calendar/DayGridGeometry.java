@@ -88,6 +88,21 @@ final class DayGridGeometry {
     }
 
     /**
+     * Y, in grid coordinates, from which a day column is in the future. Negative infinity means the
+     * whole column is in the future (a day after today). Positive infinity means none of it is
+     * (a day before today). Today's column starts at the current time.
+     */
+    static float futureStartY(int column, int todayIndex, float nowY) {
+        if (column > todayIndex) {
+            return Float.NEGATIVE_INFINITY;
+        }
+        if (column == todayIndex) {
+            return nowY;
+        }
+        return Float.POSITIVE_INFINITY;
+    }
+
+    /**
      * Whether the view draws rounded hour blocks. Both the single day view and the multi-day
      * (week) time grid do, one block per day column and hour. The blocks are the base layer and
      * do not depend on the background mask, which is a separate optional layer drawn beneath

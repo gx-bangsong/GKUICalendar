@@ -2874,17 +2874,8 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         p.setAntiAlias(true);
         final float slotHeight = mCellHeight + HOUR_GAP;
         for (int day = 0; day < mNumDays; day++) {
-            final float left = computeDayLeftPosition(day) + HOUR_BLOCK_COLUMN_INSET;
-            final float right = computeDayLeftPosition(day + 1) - HOUR_BLOCK_COLUMN_INSET;
             for (int hour = 0; hour < 24; hour++) {
-                final float top = DayGridGeometry.hourBlockTop(hour, slotHeight, HOUR_BLOCK_INSET);
-                final float bottom =
-                        DayGridGeometry.hourBlockBottom(hour, slotHeight, HOUR_BLOCK_INSET);
-                mRectF.set(left, top, right, bottom);
-                // The radius is limited by the block's own size, so a narrow week column never
-                // turns into a capsule.
-                final float radius = DayGridGeometry.hourBlockRadius(
-                        HOUR_BLOCK_RADIUS, right - left, bottom - top);
+                final float radius = fillHourBlockRect(day, hour, slotHeight);
                 canvas.drawRoundRect(mRectF, radius, radius, p);
             }
         }
@@ -2898,8 +2889,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
      * @param p
      */
     private void drawBgColors(Rect r, Canvas canvas, Paint p) {
-        int todayIndex = mTodayJulianDay - mFirstJulianDay;
-        // Draw the hours background color
+        // The hour label column is a flat band, as before.
         r.top = mDestRect.top;
         r.bottom = mDestRect.bottom;
         r.left = 0;
@@ -2908,52 +2898,65 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         p.setStyle(Style.FILL);
         p.setAntiAlias(false);
         canvas.drawRect(r, p);
+        // The future part of the grid is shaped by the hour blocks, so it has the same rounded
+        // corners and leaves the gaps between hours clear. It is not a rectangle.
+        drawFutureHourBlocks(canvas, p);
+    }
 
-        // Draw background for grid area
-        if (mNumDays == 1 && todayIndex == 0) {
-            // Draw a white background for the time later than current time
-            int lineY = Math.round(nowY());
-            if (lineY < mViewStartY + mViewHeight) {
-                lineY = Math.max(lineY, mViewStartY);
-                r.left = mHoursWidth;
-                r.right = mViewWidth;
-                r.top = lineY;
-                r.bottom = mViewStartY + mViewHeight;
-                p.setColor(mFutureBgColor);
-                canvas.drawRect(r, p);
-            }
-        } else if (todayIndex >= 0 && todayIndex < mNumDays) {
-            // Draw today with a white background for the time later than current time
-            int lineY = Math.round(nowY());
-            if (lineY < mViewStartY + mViewHeight) {
-                lineY = Math.max(lineY, mViewStartY);
-                r.left = computeDayLeftPosition(todayIndex) + 1;
-                r.right = computeDayLeftPosition(todayIndex + 1);
-                r.top = lineY;
-                r.bottom = mViewStartY + mViewHeight;
-                p.setColor(mFutureBgColor);
-                canvas.drawRect(r, p);
-            }
-
-            // Paint Tomorrow and later days with future color
-            if (todayIndex + 1 < mNumDays) {
-                r.left = computeDayLeftPosition(todayIndex + 1) + 1;
-                r.right = computeDayLeftPosition(mNumDays);
-                r.top = mDestRect.top;
-                r.bottom = mDestRect.bottom;
-                p.setColor(mFutureBgColor);
-                canvas.drawRect(r, p);
-            }
-        } else if (todayIndex < 0) {
-            // Future
-            r.left = computeDayLeftPosition(0) + 1;
-            r.right = computeDayLeftPosition(mNumDays);
-            r.top = mDestRect.top;
-            r.bottom = mDestRect.bottom;
-            p.setColor(mFutureBgColor);
-            canvas.drawRect(r, p);
-        }
+    /**
+     * Mask layer: the future part of each day column, painted with the same rounded hour blocks
+     * as the grid. The rectangle, the radius, the column inset and the hour gap all come from
+     * fillHourBlockRect, so the mask and the blocks cannot drift apart. A block that the current
+     * time cuts is clipped to a straight edge at that time, and keeps its own outer shape. The
+     * clip and the paint state are restored afterwards. Nothing here reads data or the theme.
+     */
+    private void drawFutureHourBlocks(Canvas canvas, Paint p) {
+        final int todayIndex = mTodayJulianDay - mFirstJulianDay;
+        final float nowTop = nowY();
+        final float slotHeight = mCellHeight + HOUR_GAP;
+        final int savedColor = p.getColor();
+        final Paint.Style savedStyle = p.getStyle();
+        p.setStyle(Style.FILL);
+        p.setColor(mFutureBgColor);
         p.setAntiAlias(true);
+        for (int day = 0; day < mNumDays; day++) {
+            final float futureTop = DayGridGeometry.futureStartY(day, todayIndex, nowTop);
+            if (futureTop == Float.POSITIVE_INFINITY) {
+                continue;
+            }
+            for (int hour = 0; hour < 24; hour++) {
+                final float radius = fillHourBlockRect(day, hour, slotHeight);
+                if (mRectF.bottom <= futureTop) {
+                    continue;
+                }
+                if (mRectF.top >= futureTop) {
+                    canvas.drawRoundRect(mRectF, radius, radius, p);
+                } else {
+                    // Cut by the current time: a straight top edge, the block's own bottom.
+                    final float slop = 2f;
+                    canvas.save();
+                    canvas.clipRect(mRectF.left - slop, futureTop, mRectF.right + slop,
+                            mRectF.bottom + slop);
+                    canvas.drawRoundRect(mRectF, radius, radius, p);
+                    canvas.restore();
+                }
+            }
+        }
+        p.setColor(savedColor);
+        p.setStyle(savedStyle);
+    }
+
+    /**
+     * Sets mRectF to one hour block of one day column and returns its corner radius. Both the grid
+     * background and the future mask use it, so they share one rectangle rule.
+     */
+    private float fillHourBlockRect(int day, int hour, float slotHeight) {
+        final float left = computeDayLeftPosition(day) + HOUR_BLOCK_COLUMN_INSET;
+        final float right = computeDayLeftPosition(day + 1) - HOUR_BLOCK_COLUMN_INSET;
+        final float top = DayGridGeometry.hourBlockTop(hour, slotHeight, HOUR_BLOCK_INSET);
+        final float bottom = DayGridGeometry.hourBlockBottom(hour, slotHeight, HOUR_BLOCK_INSET);
+        mRectF.set(left, top, right, bottom);
+        return DayGridGeometry.hourBlockRadius(HOUR_BLOCK_RADIUS, right - left, bottom - top);
     }
 
     Event getSelectedEvent() {

@@ -417,4 +417,28 @@ public class DayGridGeometryTest {
         assertEquals(8f, DayGridGeometry.handleOutlineHoleRadius(radius, stroke), 0f);
         assertTrue(DayGridGeometry.handleFillHoleRadius(0.5f, 2f) >= 0f);
     }
+
+    @Test
+    public void futureStartYIsTheWholeColumnAfterToday() {
+        // A column after today is future from its top, so the whole column is masked.
+        assertEquals(Float.NEGATIVE_INFINITY, DayGridGeometry.futureStartY(2, 1, 300f), 0f);
+    }
+
+    @Test
+    public void futureStartYIsTheNowLineInTodaysColumn() {
+        assertEquals(300f, DayGridGeometry.futureStartY(1, 1, 300f), 0f);
+    }
+
+    @Test
+    public void futureStartYIsNoneForColumnsBeforeToday() {
+        assertEquals(Float.POSITIVE_INFINITY, DayGridGeometry.futureStartY(0, 1, 300f), 0f);
+    }
+
+    @Test
+    public void futureStartYHandlesTodayOutsideTheVisibleRange() {
+        // Today before the first visible column: every column is in the future.
+        assertEquals(Float.NEGATIVE_INFINITY, DayGridGeometry.futureStartY(0, -1, 300f), 0f);
+        // Today after the last visible column: nothing is masked.
+        assertEquals(Float.POSITIVE_INFINITY, DayGridGeometry.futureStartY(6, 9, 300f), 0f);
+    }
 }
