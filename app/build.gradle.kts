@@ -45,12 +45,9 @@ fun runGit(vararg args: String): String? = try {
 }
 
 // versionCode is the number of commits on the checked-out history. It only grows, so every
-// release is newer than the last. A shallow clone undercounts, so CI refuses to build from one.
-// Without git (a source archive), the build uses 1.
+// release is newer than the last. A shallow clone undercounts, so a release build refuses to start
+// from one (see the taskGraph check below). Without git (a source archive), the build uses 1.
 val isShallowClone = runGit("rev-parse", "--is-shallow-repository") == "true"
-if (isCi && isShallowClone) {
-	throw GradleException("CI build needs full git history for versionCode: use fetch-depth: 0.")
-}
 val appVersionCode: Int = runGit("rev-list", "--count", "HEAD")?.toIntOrNull() ?: 1
 // versionName is yyyyMMdd.<versionCode>; the VERSION_NAME environment variable overrides it.
 val appVersionName: String = System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() }
@@ -231,15 +228,25 @@ configure<GenerateBpPluginExtension> {
 
 // A release build must never be signed with the debug key in CI. Locally it falls back to the
 // debug key with a warning, so development builds keep working without the release secrets.
+// Only tasks that produce or sign a release package count. Test tasks such as testReleaseUnitTest
+// do not, so `./gradlew test` is not affected.
 gradle.taskGraph.whenReady {
-	val releaseRequested = allTasks.any { it.project.path == ":app" && it.name.contains("Release") }
-	if (releaseRequested && !releaseSigningReady) {
-		val missing = "KEYSTORE_FILE (existing file), KEYSTORE_PASS, KEY_ALIAS, KEY_PASS"
-		if (isCi) {
-			throw GradleException("Release build refused: signing environment incomplete. Need: $missing")
+	val packagesRelease = allTasks.any { task ->
+		task.project.path == ":app" && task.name.contains("Release") &&
+			listOf("assemble", "bundle", "package", "validateSigning", "install").any { task.name.startsWith(it) }
+	}
+	if (packagesRelease) {
+		if (isCi && isShallowClone) {
+			throw GradleException("Release build refused: versionCode needs full git history (fetch-depth: 0).")
 		}
-		logger.warn("WARNING: release signing environment incomplete ($missing). " +
-			"Local release build is signed with the DEBUG key. Do not distribute it.")
+		if (!releaseSigningReady) {
+			val missing = "KEYSTORE_FILE (existing file), KEYSTORE_PASS, KEY_ALIAS, KEY_PASS"
+			if (isCi) {
+				throw GradleException("Release build refused: signing environment incomplete. Need: $missing")
+			}
+			logger.warn("WARNING: release signing environment incomplete ($missing). " +
+				"Local release build is signed with the DEBUG key. Do not distribute it.")
+		}
 	}
 }
 
