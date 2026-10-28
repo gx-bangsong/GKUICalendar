@@ -764,7 +764,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         HOUR_BLOCK_INSET = mResources.getDimension(R.dimen.hour_block_inset);
         HOUR_BLOCK_COLUMN_INSET = mResources.getDimension(R.dimen.hour_block_column_inset);
         HOUR_BLOCK_RADIUS = mResources.getDimension(R.dimen.hour_block_corner_radius);
-        mNowLineColor = mResources.getColor(R.color.now_line_color);
         mNowLineThickness = mResources.getDimension(R.dimen.now_line_thickness);
         mNowDotRadius = mResources.getDimension(R.dimen.now_dot_radius);
         mNowDotInset = mResources.getDimension(R.dimen.now_dot_inset);
@@ -944,6 +943,9 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         mSelectedHourColor = (com.google.android.material.color.MaterialColors.getColor(mContext,
                 com.google.android.material.R.attr.colorPrimary, mCalendarGridAreaSelected)
                 & 0x00FFFFFF) | 0x33000000;
+        // Now line and its dot: theme primary, the same source as today's date circle.
+        mNowLineColor = com.google.android.material.color.MaterialColors.getColor(mContext,
+                com.google.android.material.R.attr.colorPrimary, mWeek_todayColor);
         // Date header: today is a filled theme-primary circle, selected is a primary outline.
         mDateTodayFill = com.google.android.material.color.MaterialColors.getColor(mContext,
                 com.google.android.material.R.attr.colorPrimary, mWeek_todayColor);

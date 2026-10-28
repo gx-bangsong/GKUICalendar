@@ -451,5 +451,4 @@
     <color name="agenda_selected_text_color_black">#FFE0F2F1</color>
 
     <!-- Current-time line and its dot in the day and week views. A plain red, not a Holo asset. -->
-    <color name="now_line_color">#FFDB4437</color>
 </resources>
