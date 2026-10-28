@@ -27,6 +27,17 @@ configurations.all {
 }
 
 
+// Release signing comes only from environment variables. ~/.gradle/gradle.properties is not read,
+// so a developer's local key cannot be used by CI by accident.
+val isCi = System.getenv("CI") == "true"
+val releaseKeystore: File? = System.getenv("KEYSTORE_FILE")?.takeIf { it.isNotBlank() }?.let { File(it) }
+val releaseStorePass: String? = System.getenv("KEYSTORE_PASS")?.takeIf { it.isNotEmpty() }
+val releaseKeyAlias: String? = System.getenv("KEY_ALIAS")?.takeIf { it.isNotEmpty() }
+val releaseKeyPass: String? = System.getenv("KEY_PASS")?.takeIf { it.isNotEmpty() }
+val releaseSigningReady: Boolean =
+	releaseKeystore?.isFile == true &&
+		releaseStorePass != null && releaseKeyAlias != null && releaseKeyPass != null
+
 android {
 	namespace = "ws.xsoh.etar"
 	testNamespace = "com.android.calendar.tests"
@@ -43,10 +54,29 @@ android {
 		testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 	}
 
+	signingConfigs {
+		create("release") {
+			if (releaseSigningReady) {
+				storeFile = releaseKeystore
+				storePassword = releaseStorePass
+				keyAlias = releaseKeyAlias
+				keyPassword = releaseKeyPass
+			}
+		}
+	}
+
 	buildTypes {
 		release {
 			// TODO: could be enabled for ProGuard minimization
 			isMinifyEnabled = false
+			isDebuggable = false
+			// Release key when the environment provides it. Otherwise the debug key, for local builds
+			// only: CI refuses to build release without the release key (see taskGraph check below).
+			signingConfig = if (releaseSigningReady) {
+				signingConfigs.getByName("release")
+			} else {
+				signingConfigs.getByName("debug")
+			}
 			resValue(
 				"string",
 				"search_authority",
@@ -74,40 +104,6 @@ android {
 		viewBinding = true
 	}
 
-	/*
-	 * To sign release build, create file gradle.properties in ~/.gradle/ with this content:
-	 *
-	 * signingStoreLocation=/home/key.store
-	 * signingStorePassword=xxx
-	 * signingKeyAlias=alias
-	 * signingKeyPassword=xxx
-	 */
-	val signingStoreLocation: String? by project
-	val signingStorePassword: String? by project
-	val signingKeyAlias: String? by project
-	val signingKeyPassword: String? by project
-
-	if (
-		signingStoreLocation != null &&
-		signingStorePassword != null &&
-		signingKeyAlias != null &&
-		signingKeyPassword != null
-	) {
-		println("Found sign properties in gradle.properties! Signing build…")
-
-		signingConfigs {
-			named("release").configure {
-				storeFile = File(signingStoreLocation!!)
-				storePassword = signingStorePassword
-				keyAlias = signingKeyAlias
-				keyPassword = signingKeyPassword
-			}
-		}
-
-		buildTypes.named("release").get().signingConfig = signingConfigs.named("release").get()
-	} else {
-		buildTypes.named("release").get().signingConfig = null
-	}
 
 	lint {
 		lintConfig = file("lint.xml")
@@ -202,6 +198,20 @@ configure<GenerateBpPluginExtension> {
 			module.group.startsWith("org.jetbrains") -> true
 			else -> false
 		}
+	}
+}
+
+// A release build must never be signed with the debug key in CI. Locally it falls back to the
+// debug key with a warning, so development builds keep working without the release secrets.
+gradle.taskGraph.whenReady {
+	val releaseRequested = allTasks.any { it.project.path == ":app" && it.name.contains("Release") }
+	if (releaseRequested && !releaseSigningReady) {
+		val missing = "KEYSTORE_FILE (existing file), KEYSTORE_PASS, KEY_ALIAS, KEY_PASS"
+		if (isCi) {
+			throw GradleException("Release build refused: signing environment incomplete. Need: $missing")
+		}
+		logger.warn("WARNING: release signing environment incomplete ($missing). " +
+			"Local release build is signed with the DEBUG key. Do not distribute it.")
 	}
 }
 
