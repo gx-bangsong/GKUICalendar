@@ -29,6 +29,10 @@ configurations.all {
 }
 
 
+// LineageOS built-in package (see upstream AndroidManifest package and src_aosp BuildConfig).
+// namespace stays ws.xsoh.etar, so R and BuildConfig keep their packages.
+val baseApplicationId = "org.lineageos.etar"
+
 // True on GitHub Actions and other CI runners that set CI=true.
 val isCi = System.getenv("CI") == "true"
 
@@ -73,9 +77,7 @@ android {
 		targetSdk = 34
 		versionCode = appVersionCode
 		versionName = appVersionName
-		// LineageOS built-in package (see upstream AndroidManifest package and src_aosp BuildConfig).
-		// namespace stays ws.xsoh.etar, so R and BuildConfig keep their packages.
-		applicationId = "org.lineageos.etar"
+		applicationId = baseApplicationId
 		testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 	}
 
@@ -108,7 +110,7 @@ android {
 				defaultConfig.applicationId + ".CalendarRecentSuggestionsProvider"
 			)
 			// shortcuts.xml cannot interpolate ${applicationId}; it reads this string instead.
-			resValue("string", "shortcut_target_package", defaultConfig.applicationId)
+			resValue("string", "shortcut_target_package", baseApplicationId)
 		}
 
 		debug {
@@ -120,7 +122,7 @@ android {
 				"search_authority",
 				defaultConfig.applicationId + ".debug.CalendarRecentSuggestionsProvider"
 			)
-			resValue("string", "shortcut_target_package", defaultConfig.applicationId + ".debug")
+			resValue("string", "shortcut_target_package", baseApplicationId + ".debug")
 		}
 	}
 
