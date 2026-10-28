@@ -37,7 +37,9 @@ android {
 		targetSdk = 34
 		versionCode = 51
 		versionName = "1.0.51"
-		applicationId = "ws.xsoh.etar"
+		// LineageOS built-in package (see upstream AndroidManifest package and src_aosp BuildConfig).
+		// namespace stays ws.xsoh.etar, so R and BuildConfig keep their packages.
+		applicationId = "org.lineageos.etar"
 		testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 	}
 
@@ -50,6 +52,8 @@ android {
 				"search_authority",
 				defaultConfig.applicationId + ".CalendarRecentSuggestionsProvider"
 			)
+			// shortcuts.xml cannot interpolate ${applicationId}; it reads this string instead.
+			resValue("string", "shortcut_target_package", defaultConfig.applicationId)
 		}
 
 		debug {
@@ -61,6 +65,7 @@ android {
 				"search_authority",
 				defaultConfig.applicationId + ".debug.CalendarRecentSuggestionsProvider"
 			)
+			resValue("string", "shortcut_target_package", defaultConfig.applicationId + ".debug")
 		}
 	}
 

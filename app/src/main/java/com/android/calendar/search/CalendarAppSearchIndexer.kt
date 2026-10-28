@@ -38,13 +38,13 @@ internal object CalendarAppSearchIndexer {
     const val LOG_TAG = "CalendarAppSearchIndexer"
 
     /** AppSearch database name for this app's calendar index. */
-    const val DATABASE_NAME = "ws.xsoh.etar.events"
+    const val DATABASE_NAME = "org.lineageos.etar.events"
 
     /** Schema type for indexed calendar events. */
     const val EVENTS_SCHEMA_TYPE = "CalendarEvent"
 
     /** Namespace for indexed calendar event documents. */
-    const val EVENTS_NAMESPACE = "ws.xsoh.etar.events"
+    const val EVENTS_NAMESPACE = "org.lineageos.etar.events"
 
     // Property names. Document id/namespace/schemaType are GenericDocument metadata
     // and are deliberately NOT modelled as schema properties.
