@@ -3,6 +3,8 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.lineageos.generatebp.GenerateBpPluginExtension
 import org.lineageos.generatebp.models.Module
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 plugins {
     alias(libs.plugins.android.application)
@@ -27,9 +29,35 @@ configurations.all {
 }
 
 
+// True on GitHub Actions and other CI runners that set CI=true.
+val isCi = System.getenv("CI") == "true"
+
+// Runs git in the repository root. Returns trimmed stdout, or null when git fails.
+fun runGit(vararg args: String): String? = try {
+	val process = ProcessBuilder(listOf("git") + args.toList())
+		.directory(rootProject.projectDir)
+		.redirectErrorStream(true)
+		.start()
+	val out = process.inputStream.bufferedReader().use { it.readText() }.trim()
+	if (process.waitFor() == 0) out else null
+} catch (e: Exception) {
+	null
+}
+
+// versionCode is the number of commits on the checked-out history. It only grows, so every
+// release is newer than the last. A shallow clone undercounts, so CI refuses to build from one.
+// Without git (a source archive), the build uses 1.
+val isShallowClone = runGit("rev-parse", "--is-shallow-repository") == "true"
+if (isCi && isShallowClone) {
+	throw GradleException("CI build needs full git history for versionCode: use fetch-depth: 0.")
+}
+val appVersionCode: Int = runGit("rev-list", "--count", "HEAD")?.toIntOrNull() ?: 1
+// versionName is yyyyMMdd.<versionCode>; the VERSION_NAME environment variable overrides it.
+val appVersionName: String = System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() }
+	?: "${LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"))}.$appVersionCode"
+
 // Release signing comes only from environment variables. ~/.gradle/gradle.properties is not read,
 // so a developer's local key cannot be used by CI by accident.
-val isCi = System.getenv("CI") == "true"
 val releaseKeystore: File? = System.getenv("KEYSTORE_FILE")?.takeIf { it.isNotBlank() }?.let { File(it) }
 val releaseStorePass: String? = System.getenv("KEYSTORE_PASS")?.takeIf { it.isNotEmpty() }
 val releaseKeyAlias: String? = System.getenv("KEY_ALIAS")?.takeIf { it.isNotEmpty() }
@@ -46,8 +74,8 @@ android {
 	defaultConfig {
 		minSdk = 23
 		targetSdk = 34
-		versionCode = 51
-		versionName = "1.0.51"
+		versionCode = appVersionCode
+		versionName = appVersionName
 		// LineageOS built-in package (see upstream AndroidManifest package and src_aosp BuildConfig).
 		// namespace stays ws.xsoh.etar, so R and BuildConfig keep their packages.
 		applicationId = "org.lineageos.etar"
