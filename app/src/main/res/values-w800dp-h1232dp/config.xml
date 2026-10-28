@@ -23,5 +23,5 @@
     <bool name="agenda_show_event_info_full_screen">false</bool>
     <!-- when on, event info launched from day/week/month view is shown in full screen, -->
     <!-- when off, shown as a popup. -->
-    <bool name="show_event_info_full_screen">false</bool>
+    <bool name="show_event_info_full_screen">true</bool>
 </resources>

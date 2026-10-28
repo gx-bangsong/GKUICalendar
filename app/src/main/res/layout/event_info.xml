@@ -49,6 +49,7 @@
         android:animateLayoutChanges="true"
         android:clipToPadding="false"
         android:fadingEdge="none"
+        android:fillViewport="true"
         android:orientation="vertical">
 
         <LinearLayout

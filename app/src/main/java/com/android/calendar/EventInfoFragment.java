@@ -804,6 +804,10 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
         }
 
         mScrollView = (ScrollView) mView.findViewById(R.id.event_info_scroll_view);
+        if (mScrollView != null) {
+            mScrollView.addOnLayoutChangeListener(
+                    (v, l, t, r, b, ol, ot, or, ob) -> fillPanelToViewport());
+        }
         if (mWindowStyle != DIALOG_WINDOW_STYLE) {
             setUpFullScreenChrome();
         }
@@ -877,7 +881,7 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
                     return;
                 }
                 mDeleteHelper =
-                        new DeleteEventHelper(mContext, mActivity, !mIsDialog && !mIsTabletConfig /* exitWhenDone */);
+                        new DeleteEventHelper(mContext, mActivity, !mIsDialog && !isTabletPane() /* exitWhenDone */);
                 mDeleteHelper.setDeleteNotificationListener(EventInfoFragment.this);
                 mDeleteHelper.setOnDismissListener(createDeleteOnDismissListener());
                 mDeleteDialogVisible = true;
@@ -897,7 +901,7 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
         });
 
         // Hide Edit/Delete buttons if in full screen mode on a phone
-        if (!mIsDialog && !mIsTabletConfig || mWindowStyle == EventInfoFragment.FULL_WINDOW_STYLE) {
+        if (!mIsDialog && !isTabletPane() || mWindowStyle == EventInfoFragment.FULL_WINDOW_STYLE) {
             mView.findViewById(R.id.event_info_buttons_container).setVisibility(View.GONE);
         }
 
@@ -2095,7 +2099,7 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
                         if (mIsDialog) {
                             EventInfoFragment.this.dismiss();
                         }
-                        else if (!mIsTabletConfig){
+                        else if (!isTabletPane()) {
                             getActivity().finish();
                         }
                     }
@@ -2116,7 +2120,7 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
                     button.setVisibility(View.VISIBLE);
                 }
             }
-            if ((!mIsDialog && !mIsTabletConfig ||
+            if ((!mIsDialog && !isTabletPane() ||
                     mWindowStyle == EventInfoFragment.FULL_WINDOW_STYLE) && mMenu != null) {
                 mActivity.invalidateOptionsMenu();
             }
@@ -2195,6 +2199,40 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
      * Full-screen page only: wires the floating back button and the more menu, and applies the
      * window insets. The dialog and pane hosts keep their own buttons and do not call this.
      */
+    /**
+     * Whether this page sits in a tablet pane, where it is a side panel that closes when the event
+     * is deleted. A full-window page on a large screen is a normal reading page and behaves like a
+     * phone page, so it is not treated as a pane.
+     */
+    private boolean isTabletPane() {
+        return mIsTabletConfig && mWindowStyle != FULL_WINDOW_STYLE;
+    }
+
+    /**
+     * Full-window content shorter than the viewport: the panel still runs to the bottom edge, so
+     * no band of the background shows under it. Only the full-window layout has the header and
+     * panel ids; the dialog host returns early.
+     */
+    private void fillPanelToViewport() {
+        if (mView == null || mScrollView == null) {
+            return;
+        }
+        View header = mView.findViewById(R.id.event_info_header);
+        View panel = mView.findViewById(R.id.event_info_panel);
+        if (header == null || panel == null) {
+            return;
+        }
+        final int viewport = mScrollView.getHeight() - mScrollView.getPaddingTop()
+                - mScrollView.getPaddingBottom();
+        final ViewGroup.LayoutParams lp = panel.getLayoutParams();
+        final int overlap = lp instanceof ViewGroup.MarginLayoutParams
+                ? ((ViewGroup.MarginLayoutParams) lp).topMargin : 0;
+        final int min = Math.max(0, viewport - header.getHeight() - overlap);
+        if (panel.getMinimumHeight() != min) {
+            panel.setMinimumHeight(min);
+        }
+    }
+
     private void setUpFullScreenChrome() {
         View back = mView.findViewById(R.id.event_info_nav_back);
         if (back != null) {
@@ -2554,7 +2592,7 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
         if (mDeleteDialogVisible) {
             mDeleteHelper = new DeleteEventHelper(
                     mContext, mActivity,
-                    !mIsDialog && !mIsTabletConfig /* exitWhenDone */);
+                    !mIsDialog && !isTabletPane() /* exitWhenDone */);
             mDeleteHelper.setOnDismissListener(createDeleteOnDismissListener());
             mDeleteHelper.delete(mStartMillis, mEndMillis, mEventId, -1, onDeleteRunnable);
         } else if (mTentativeUserSetResponse != Attendees.ATTENDEE_STATUS_NONE) {
