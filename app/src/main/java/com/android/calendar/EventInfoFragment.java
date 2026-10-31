@@ -32,6 +32,7 @@ import android.app.Service;
 import android.content.ActivityNotFoundException;
 import android.content.ContentProviderOperation;
 import android.content.ContentResolver;
+import android.app.DatePickerDialog;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
@@ -47,6 +48,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -70,6 +72,7 @@ import android.text.style.ForegroundColorSpan;
 import android.text.util.Rfc822Token;
 import android.util.Log;
 import android.util.SparseArray;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -85,10 +88,10 @@ import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityManager;
 import android.widget.AdapterView;
-import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
+import android.widget.PopupMenu;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.RadioGroup.OnCheckedChangeListener;
@@ -100,6 +103,11 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.core.graphics.ColorUtils;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.core.content.FileProvider;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.FragmentManager;
@@ -123,6 +131,8 @@ import com.android.calendar.settings.GeneralPreferences;
 import com.android.calendar.calendarcommon2.DateException;
 import com.android.calendar.calendarcommon2.Duration;
 import com.android.calendar.calendarcommon2.EventRecurrence;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+
 import com.android.calendar.calendarcommon2.Time;
 import com.android.calendar.colorpicker.ColorPickerSwatch.OnColorSelectedListener;
 import com.android.calendar.colorpicker.HsvColorComparator;
@@ -392,7 +402,6 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
     private AttendeesView mLongAttendees;
     private Button emailAttendeesButton;
     private Menu mMenu = null;
-    private View mHeadlines;
     private ScrollView mScrollView;
     private View mLoadingMsgView;
     private View mErrorMsgView;
@@ -437,7 +446,7 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
     private ArrayList<Integer> mReminderMethodValues;
     private ArrayList<String> mReminderMethodLabels;
     private QueryHandler mHandler;
-    private OnItemSelectedListener mReminderChangeListener;
+    private EventViewUtils.ReminderChangeListener mReminderChangeListener;
     private boolean mIsDialog = false;
     private boolean mIsPaused = true;
     private boolean mDismissOnResume = false;
@@ -578,21 +587,12 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
-        mReminderChangeListener = new OnItemSelectedListener() {
+        mReminderChangeListener = new EventViewUtils.ReminderChangeListener() {
             @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                Integer prevValue = (Integer) parent.getTag();
-                if (prevValue == null || prevValue != position) {
-                    parent.setTag(position);
-                    mUserModifiedReminders = true;
-                }
+            public void onReminderChanged() {
+                // Only reported for real changes; see ExposedDropdownField.
+                mUserModifiedReminders = true;
             }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-                // do nothing
-            }
-
         };
 
         if (savedInstanceState != null) {
@@ -804,6 +804,13 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
         }
 
         mScrollView = (ScrollView) mView.findViewById(R.id.event_info_scroll_view);
+        if (mScrollView != null) {
+            mScrollView.addOnLayoutChangeListener(
+                    (v, l, t, r, b, ol, ot, or, ob) -> fillPanelToViewport());
+        }
+        if (mWindowStyle != DIALOG_WINDOW_STYLE) {
+            setUpFullScreenChrome();
+        }
         mLoadingMsgView = mView.findViewById(R.id.event_info_loading_msg);
         mErrorMsgView = mView.findViewById(R.id.event_info_error_msg);
         mTitle = (TextView) mView.findViewById(R.id.title);
@@ -815,7 +822,6 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
 
         mDesc =  mView.findViewById(R.id.description);
         mUrl =  mView.findViewById(R.id.url);
-        mHeadlines = mView.findViewById(R.id.event_info_headline);
         mLongAttendees = (AttendeesView) mView.findViewById(R.id.long_attendee_list);
 
         mResponseRadioGroup = (RadioGroup) mView.findViewById(R.id.response_value);
@@ -875,7 +881,7 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
                     return;
                 }
                 mDeleteHelper =
-                        new DeleteEventHelper(mContext, mActivity, !mIsDialog && !mIsTabletConfig /* exitWhenDone */);
+                        new DeleteEventHelper(mContext, mActivity, !mIsDialog && !isTabletPane() /* exitWhenDone */);
                 mDeleteHelper.setDeleteNotificationListener(EventInfoFragment.this);
                 mDeleteHelper.setOnDismissListener(createDeleteOnDismissListener());
                 mDeleteDialogVisible = true;
@@ -895,7 +901,7 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
         });
 
         // Hide Edit/Delete buttons if in full screen mode on a phone
-        if (!mIsDialog && !mIsTabletConfig || mWindowStyle == EventInfoFragment.FULL_WINDOW_STYLE) {
+        if (!mIsDialog && !isTabletPane() || mWindowStyle == EventInfoFragment.FULL_WINDOW_STYLE) {
             mView.findViewById(R.id.event_info_buttons_container).setVisibility(View.GONE);
         }
 
@@ -920,6 +926,29 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
             }
         };
         reminderAddButton.setOnClickListener(addReminderOnClickListener);
+
+        // Smartisan-style quick reschedule card, shown in the body rather than
+        // buried in the overflow menu. Visibility is settled in updateMenu()
+        // once we know whether the event repeats / can be modified.
+        View rescheduleButton = mView.findViewById(R.id.reschedule_button);
+        if (rescheduleButton != null) {
+            // Tap does the common case straight away, like Smartisan.
+            rescheduleButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    rescheduleToJulianDay(todayJulianDay());
+                }
+            });
+            // Long-press reveals the other offsets and the date picker.
+            rescheduleButton.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    showRescheduleDialog();
+                    return true;
+                }
+            });
+        }
+        updateRescheduleButton();
 
         // Set reminders variables
 
@@ -1095,12 +1124,8 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
-        // Show color/edit/delete buttons only in non-dialog configuration
-        if (!mIsDialog && !mIsTabletConfig || mWindowStyle == EventInfoFragment.FULL_WINDOW_STYLE) {
-            inflater.inflate(R.menu.event_info_title_bar, menu);
-            mMenu = menu;
-            updateMenu();
-        }
+        // The full-screen page has no toolbar. Its actions are the floating action bar and the
+        // more menu (see setUpFullScreenChrome and showMoreMenu), so nothing is inflated here.
     }
 
     @Override
@@ -1120,8 +1145,7 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
 
         final int itemId = item.getItemId();
         if (itemId == android.R.id.home) {
-            Utils.returnToCalendarHome(mContext);
-            mActivity.finish();
+            navigateUp();
             return true;
         } else if (itemId == R.id.info_action_edit) {
             doEdit();
@@ -1141,8 +1165,195 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
             shareEvent(ShareType.SDCARD);
         } else if (itemId == R.id.info_action_duplicate) {
             duplicateEvent();
+        } else if (itemId == R.id.info_action_reschedule) {
+            showRescheduleDialog();
         }
         return super.onOptionsItemSelected(item);
+    }
+
+
+    /**
+     * Smartisan-style quick reschedule: shift the event to today, nudge it a
+     * day either way, or pick an exact date. The event keeps its time of day
+     * and duration; only the date moves.
+     *
+     * Recurring events are not offered, because moving a single instance
+     * needs an exception row rather than a plain UPDATE of the series.
+     */
+    private void showRescheduleDialog() {
+        final CharSequence[] items = new CharSequence[] {
+                getString(R.string.reschedule_today),
+                getString(R.string.reschedule_tomorrow),
+                getString(R.string.reschedule_yesterday),
+                getString(R.string.reschedule_next_week),
+                getString(R.string.reschedule_pick_date),
+        };
+        new MaterialAlertDialogBuilder(mContext)
+                .setTitle(R.string.reschedule_label)
+                .setItems(items, (dialog, which) -> {
+                    switch (which) {
+                        case 0: rescheduleToJulianDay(todayJulianDay()); break;
+                        case 1: rescheduleByDays(1); break;
+                        case 2: rescheduleByDays(-1); break;
+                        case 3: rescheduleByDays(7); break;
+                        default: showReschedulePicker(); break;
+                    }
+                })
+                .show();
+    }
+
+    private int todayJulianDay() {
+        String tz = Utils.getTimeZone(mContext, null);
+        Time t = new Time(tz);
+        long now = System.currentTimeMillis();
+        t.set(now);
+        return Time.getJulianDay(now, t.getGmtOffset());
+    }
+
+    /** Julian day the event currently starts on. */
+    private int currentJulianDay() {
+        String tz = mAllDay ? Time.TIMEZONE_UTC : Utils.getTimeZone(mContext, null);
+        Time t = new Time(tz);
+        t.set(mStartMillis);
+        return Time.getJulianDay(mStartMillis, t.getGmtOffset());
+    }
+
+    private void showReschedulePicker() {
+        String tz = mAllDay ? Time.TIMEZONE_UTC : Utils.getTimeZone(mContext, null);
+        Time t = new Time(tz);
+        t.set(mStartMillis);
+        new DatePickerDialog(mContext, (view, year, month, dayOfMonth) -> {
+            Time picked = new Time(tz);
+            picked.set(mStartMillis);
+            picked.setYear(year);
+            picked.setMonth(month);
+            picked.setDay(dayOfMonth);
+            long millis = picked.normalize();
+            rescheduleByDays(Time.getJulianDay(millis, picked.getGmtOffset())
+                    - currentJulianDay());
+        }, t.getYear(), t.getMonth(), t.getDay()).show();
+    }
+
+    private void rescheduleToJulianDay(int targetJulianDay) {
+        rescheduleByDays(targetJulianDay - currentJulianDay());
+    }
+
+    /**
+     * Shifts start and end by whole days, preserving time-of-day and duration
+     * across DST boundaries by re-normalizing through {@link Time} rather than
+     * adding a fixed number of milliseconds.
+     */
+    private void rescheduleByDays(int deltaDays) {
+        if (deltaDays == 0) {
+            Toast.makeText(mContext, R.string.reschedule_unchanged,
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String tz = mAllDay ? Time.TIMEZONE_UTC : Utils.getTimeZone(mContext, null);
+        long duration = mEndMillis - mStartMillis;
+
+        Time start = new Time(tz);
+        start.set(mStartMillis);
+        start.setDay(start.getDay() + deltaDays);
+        long newStart = start.normalize();
+
+        Time end = new Time(tz);
+        end.set(mEndMillis);
+        end.setDay(end.getDay() + deltaDays);
+        long newEnd = end.normalize();
+        if (newEnd <= newStart) {
+            // Fall back to preserving the raw duration if normalization
+            // collapsed the range (can happen across a DST spring-forward).
+            newEnd = newStart + duration;
+        }
+
+        if (mIsRepeating) {
+            // Ask whether to move just this occurrence or the whole series,
+            // mirroring the edit/delete flows.
+            promptRescheduleScope(newStart, newEnd);
+        } else {
+            applyRescheduleAll(newStart, newEnd);
+        }
+    }
+
+    /**
+     * Recurring events are ambiguous: moving "the event" could mean this one
+     * occurrence or every one of them. Let the user say which.
+     */
+    private void promptRescheduleScope(final long newStart, final long newEnd) {
+        final CharSequence[] scopes = new CharSequence[] {
+                getString(R.string.modify_event),
+                getString(R.string.modify_all),
+        };
+        new MaterialAlertDialogBuilder(mContext)
+                .setTitle(R.string.reschedule_label)
+                .setItems(scopes, (dialog, which) -> {
+                    if (which == 0) {
+                        applyRescheduleSingleInstance(newStart, newEnd);
+                    } else {
+                        applyRescheduleAll(newStart, newEnd);
+                    }
+                })
+                .show();
+    }
+
+    /**
+     * Moves every occurrence by rewriting the master event's DTSTART/DTEND.
+     */
+    private void applyRescheduleAll(long newStart, long newEnd) {
+        ContentValues values = new ContentValues();
+        values.put(Events.DTSTART, newStart);
+        values.put(Events.DTEND, newEnd);
+        Uri uri = ContentUris.withAppendedId(Events.CONTENT_URI, mEventId);
+        mHandler.startUpdate(mHandler.getNextToken(), null, uri, values,
+                null, null, Utils.UNDO_DELAY);
+        finishReschedule(newStart, newEnd);
+    }
+
+    /**
+     * Moves a single occurrence by inserting an exception row keyed on the
+     * instance's original start time. The provider detaches that instance from
+     * the series and leaves the remaining occurrences untouched.
+     */
+    private void applyRescheduleSingleInstance(long newStart, long newEnd) {
+        ContentValues values = new ContentValues();
+        values.put(Events.ORIGINAL_INSTANCE_TIME, mStartMillis);
+        // The provider matches the exception back to its parent occurrence
+        // using the sync id + original all-day flag. Without these it cannot
+        // cancel the original instance, so the old and moved copies both
+        // render - the duplicate-event bug.
+        String syncId = mEventCursor != null
+                ? mEventCursor.getString(EVENT_INDEX_SYNC_ID) : null;
+        if (!TextUtils.isEmpty(syncId)) {
+            values.put(Events.ORIGINAL_SYNC_ID, syncId);
+        }
+        values.put(Events.ORIGINAL_ALL_DAY, mAllDay ? 1 : 0);
+        values.put(Events.DTSTART, newStart);
+        values.put(Events.DTEND, newEnd);
+        values.put(Events.STATUS, Events.STATUS_CONFIRMED);
+        values.put(Events.ALL_DAY, mAllDay ? 1 : 0);
+        // An exception must not carry the series' recurrence rule.
+        values.putNull(Events.RRULE);
+        values.putNull(Events.DURATION);
+        values.put(Events.EVENT_TIMEZONE,
+                mAllDay ? Time.TIMEZONE_UTC : Utils.getTimeZone(mContext, null));
+
+        ArrayList<ContentProviderOperation> ops = new ArrayList<ContentProviderOperation>();
+        Uri exceptionUri = Uri.withAppendedPath(Events.CONTENT_EXCEPTION_URI,
+                String.valueOf(mEventId));
+        ops.add(ContentProviderOperation.newInsert(exceptionUri).withValues(values).build());
+        mHandler.startBatch(mHandler.getNextToken(), null, CalendarContract.AUTHORITY, ops,
+                Utils.UNDO_DELAY);
+        finishReschedule(newStart, newEnd);
+    }
+
+    private void finishReschedule(long newStart, long newEnd) {
+        mStartMillis = newStart;
+        mEndMillis = newEnd;
+        Toast.makeText(mContext, R.string.reschedule_done, Toast.LENGTH_SHORT).show();
+        if (mActivity != null) {
+            mActivity.finish();
+        }
     }
 
     /**
@@ -1550,8 +1761,6 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
         String description = mEventCursor.getString(EVENT_INDEX_DESCRIPTION);
         String rRule = mEventCursor.getString(EVENT_INDEX_RRULE);
 
-        mHeadlines.setBackgroundColor(mCurrentColor);
-
         // What
         if (eventName != null) {
             String customAppUri = mEventCursor.getString(EVENT_INDEX_CUSTOM_APP_URI);
@@ -1562,7 +1771,14 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
                 long now = System.currentTimeMillis();
                 String extraInfo = "";
                 if (com.android.calendar.event.EventExtraUtils.EVENT_TYPE_ANNIVERSARY.equals(eventType) || com.android.calendar.event.EventExtraUtils.EVENT_TYPE_BIRTHDAY.equals(eventType)) {
-                    extraInfo = com.android.calendar.event.EventExtraUtils.getAnniversaryDisplayString(context, mStartMillis, now);
+                    // Anniversaries recur yearly, so mStartMillis is *this*
+                    // year's occurrence. Use the series DTSTART - the original
+                    // date - or the elapsed year count is always zero.
+                    long originalStart = mEventCursor.getLong(EVENT_INDEX_DTSTART);
+                    if (originalStart <= 0) {
+                        originalStart = mStartMillis;
+                    }
+                    extraInfo = com.android.calendar.event.EventExtraUtils.getAnniversaryDisplayString(context, originalStart, now);
                 } else if (com.android.calendar.event.EventExtraUtils.EVENT_TYPE_COUNTDOWN.equals(eventType)) {
                     extraInfo = com.android.calendar.event.EventExtraUtils.getCountdownDisplayString(context, mStartMillis, now);
                 }
@@ -1598,25 +1814,23 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
                     eventRecurrence, true);
         }
         if (repeatString == null) {
-            mWhenRepeat.setVisibility(View.GONE);
+            setVisibilityCommon(view, R.id.repeat_row, View.GONE);
         } else {
             setTextCommon(view, R.id.when_repeat, repeatString);
+            setVisibilityCommon(view, R.id.repeat_row, View.VISIBLE);
         }
 
         // Organizer view is setup in the updateCalendar method
 
 
         // Where
-        if (location == null || location.trim().length() == 0) {
-            setVisibilityCommon(view, R.id.where, View.GONE);
+        if (!EventInfoRules.hasText(location)) {
+            setVisibilityCommon(view, R.id.where_row, View.GONE);
         } else {
+            setVisibilityCommon(view, R.id.where_row, View.VISIBLE);
             final TextView textView = mWhere;
             if (textView != null) {
                 textView.setAutoLinkMask(0);
-                final int textColor = Utils.getAdaptiveTextColor(context,
-                        getResources().getColor(R.color.event_info_headline_color), mCurrentColor);
-                textView.setTextColor(textColor);
-                textView.setLinkTextColor(textColor);
                 textView.setText(location.trim());
                 try {
                     textView.setText(Utils.extendedLinkify(textView.getText().toString(), true));
@@ -1650,8 +1864,9 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
         }
 
         // Description
-        if (description != null && description.length() != 0) {
+        if (EventInfoRules.hasText(description)) {
             mDesc.setText(description);
+            setVisibilityCommon(view, R.id.description_row, View.VISIBLE);
         }
 
         // Launch Custom App
@@ -1664,6 +1879,7 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
         // Url
         if (mEventUrl != null && !mEventUrl.isBlank()) {
             mUrl.setText(mEventUrl);
+            setVisibilityCommon(mView, R.id.url_row, View.VISIBLE);
         }
     }
 
@@ -1681,43 +1897,33 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
             displayedTimezone = Utils.getDisplayedTimezone(mStartMillis, localTimezone,
                     mEventCursor.getString(EVENT_INDEX_EVENT_TIMEZONE));
         }
-        // Display the datetime.  Make the timezone (if any) transparent.
+        // The date and time on the first row. The time zone has a row of its own below it, and
+        // that row is hidden when there is no zone to show.
+        setTextCommon(view, R.id.when_datetime, displayedDatetime);
         if (displayedTimezone == null) {
-            setTextCommon(view, R.id.when_datetime, displayedDatetime);
+            setVisibilityCommon(view, R.id.timezone_row, View.GONE);
         } else {
-            int timezoneIndex = displayedDatetime.length();
-            displayedDatetime += "  " + displayedTimezone;
-            SpannableStringBuilder sb = new SpannableStringBuilder(displayedDatetime);
-            ForegroundColorSpan transparentColorSpan = new ForegroundColorSpan(
-                    Utils.getAdaptiveTextColor(context,
-                            context.getResources().getColor(R.color.event_info_headline_transparent_color), mCurrentColor));
-            sb.setSpan(transparentColorSpan, timezoneIndex, displayedDatetime.length(),
-                    Spannable.SPAN_INCLUSIVE_INCLUSIVE);
-            setTextCommon(view, R.id.when_datetime, sb);
+            setTextCommon(view, R.id.when_timezone, displayedTimezone);
+            setVisibilityCommon(view, R.id.timezone_row, View.VISIBLE);
         }
     }
 
+    /**
+     * The headline sits on the surface, so text and icons keep the theme colours and the event
+     * colour is shown only as one marker bar. The colour is the resolved event colour, which
+     * already falls back to the calendar colour.
+     */
     private void updateAdaptiveTextAndIconColors() {
-        if (Utils.getSharedPreference(mContext, GeneralPreferences.KEY_REAL_EVENT_COLORS, false)) {
-            // TextViews
-            int color = Utils.getAdaptiveTextColor(mContext,
-                    mContext.getResources().getColor(R.color.event_info_headline_color), mCurrentColor);
-
-            mWhenDateTime.setTextColor(color);
-            mTitle.setTextColor(color);
-            mWhere.setTextColor(color);
-            mWhenRepeat.setTextColor(color);
-            color = Utils.getAdaptiveTextColor(mContext,
-                    mContext.getResources().getColor(R.color.event_info_headline_link_color), mCurrentColor);
-            mWhere.setLinkTextColor(color);
-
-            // Icons on Tablet
-            if (mWindowStyle == DIALOG_WINDOW_STYLE) {
-                color = Utils.getAdaptiveTextColor(mContext, Color.WHITE, mCurrentColor);
-                ((ImageButton) mView.findViewById(R.id.edit)).setColorFilter(color);
-                ((ImageButton) mView.findViewById(R.id.delete)).setColorFilter(color);
-                ((ImageButton) mView.findViewById(R.id.change_color)).setColorFilter(color);
-            }
+        if (mView == null || !EventInfoRules.hasColorMarker(mCurrentColor)) {
+            return;
+        }
+        View marker = mView.findViewById(R.id.event_info_color_marker);
+        if (marker != null) {
+            GradientDrawable mark = new GradientDrawable();
+            mark.setShape(GradientDrawable.RECTANGLE);
+            mark.setCornerRadius(getResources().getDimension(R.dimen.event_info_color_marker_radius));
+            mark.setColor(mCurrentColor);
+            marker.setBackground(mark);
         }
     }
 
@@ -1873,16 +2079,16 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
                 setVisibilityCommon(view, R.id.organizer_container, View.GONE);
             }
             mHasAttendeeData = mEventCursor.getInt(EVENT_INDEX_HAS_ATTENDEE_DATA) != 0;
-            mCanModifyCalendar = mEventCursor.getInt(EVENT_INDEX_CALENDAR_ACCESS_LEVEL)
-                    >= Calendars.CAL_ACCESS_CONTRIBUTOR;
+            mCanModifyCalendar = EventInfoRules.canModifyCalendar(
+                    mEventCursor.getInt(EVENT_INDEX_CALENDAR_ACCESS_LEVEL));
             // TODO add "|| guestCanModify" after b/1299071 is fixed
-            mCanModifyEvent = mCanModifyCalendar && mIsOrganizer;
+            mCanModifyEvent = EventInfoRules.canModifyEvent(mCanModifyCalendar, mIsOrganizer);
             mIsBusyFreeCalendar =
                     mEventCursor.getInt(EVENT_INDEX_CALENDAR_ACCESS_LEVEL) == Calendars.CAL_ACCESS_FREEBUSY;
 
             if (!mIsBusyFreeCalendar) {
 
-                View b = mView.findViewById(R.id.edit);
+                View b = findEditAction();
                 b.setEnabled(true);
                 b.setOnClickListener(new OnClickListener() {
                     @Override
@@ -1893,7 +2099,7 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
                         if (mIsDialog) {
                             EventInfoFragment.this.dismiss();
                         }
-                        else if (!mIsTabletConfig){
+                        else if (!isTabletPane()) {
                             getActivity().finish();
                         }
                     }
@@ -1908,16 +2114,19 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
                 }
             }
             if (mCanModifyEvent) {
-                button = mView.findViewById(R.id.edit);
+                button = findEditAction();
                 if (button != null) {
                     button.setEnabled(true);
                     button.setVisibility(View.VISIBLE);
                 }
             }
-            if ((!mIsDialog && !mIsTabletConfig ||
+            if ((!mIsDialog && !isTabletPane() ||
                     mWindowStyle == EventInfoFragment.FULL_WINDOW_STYLE) && mMenu != null) {
                 mActivity.invalidateOptionsMenu();
             }
+            // The card lives in the body, so refresh it even when there is no
+            // options menu to invalidate (dialog / tablet pane).
+            updateRescheduleButton();
         } else {
             setVisibilityCommon(view, R.id.calendar, View.GONE);
             sendAccessibilityEventIfQueryDone(TOKEN_QUERY_DUPLICATE_CALENDARS);
@@ -1927,13 +2136,40 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
     /**
      *
      */
+    /**
+     * The quick-reschedule card only makes sense for a one-off event on a
+     * writable calendar; a plain UPDATE on a recurring event would silently
+     * move the whole series.
+     */
+    private void updateRescheduleButton() {
+        if (mView == null) {
+            return;
+        }
+        View rescheduleButton = mView.findViewById(R.id.reschedule_button);
+        if (rescheduleButton == null) {
+            return;
+        }
+        boolean show = EventInfoRules.showReschedule(mCanModifyEvent, mEventId);
+        rescheduleButton.setVisibility(show ? View.VISIBLE : View.GONE);
+    }
+
     private void updateMenu() {
+        updateRescheduleButton();
         if (mMenu == null) {
             return;
         }
-        MenuItem delete = mMenu.findItem(R.id.info_action_delete);
-        MenuItem edit = mMenu.findItem(R.id.info_action_edit);
-        MenuItem changeColor = mMenu.findItem(R.id.info_action_change_color);
+        applyActionPermissions(mMenu);
+    }
+
+    /**
+     * Applies the permission rules to a menu of the event actions. The same rules serve the
+     * full-screen more menu (a fresh PopupMenu) and any options menu that is still attached.
+     */
+    private void applyActionPermissions(Menu menu) {
+        MenuItem delete = menu.findItem(R.id.info_action_delete);
+        MenuItem edit = menu.findItem(R.id.info_action_edit);
+        MenuItem changeColor = menu.findItem(R.id.info_action_change_color);
+        MenuItem reschedule = menu.findItem(R.id.info_action_reschedule);
         if (delete != null) {
             delete.setVisible(mCanModifyCalendar);
             delete.setEnabled(mCanModifyCalendar);
@@ -1946,6 +2182,148 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
             changeColor.setVisible(mCanModifyCalendar);
             changeColor.setEnabled(mCanModifyCalendar);
         }
+        if (reschedule != null) {
+            boolean show = EventInfoRules.showReschedule(mCanModifyEvent, mEventId);
+            reschedule.setVisible(show);
+            reschedule.setEnabled(show);
+        }
+    }
+
+    /** The edit action of this page: the floating action on full screen, else the headline one. */
+    private View findEditAction() {
+        View floating = mView.findViewById(R.id.event_info_action_edit);
+        return floating != null ? floating : mView.findViewById(R.id.edit);
+    }
+
+    /**
+     * Full-screen page only: wires the floating back button and the more menu, and applies the
+     * window insets. The dialog and pane hosts keep their own buttons and do not call this.
+     */
+    /**
+     * Whether this page sits in a tablet pane, where it is a side panel that closes when the event
+     * is deleted. A full-window page on a large screen is a normal reading page and behaves like a
+     * phone page, so it is not treated as a pane.
+     */
+    private boolean isTabletPane() {
+        return mIsTabletConfig && mWindowStyle != FULL_WINDOW_STYLE;
+    }
+
+    /**
+     * Full-window content shorter than the viewport: the panel still runs to the bottom edge, so
+     * no band of the background shows under it. Only the full-window layout has the header and
+     * panel ids; the dialog host returns early.
+     */
+    private void fillPanelToViewport() {
+        if (mView == null || mScrollView == null) {
+            return;
+        }
+        View header = mView.findViewById(R.id.event_info_header);
+        View panel = mView.findViewById(R.id.event_info_panel);
+        if (header == null || panel == null) {
+            return;
+        }
+        final int viewport = mScrollView.getHeight() - mScrollView.getPaddingTop()
+                - mScrollView.getPaddingBottom();
+        final ViewGroup.LayoutParams lp = panel.getLayoutParams();
+        final int overlap = lp instanceof ViewGroup.MarginLayoutParams
+                ? ((ViewGroup.MarginLayoutParams) lp).topMargin : 0;
+        final int min = Math.max(0, viewport - header.getHeight() - overlap);
+        if (panel.getMinimumHeight() != min) {
+            panel.setMinimumHeight(min);
+        }
+    }
+
+    private void setUpFullScreenChrome() {
+        View back = mView.findViewById(R.id.event_info_nav_back);
+        if (back != null) {
+            back.setOnClickListener(v -> navigateUp());
+        }
+        View more = mView.findViewById(R.id.event_info_action_more);
+        if (more != null) {
+            more.setOnClickListener(this::showMoreMenu);
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(mView, (v, insets) -> {
+            applyFullScreenInsets(insets);
+            return insets;
+        });
+        applyStatusBarAppearance();
+    }
+
+    /**
+     * Keeps the floating action bar clear of the status bar and display cutout, keeps the panel
+     * clear of cutouts on the sides, and keeps the last row clear of the navigation bar. The
+     * header itself is not inset, so it runs under the status bar.
+     */
+    private void applyFullScreenInsets(WindowInsetsCompat insets) {
+        if (mView == null) {
+            return;
+        }
+        Insets bars = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+        View bar = mView.findViewById(R.id.event_info_action_bar);
+        if (bar != null) {
+            int base = getResources().getDimensionPixelSize(R.dimen.event_info_action_bar_padding);
+            bar.setPadding(base + bars.left, base + bars.top, base + bars.right, base);
+        }
+        View scroll = mView.findViewById(R.id.event_info_scroll_view);
+        if (scroll != null) {
+            scroll.setPadding(0, 0, 0, bars.bottom);
+        }
+        View panel = mView.findViewById(R.id.event_info_panel);
+        if (panel != null && panel.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
+            ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) panel.getLayoutParams();
+            if (lp.leftMargin != bars.left || lp.rightMargin != bars.right) {
+                lp.leftMargin = bars.left;
+                lp.rightMargin = bars.right;
+                panel.setLayoutParams(lp);
+            }
+        }
+    }
+
+    /**
+     * The header is the tonal primary container, so the status bar icons follow its luminance:
+     * a light header gets dark icons, a dark header gets light icons.
+     */
+    private void applyStatusBarAppearance() {
+        if (mActivity == null || mView == null) {
+            return;
+        }
+        TypedValue value = new TypedValue();
+        if (!mActivity.getTheme().resolveAttribute(
+                com.google.android.material.R.attr.colorPrimaryContainer, value, true)
+                || value.type < TypedValue.TYPE_FIRST_COLOR_INT
+                || value.type > TypedValue.TYPE_LAST_COLOR_INT) {
+            return;
+        }
+        boolean lightHeader = ColorUtils.calculateLuminance(value.data) > 0.5;
+        Window window = mActivity.getWindow();
+        new WindowInsetsControllerCompat(window, window.getDecorView())
+                .setAppearanceLightStatusBars(lightHeader);
+    }
+
+    /** Back / up: the same behaviour as the former toolbar navigation icon. */
+    private void navigateUp() {
+        Utils.returnToCalendarHome(mContext);
+        mActivity.finish();
+    }
+
+    /**
+     * Opens the more menu with the event actions. Edit is left out because it has its own
+     * button in the action bar.
+     */
+    private void showMoreMenu(View anchor) {
+        if (mIsDialog || mActivity == null) {
+            return;
+        }
+        PopupMenu popup = new PopupMenu(mContext, anchor);
+        popup.inflate(R.menu.event_info_title_bar);
+        applyActionPermissions(popup.getMenu());
+        MenuItem edit = popup.getMenu().findItem(R.id.info_action_edit);
+        if (edit != null) {
+            edit.setVisible(false);
+        }
+        popup.setOnMenuItemClickListener(this::onOptionsItemSelected);
+        popup.show();
     }
 
     private void updateAttendees(View view) {
@@ -1958,8 +2336,10 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
             (mLongAttendees).addAttendees(mNoResponseAttendees);
             mLongAttendees.setEnabled(false);
             mLongAttendees.setVisibility(View.VISIBLE);
+            setVisibilityCommon(view, R.id.attendees_row, View.VISIBLE);
         } else {
             mLongAttendees.setVisibility(View.GONE);
+            setVisibilityCommon(view, R.id.attendees_row, View.GONE);
         }
 
         if (hasEmailableAttendees()) {
@@ -2132,10 +2512,6 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
         if (textView == null)
             return;
 
-        final int textColor = Utils.getAdaptiveTextColor(mContext,
-                getResources().getColor(R.color.event_info_headline_color), mCurrentColor);
-        textView.setTextColor(textColor);
-        textView.setLinkTextColor(textColor);
         textView.setText(text);
     }
 
@@ -2216,7 +2592,7 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
         if (mDeleteDialogVisible) {
             mDeleteHelper = new DeleteEventHelper(
                     mContext, mActivity,
-                    !mIsDialog && !mIsTabletConfig /* exitWhenDone */);
+                    !mIsDialog && !isTabletPane() /* exitWhenDone */);
             mDeleteHelper.setOnDismissListener(createDeleteOnDismissListener());
             mDeleteHelper.delete(mStartMillis, mEndMillis, mEventId, -1, onDeleteRunnable);
         } else if (mTentativeUserSetResponse != Attendees.ATTENDEE_STATUS_NONE) {
@@ -2398,7 +2774,6 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
     public void onColorSelected(int color) {
         mCurrentColor = color;
         mCurrentColorKey = mDisplayColorKeyMap.get(color);
-        mHeadlines.setBackgroundColor(color);
 
         updateAdaptiveTextAndIconColors();
 

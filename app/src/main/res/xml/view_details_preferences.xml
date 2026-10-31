@@ -1,41 +1,86 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
-    <PreferenceCategory android:title="@string/preferences_month_view_portrait">
+<!--
+  Display details (显示详情) preferences, Material 3.
+
+  Keys, default values and the orientation split (_vertical / _horizontal) are unchanged.
+  The rows use the layouts in res/layout/preference_md3*.xml, as on the lunar and general
+  pages. The summaries of the list rows come from a SummaryProvider in
+  ViewDetailsPreferences.kt, not from a format string in this file.
+-->
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory
+        app:layout="@layout/preference_md3_category"
+        app:title="@string/preferences_month_view_portrait">
+
         <ListPreference
-            android:key="pref_number_of_lines_vertical"
-            android:title="@string/maximum_number_of_lines"
-            android:summary="%s"
-            android:entries="@array/number_of_lines"
-            android:entryValues="@array/number_of_lines"
-            android:defaultValue="7" />
+            app:key="pref_number_of_lines_vertical"
+            app:title="@string/maximum_number_of_lines"
+            app:entries="@array/number_of_lines"
+            app:entryValues="@array/number_of_lines"
+            app:defaultValue="7"
+            app:iconSpaceReserved="false"
+            app:layout="@layout/preference_md3" />
+
         <ListPreference
-            android:key="pref_display_time_vertical"
-            android:title="@string/display_time"
-            android:summary="%s"
-            android:entries="@array/show_time"
-            android:entryValues="@array/show_time_values" />
-        <SwitchPreference
-            android:key="pref_display_location_vertical"
-            android:title="@string/display_location"
-            android:defaultValue="false" />
+            app:key="pref_display_time_vertical"
+            app:title="@string/display_time"
+            app:entries="@array/show_time"
+            app:entryValues="@array/show_time_values"
+            app:iconSpaceReserved="false"
+            app:layout="@layout/preference_md3" />
+
+        <SwitchPreferenceCompat
+            app:key="pref_display_location_vertical"
+            app:title="@string/display_location"
+            app:defaultValue="false"
+            app:iconSpaceReserved="false"
+            app:layout="@layout/preference_md3"
+            app:widgetLayout="@layout/preference_md3_switch" />
     </PreferenceCategory>
-    <PreferenceCategory android:title="@string/preferences_month_view_landscape">
+
+    <PreferenceCategory
+        app:layout="@layout/preference_md3_category"
+        app:title="@string/preferences_month_view_landscape">
+
         <ListPreference
-            android:key="pref_number_of_lines_horizontal"
-            android:title="@string/maximum_number_of_lines"
-            android:summary="%s"
-            android:entries="@array/number_of_lines"
-            android:entryValues="@array/number_of_lines"
-            android:defaultValue="7" />
+            app:key="pref_number_of_lines_horizontal"
+            app:title="@string/maximum_number_of_lines"
+            app:entries="@array/number_of_lines"
+            app:entryValues="@array/number_of_lines"
+            app:defaultValue="7"
+            app:iconSpaceReserved="false"
+            app:layout="@layout/preference_md3" />
+
         <ListPreference
-            android:key="pref_display_time_horizontal"
-            android:title="@string/display_time"
-            android:summary="%s"
-            android:entries="@array/show_time"
-            android:entryValues="@array/show_time_values" />
-        <SwitchPreference
-            android:key="pref_display_location_horizontal"
-            android:title="@string/display_location"
-            android:defaultValue="false" />
+            app:key="pref_display_time_horizontal"
+            app:title="@string/display_time"
+            app:entries="@array/show_time"
+            app:entryValues="@array/show_time_values"
+            app:iconSpaceReserved="false"
+            app:layout="@layout/preference_md3" />
+
+        <SwitchPreferenceCompat
+            app:key="pref_display_location_horizontal"
+            app:title="@string/display_location"
+            app:defaultValue="false"
+            app:iconSpaceReserved="false"
+            app:layout="@layout/preference_md3"
+            app:widgetLayout="@layout/preference_md3_switch" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:layout="@layout/preference_md3_category"
+        app:title="@string/preferences_day_week_view">
+
+        <SwitchPreferenceCompat
+            app:key="pref_day_week_background_mask"
+            app:title="@string/preferences_time_background_mask"
+            app:summary="@string/preferences_time_background_mask_summary"
+            app:defaultValue="false"
+            app:iconSpaceReserved="false"
+            app:layout="@layout/preference_md3"
+            app:widgetLayout="@layout/preference_md3_switch" />
     </PreferenceCategory>
 </PreferenceScreen>

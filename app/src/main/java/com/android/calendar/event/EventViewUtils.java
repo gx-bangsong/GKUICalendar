@@ -19,14 +19,13 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.res.Resources;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.AdapterView.OnItemSelectedListener;
-import android.widget.ArrayAdapter;
+import android.view.ViewGroup;
 import android.widget.CheckBox;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
-import android.widget.Spinner;
 
 import androidx.constraintlayout.widget.ConstraintLayout;
 
@@ -38,6 +37,18 @@ import ws.xsoh.etar.R;
 
 public class EventViewUtils {
     private static final String TAG = "EventViewUtils";
+
+    /** Vertical gap below each reminder row, in dp. */
+    private static final int REMINDER_ROW_GAP_DP = 8;
+
+    /**
+     * Notified when the user changes a reminder's minutes or method. Callers
+     * that do not track edits pass null. Used by the event detail page to
+     * mark reminders as modified; the edit form does not need it.
+     */
+    public interface ReminderChangeListener {
+        void onReminderChanged();
+    }
 
     private EventViewUtils() {
     }
@@ -159,12 +170,19 @@ public class EventViewUtils {
         ArrayList<ReminderEntry> reminders = new ArrayList<ReminderEntry>(len);
         for (int index = 0; index < len; index++) {
             ConstraintLayout layout = reminderItems.get(index);
-            Spinner minuteSpinner = (Spinner) layout.findViewById(R.id.reminder_minutes_value);
-            Spinner methodSpinner = (Spinner) layout.findViewById(R.id.reminder_method_value);
+            ExposedDropdownField minuteField = layout.findViewById(R.id.reminder_minutes_value);
+            ExposedDropdownField methodField = layout.findViewById(R.id.reminder_method_value);
             CheckBox minuteSign = (CheckBox) layout.findViewById(R.id.reminder_minutes_sign);
+            // Values are looked up by the option index the dropdown tracks, never by text.
+            Integer minutes = DropdownValues.valueAt(
+                    reminderMinuteValues, minuteField.getSelectedIndex());
+            Integer method = DropdownValues.valueAt(
+                    reminderMethodValues, methodField.getSelectedIndex());
+            if (minutes == null || method == null) {
+                Log.w(TAG, "Reminder row " + index + " has no valid selection; skipped");
+                continue;
+            }
             int sign = minuteSign.isChecked() ? -1:1;
-            int minutes = reminderMinuteValues.get(minuteSpinner.getSelectedItemPosition());
-            int method = reminderMethodValues.get(methodSpinner.getSelectedItemPosition());
             reminders.add(ReminderEntry.valueOf(sign*minutes, method));
         }
         return reminders;
@@ -240,34 +258,17 @@ public class EventViewUtils {
     }
 
     /**
-     * Set the list of labels on a reminder spinner.
-     */
-    private static void setReminderSpinnerLabels(Activity activity, Spinner spinner,
-            ArrayList<String> labels) {
-        Resources res = activity.getResources();
-        spinner.setPrompt(res.getString(R.string.reminders_label));
-        int resource = android.R.layout.simple_spinner_item;
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(activity, resource, labels);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinner.setAdapter(adapter);
-    }
-
-    /**
-     * Adds a reminder to the displayed list of reminders. The values/labels
-     * arrays must not change after calling here, or the spinners we created
-     * might index into the wrong entry. Returns true if successfully added
-     * reminder, false if no reminders can be added.
+     * Adds a reminder row to the displayed list. The values/labels lists must
+     * not change after calling here, because each row keeps an index into them.
+     * Returns false if the reminder limit has been reached.
      *
-     * onItemSelected allows a listener to be set for any changes to the
-     * spinners in the reminder. If a listener is set it will store the
-     * initial position of the spinner into the spinner's tag for comparison
-     * with any new position setting.
+     * [onChange] (optional) is told about user picks of minutes or method.
      */
     public static boolean addReminder(Activity activity, View view, View.OnClickListener listener,
             ArrayList<ConstraintLayout> items, ArrayList<Integer> minuteValues,
             ArrayList<String> minuteLabels, ArrayList<Integer> methodValues,
             ArrayList<String> methodLabels, ReminderEntry newReminder, int maxReminders,
-            OnItemSelectedListener onItemSelected) {
+            ReminderChangeListener onChange) {
 
         if (items.size() >= maxReminders) {
             return false;
@@ -277,42 +278,37 @@ public class EventViewUtils {
         LinearLayout parent = (LinearLayout) view.findViewById(R.id.reminder_items_container);
         ConstraintLayout reminderItem = (ConstraintLayout) inflater.inflate(R.layout.edit_reminder_item,
                 null);
+        // A null-root inflate has no LayoutParams; addView then creates a
+        // match-parent-width LinearLayout.LayoutParams, which we can add a gap to.
         parent.addView(reminderItem);
+        ViewGroup.MarginLayoutParams rowParams =
+                (ViewGroup.MarginLayoutParams) reminderItem.getLayoutParams();
+        rowParams.bottomMargin = Math.round(TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, REMINDER_ROW_GAP_DP,
+                activity.getResources().getDisplayMetrics()));
 
-        ImageButton reminderRemoveButton;
-        reminderRemoveButton = (ImageButton) reminderItem.findViewById(R.id.reminder_remove);
+        ImageButton reminderRemoveButton =
+                (ImageButton) reminderItem.findViewById(R.id.reminder_remove);
         reminderRemoveButton.setOnClickListener(listener);
 
-        /*
-         * The spinner has the default set of labels from the string resource file, but we
-         * want to drop in our custom set of labels because it may have additional entries.
-         */
-        Spinner spinner = (Spinner) reminderItem.findViewById(R.id.reminder_minutes_value);
-        setReminderSpinnerLabels(activity, spinner, minuteLabels);
-
+        ExposedDropdownField minutesField =
+                (ExposedDropdownField) reminderItem.findViewById(R.id.reminder_minutes_value);
         int index = findMinutesInReminderList(minuteValues, Math.abs(newReminder.getMinutes()));
-        spinner.setSelection(index);
-
-        if (onItemSelected != null) {
-            spinner.setTag(index);
-            spinner.setOnItemSelectedListener(onItemSelected);
-        }
+        minutesField.setChoices(minuteLabels, index);
 
         CheckBox checkBox = (CheckBox) reminderItem.findViewById(R.id.reminder_minutes_sign);
-        checkBox.setChecked(newReminder.getMinutes()<0);
-        /*
-         * Configure the alert-method spinner.  Methods not supported by the current Calendar
-         * will not be shown.
-         */
-        spinner = (Spinner) reminderItem.findViewById(R.id.reminder_method_value);
-        setReminderSpinnerLabels(activity, spinner, methodLabels);
+        checkBox.setChecked(newReminder.getMinutes() < 0);
 
+        // Methods not supported by the current calendar are filtered out of methodLabels.
+        ExposedDropdownField methodField =
+                (ExposedDropdownField) reminderItem.findViewById(R.id.reminder_method_value);
         index = findMethodInReminderList(methodValues, newReminder.getMethod());
-        spinner.setSelection(index);
+        methodField.setChoices(methodLabels, index);
 
-        if (onItemSelected != null) {
-            spinner.setTag(index);
-            spinner.setOnItemSelectedListener(onItemSelected);
+        if (onChange != null) {
+            // Set after setChoices so programmatic selection does not count as an edit.
+            minutesField.setOnPickListener(i -> onChange.onReminderChanged());
+            methodField.setOnPickListener(i -> onChange.onReminderChanged());
         }
 
         items.add(reminderItem);

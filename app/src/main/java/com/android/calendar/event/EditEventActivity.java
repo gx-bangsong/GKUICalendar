@@ -37,6 +37,7 @@ import com.android.calendar.CalendarController.EventInfo;
 import com.android.calendar.CalendarEventModel.ReminderEntry;
 import com.android.calendar.Utils;
 import com.android.calendar.theme.DynamicThemeKt;
+import com.android.calendar.theme.ThemeUtils;
 import com.android.calendar.calendarcommon2.Time;
 
 import java.util.ArrayList;
@@ -63,10 +64,25 @@ public class EditEventActivity extends AbstractCalendarActivity {
 
     private EventInfo mEventInfo;
 
+    /** Effective theme key this instance was created with; see onResume(). */
+    private String mThemeKey;
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // The theme can change in another screen while this one is stopped. Recreate once.
+        // The draft (title, location, description, attendees, reminders) is saved by
+        // EditEventFragment.onSaveInstanceState and restored by the new instance.
+        if (mThemeKey != null && !mThemeKey.equals(ThemeUtils.INSTANCE.effectiveThemeKey(this))) {
+            recreate();
+        }
+    }
+
     @Override
     protected void onCreate(Bundle icicle) {
         DynamicThemeKt.applyThemeAndPrimaryColor(this);
         super.onCreate(icicle);
+        mThemeKey = ThemeUtils.INSTANCE.effectiveThemeKey(this);
 
         mEventInfo = getEventInfoFromIntent(icicle);
         mReminders = getReminderEntriesFromIntent();

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Group heading for the settings sub-pages (Material 3). It is a plain text heading, not a
+  clickable item. Preference looks up android:id/title, so keep that id.
+-->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/title"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:minHeight="48dp"
+    android:gravity="center_vertical"
+    android:paddingStart="@dimen/preference_md3_content_start"
+    android:paddingEnd="@dimen/preference_md3_content_end"
+    android:paddingTop="24dp"
+    android:paddingBottom="8dp"
+    android:textAppearance="?attr/textAppearanceLabelLarge"
+    android:textColor="?attr/colorOnSurfaceVariant" />

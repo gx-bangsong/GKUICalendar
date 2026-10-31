@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingHorizontal="24dp"
+    android:paddingVertical="32dp"
+    android:fillViewport="true">
+
+    <!-- Max-width container for tablets to keep line length readable (~60ch). -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:id="@+id/body"
+            style="?attr/textAppearanceBodyLarge"
+            android:layout_width="560dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="start"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:lineSpacingExtra="4sp" />
+    </FrameLayout>
+</ScrollView>

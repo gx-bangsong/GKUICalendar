@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Original abstract header illustration for the event detail page: a few overlapping circles,
+  a ring and a soft wave, drawn in white at low alpha over the tonal header colour. It is an
+  original vector made for this project (no third-party artwork, no network image).
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="400dp"
+    android:height="240dp"
+    android:viewportWidth="400"
+    android:viewportHeight="240">
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.14"
+        android:pathData="M330,40m-150,0a150,150 0 1,0 300,0a150,150 0 1,0 -300,0" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.10"
+        android:pathData="M60,220m-110,0a110,110 0 1,0 220,0a110,110 0 1,0 -220,0" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.18"
+        android:pathData="M250,60m-36,0a36,36 0 1,0 72,0a36,36 0 1,0 -72,0" />
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeAlpha="0.28"
+        android:strokeWidth="2"
+        android:pathData="M120,60m-28,0a28,28 0 1,0 56,0a28,28 0 1,0 -56,0" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.16"
+        android:pathData="M0,168 C80,128 160,208 240,168 S360,128 400,158 L400,240 L0,240 Z" />
+</vector>

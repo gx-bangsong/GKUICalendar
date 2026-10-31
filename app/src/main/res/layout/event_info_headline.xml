@@ -14,112 +14,98 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
+<!--
+  Headline of the event detail page (Material 3). One small rounded colour marker sits in the
+  icon column, so the title starts on the same x as the information rows. The marker takes the
+  resolved event colour (falling back to the calendar colour) in EventInfoFragment. The action
+  buttons are kept here for the dialog / pane host and stay GONE on the full-screen page, which
+  has its own action bar (event_info_action_bar).
+-->
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/event_info_headline"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_weight="1"
-    android:orientation="vertical"
-    android:background="?attr/colorSurfaceContainer"
-    android:paddingBottom="16dip"
-    android:paddingLeft="16dip"
-    android:paddingRight="16dip"
-    android:paddingTop="8dip" >
+    android:gravity="top"
+    android:orientation="horizontal"
+    android:paddingStart="20dp"
+    android:paddingEnd="20dp"
+    android:paddingTop="12dp"
+    android:paddingBottom="12dp">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal" >
+    <!-- The single colour mark, in the same 24dp column as the row icons -->
+    <FrameLayout
+        android:layout_width="24dp"
+        android:layout_height="wrap_content">
+        <View
+            android:id="@+id/event_info_color_marker"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="10dp"
+            android:importantForAccessibility="no" />
+    </FrameLayout>
 
-        <!-- WHAT -->
-        <TextView
-            android:id="@+id/title"
-            style="?android:attr/textAppearanceLarge"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight=".8"
-            android:autoLink="all"
-            android:textColor="?attr/colorOnSurface"
-            android:textColorLink="?attr/colorOnSurface"
-            android:textIsSelectable="true"
-            android:textSize="24sp"
-            android:textStyle="bold" />
-        <!-- BUTTONS -->
-
-        <LinearLayout
-            android:id="@+id/event_info_buttons_container"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="end"
-            android:orientation="horizontal" >
-
-            <Button
-                android:id="@+id/change_color"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:enabled="false"
-                android:visibility="gone"
-                android:text="@string/choose_event_color_label"
-                android:textColor="?attr/colorOnSurface" />
-
-            <Button
-                android:id="@+id/edit"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:enabled="false"
-                android:text="@string/edit_event_label"
-                android:textColor="?attr/colorOnSurface" />
-
-            <Button
-                android:id="@+id/delete"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/delete_label"
-                android:textColor="?attr/colorOnSurface" />
-        </LinearLayout>
-    </LinearLayout>
-
-    <!-- WHEN -->
-
+    <!-- WHAT: wraps onto several lines for long titles -->
     <TextView
-        android:id="@+id/when_datetime"
-        style="?android:attr/textAppearanceLarge"
-        android:layout_width="wrap_content"
+        android:id="@+id/title"
+        style="?attr/textAppearanceHeadlineSmall"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dip"
-        android:textColor="?attr/colorOnSurface"
-        android:textIsSelectable="true"
-        android:textSize="14sp" />
-
-    <TextView
-        android:id="@+id/when_repeat"
-        style="?android:attr/textAppearanceLarge"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="-3dip"
-        android:textColor="?attr/colorOnSurfaceVariant"
-        android:textSize="14sp" />
-
-    <!-- WHERE -->
-
-    <TextView
-        android:id="@+id/where"
-        style="?android:attr/textAppearanceLarge"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dip"
-        android:ellipsize="end"
-        android:singleLine="false"
+        android:layout_weight="1"
+        android:layout_marginStart="16dp"
+        android:autoLink="all"
         android:textColor="?attr/colorOnSurface"
         android:textColorLink="?attr/colorPrimary"
-        android:textIsSelectable="true"
-        android:textSize="14sp" />
+        android:textIsSelectable="true" />
 
+    <!-- ACTIONS: the same buttons as before, shown only when the event permits them -->
+    <LinearLayout
+        android:id="@+id/event_info_buttons_container"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:layout_marginStart="4dp"
+        android:orientation="horizontal">
+
+        <ImageButton
+            android:id="@+id/change_color"
+            style="?attr/materialIconButtonStyle"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:contentDescription="@string/choose_event_color_label"
+            android:enabled="false"
+            android:padding="12dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/outline_color_lens"
+            android:visibility="gone"
+            app:tint="?attr/colorOnSurfaceVariant" />
+
+        <ImageButton
+            android:id="@+id/edit"
+            style="?attr/materialIconButtonStyle"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:contentDescription="@string/edit_label"
+            android:enabled="false"
+            android:padding="12dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/outline_edit_event"
+            android:visibility="gone"
+            app:tint="?attr/colorOnSurfaceVariant" />
+
+        <ImageButton
+            android:id="@+id/delete"
+            style="?attr/materialIconButtonStyle"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:contentDescription="@string/delete_label"
+            android:enabled="false"
+            android:padding="12dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/outline_delete_event"
+            android:visibility="gone"
+            app:tint="?attr/colorOnSurfaceVariant" />
+    </LinearLayout>
 </LinearLayout>

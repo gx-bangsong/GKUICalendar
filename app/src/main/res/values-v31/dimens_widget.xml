@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Match the launcher's own widget corner radius on Android 12+. -->
+    <dimen name="widget_corner_radius">28dp</dimen>
+</resources>

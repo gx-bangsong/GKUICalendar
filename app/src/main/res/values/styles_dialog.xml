@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Material 3 dialog theming.
+
+     The app themes derive from Theme.Material3.*, but MD3 does not style
+     dialogs unless the theme points at them explicitly. Without these the
+     AlertDialogs keep square corners and the framework date/time picker
+     dialogs fall back to the pre-Material look. -->
+<resources>
+
+    <!-- MD3 alert dialog: 28dp corners and text buttons. -->
+    <style name="Etar.AlertDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="alertDialogStyle">@style/Etar.AlertDialog.Style</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Etar.AlertDialog.Button</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Etar.AlertDialog.Button</item>
+        <item name="buttonBarNeutralButtonStyle">@style/Etar.AlertDialog.Button</item>
+    </style>
+
+    <style name="Etar.AlertDialog.Style" parent="MaterialAlertDialog.Material3">
+        <item name="shapeAppearance">@style/Etar.Shape.Dialog</item>
+    </style>
+
+    <style name="Etar.Shape.Dialog" parent="ShapeAppearance.Material3.Corner.ExtraLarge">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">28dp</item>
+    </style>
+
+    <style name="Etar.AlertDialog.Button"
+        parent="Widget.Material3.Button.TextButton.Dialog" />
+
+    <!-- Framework date/time picker dialogs. These are platform widgets rather
+         than MDC ones, so they need their own overlay to pick up the app
+         colours and a rounded window background. -->
+    <style name="Etar.PickerDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="android:windowBackground">@drawable/dialog_md3_background</item>
+        <item name="android:datePickerStyle">@style/Etar.DatePicker</item>
+        <item name="android:timePickerStyle">@style/Etar.TimePicker</item>
+    </style>
+
+    <style name="Etar.DatePicker" parent="@android:style/Widget.Material.DatePicker">
+        <item name="android:headerBackground">?attr/colorPrimaryContainer</item>
+    </style>
+
+    <style name="Etar.TimePicker" parent="@android:style/Widget.Material.TimePicker">
+        <item name="android:headerBackground">?attr/colorPrimaryContainer</item>
+        <item name="android:numbersSelectorColor">?attr/colorPrimary</item>
+    </style>
+</resources>

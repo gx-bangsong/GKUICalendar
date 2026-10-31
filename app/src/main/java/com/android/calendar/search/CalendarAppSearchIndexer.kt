@@ -21,144 +21,129 @@ import android.os.Build
 import android.util.Log
 import androidx.appsearch.app.AppSearchSchema
 import androidx.appsearch.app.AppSearchSession
+import androidx.appsearch.app.Features
 import androidx.appsearch.app.SetSchemaRequest
-import androidx.appsearch.localstorage.LocalStorage
 import androidx.appsearch.platformstorage.PlatformStorage
 import com.google.common.util.concurrent.ListenableFuture
 
-private const val TAG = "CalendarAppSearchIndexer"
-private const val DATABASE_NAME = "ws.xsoh.etar.events"
-
-private const val PROP_ID = "id"
-private const val PROP_NAMESPACE = "namespace"
-private const val PROP_TITLE = "title"
-private const val PROP_DESCRIPTION = "description"
-private const val PROP_LOCATION = "location"
-private const val PROP_START_MILLIS = "startMillis"
-private const val PROP_END_MILLIS = "endMillis"
-private const val PROP_ALL_DAY = "allDay"
-
 /**
- * Entry point for the AppSearch-based indexing integration.
+ * Entry point for the AppSearch PlatformStorage (Android 12+ system index) integration.
  *
- * Prior commits wired in:
- *   - androidx-appsearch:1.0.0-alpha04 runtime artifact
- *   - appsearch-platform-storage and appsearch-local-storage backends
- *
- * This commit adds [buildInitialSchemaRequest], which constructs the
- * CalendarEventDocument schema via [AppSearchSchema.Builder.addProperty]
- * rather than the @Document annotation processor. The annotation
- * processor (appsearch-compiler) is intentionally not in the kapt
- * pipeline because alpha04's annotation processor cross-talks with
- * the existing Room compiler and causes the gradle-generateBp step
- * to rewrite app/Android.bp on every build.
+ * Uses the hand-written AppSearchSchema.Builder API (no annotation processor).
+ * On API < 31 indexing is skipped; the in-app search (SearchManager + CalendarContract)
+ * is unaffected.
  */
 internal object CalendarAppSearchIndexer {
 
-    /** Logical schema type for indexed calendar events. */
+    const val LOG_TAG = "CalendarAppSearchIndexer"
+
+    /** AppSearch database name for this app's calendar index. */
+    const val DATABASE_NAME = "org.lineageos.etar.events"
+
+    /** Schema type for indexed calendar events. */
     const val EVENTS_SCHEMA_TYPE = "CalendarEvent"
 
-    /** Logical namespace used when indexing. */
-    const val EVENTS_NAMESPACE = "ws.xsoh.etar.events"
+    /** Namespace for indexed calendar event documents. */
+    const val EVENTS_NAMESPACE = "org.lineageos.etar.events"
 
-    /**
-     * True on devices where PlatformStorage is available. LocalStorage
-     * is available on every supported Android version so it is the
-     * fallback everywhere else.
-     */
+    // Property names. Document id/namespace/schemaType are GenericDocument metadata
+    // and are deliberately NOT modelled as schema properties.
+    const val PROP_EVENT_ID = "eventId"
+    const val PROP_TITLE = "title"
+    const val PROP_DESCRIPTION = "description"
+    const val PROP_LOCATION = "location"
+    const val PROP_START_MILLIS = "startMillis"
+    const val PROP_END_MILLIS = "endMillis"
+    const val PROP_ALL_DAY = "allDay"
+
+    /** True on devices where PlatformStorage is available (Android 12+). */
     @JvmStatic
     fun isPlatformStorageSupported(): Boolean =
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 
     /**
-     * Opens an AppSearch session for the Etar events database.
-     *
-     * PlatformStorage is the Android 12+ central index that feeds
-     * Pixel Launcher's search box. On older releases we fall back to
-     * LocalStorage, which is in-app private and never reaches the
-     * system surface.
+     * Opens an AppSearch session on the PlatformStorage backend.
+     * On API < 31 returns a failed future and does not open anything.
      */
     @JvmStatic
     fun openSession(context: Context): ListenableFuture<AppSearchSession> {
         return if (isPlatformStorageSupported()) {
-            Log.d(TAG, "Opening PlatformStorage session (Android 12+ central index)")
-            PlatformStorage.createSearchSession(
+            Log.d(LOG_TAG, "open session: backend=PlatformStorage db=$DATABASE_NAME")
+            PlatformStorage.createSearchSessionAsync(
                 PlatformStorage.SearchContext.Builder(context, DATABASE_NAME).build()
             )
         } else {
-            Log.d(TAG, "Opening LocalStorage session (in-app private index)")
-            LocalStorage.createSearchSession(
-                LocalStorage.SearchContext.Builder(context, DATABASE_NAME).build()
-            )
+            Log.d(LOG_TAG, "skip: PlatformStorage requires API 31+ (sdk=${Build.VERSION.SDK_INT})")
+            AppSearchFutures.failedSessionFuture()
         }
     }
 
     /**
-     * Builds the AppSearchSchema for [CalendarEventDocument] by hand.
+     * Builds the CalendarEvent schema.
      *
-     * The @Document annotation processor would normally generate
-     * this class from data-class property metadata, but using it
-     * here would require appsearch-compiler on kapt, which doesn't
-     * coexist cleanly with the Room compiler in this module.
-     *
-     * The shape mirrors CalendarEventDocument:
-     *   - id, namespace, title, description, location are exact-match
-     *     String properties (default tokenization).
-     *   - startMillis, endMillis are Long properties.
-     *   - allDay is a Boolean property.
+     * Every indexed string property MUST declare a tokenizer; an indexingType
+     * without a tokenizer is rejected by AppSearch. Title/description/location use
+     * PLAIN tokenization with PREFIXES so partial title queries match.
      */
     private fun buildEventSchema(): AppSearchSchema {
         return AppSearchSchema.Builder(EVENTS_SCHEMA_TYPE)
-            .addProperty(
-                AppSearchSchema.StringPropertyConfig.Builder(PROP_ID)
-                    .setIndexingType(
-                        AppSearchSchema.StringPropertyConfig.INDEXING_TYPE_EXACT_TERMS
-                    )
-                    .build()
-            )
-            .addProperty(
-                AppSearchSchema.StringPropertyConfig.Builder(PROP_NAMESPACE)
-                    .setIndexingType(
-                        AppSearchSchema.StringPropertyConfig.INDEXING_TYPE_EXACT_TERMS
-                    )
-                    .build()
-            )
-            .addProperty(
-                AppSearchSchema.StringPropertyConfig.Builder(PROP_TITLE)
-                    .setIndexingType(
-                        AppSearchSchema.StringPropertyConfig.INDEXING_TYPE_EXACT_TERMS
-                    )
-                    .build()
-            )
-            .addProperty(
-                AppSearchSchema.StringPropertyConfig.Builder(PROP_DESCRIPTION)
-                    .setIndexingType(
-                        AppSearchSchema.StringPropertyConfig.INDEXING_TYPE_EXACT_TERMS
-                    )
-                    .build()
-            )
-            .addProperty(
-                AppSearchSchema.StringPropertyConfig.Builder(PROP_LOCATION)
-                    .setIndexingType(
-                        AppSearchSchema.StringPropertyConfig.INDEXING_TYPE_EXACT_TERMS
-                    )
-                    .build()
-            )
+            .addProperty(AppSearchSchema.LongPropertyConfig.Builder(PROP_EVENT_ID).build())
+            .addProperty(prefixedText(PROP_TITLE))
+            .addProperty(prefixedText(PROP_DESCRIPTION))
+            .addProperty(prefixedText(PROP_LOCATION))
             .addProperty(AppSearchSchema.LongPropertyConfig.Builder(PROP_START_MILLIS).build())
             .addProperty(AppSearchSchema.LongPropertyConfig.Builder(PROP_END_MILLIS).build())
             .addProperty(AppSearchSchema.BooleanPropertyConfig.Builder(PROP_ALL_DAY).build())
             .build()
     }
 
+    private fun prefixedText(name: String): AppSearchSchema.StringPropertyConfig =
+        AppSearchSchema.StringPropertyConfig.Builder(name)
+            .setTokenizerType(AppSearchSchema.StringPropertyConfig.TOKENIZER_TYPE_PLAIN)
+            .setIndexingType(AppSearchSchema.StringPropertyConfig.INDEXING_TYPE_PREFIXES)
+            .build()
+
     /**
-     * Returns a fresh [SetSchemaRequest] registering the
-     * CalendarEventDocument schema. The caller is expected to apply
-     * it to the [AppSearchSession] returned by [openSession] before
-     * writing any documents.
+     * Single source of truth for CalendarEvent visibility. Every setSchema call goes through
+     * [buildSchemaRequest] with a policy, so a later FULL/SYNC run cannot silently drop the
+     * settings applied by an earlier run.
+     *
+     * Defaults match the shipped configuration. Non-default values exist only for controlled
+     * debug experiments (see AppSearchDiagnosticReceiver extras).
+     */
+    data class VisibilityPolicy(
+        /** Grant read to the HOME role holder via READ_HOME_APP_SEARCH_DATA. */
+        val homeRoleRead: Boolean = true,
+        /** Framework default is true (system UI may display); false hides docs from system UI. */
+        val displayedBySystem: Boolean = true,
+    ) {
+        override fun toString(): String = "homeRoleRead=$homeRoleRead,displayedBySystem=$displayedBySystem"
+    }
+
+    /**
+     * Returns a SetSchemaRequest for the CalendarEvent schema.
+     * forceOverride is NOT set: incompatible changes fail instead of wiping the index.
+     *
+     * The HOME grant is added only when the session reports ADD_PERMISSIONS_AND_GET_VISIBILITY.
+     * It grants nothing to READ_CALENDAR, ASSISTANT or any package.
      */
     @JvmStatic
-    fun buildInitialSchemaRequest(): SetSchemaRequest =
-        SetSchemaRequest.Builder()
-            .addSchemas(buildEventSchema())
-            .build()
+    @JvmOverloads
+    fun buildSchemaRequest(
+        features: Features,
+        policy: VisibilityPolicy = VisibilityPolicy(),
+    ): SetSchemaRequest {
+        val builder = SetSchemaRequest.Builder().addSchemas(buildEventSchema())
+        if (policy.homeRoleRead &&
+            features.isFeatureSupported(Features.ADD_PERMISSIONS_AND_GET_VISIBILITY)
+        ) {
+            builder.addRequiredPermissionsForSchemaTypeVisibility(
+                EVENTS_SCHEMA_TYPE,
+                setOf(SetSchemaRequest.READ_HOME_APP_SEARCH_DATA),
+            )
+        }
+        // Explicit on every call: this setting does not persist across setSchema calls.
+        builder.setSchemaTypeDisplayedBySystem(EVENTS_SCHEMA_TYPE, policy.displayedBySystem)
+        return builder.build()
+    }
 }

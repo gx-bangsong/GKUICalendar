@@ -40,4 +40,7 @@
     <dimen name="event_info_dialog_width">550dip</dimen>
     <dimen name="event_info_dialog_height">470dip</dimen>
 
+
+    <dimen name="event_info_gutter">160dp</dimen>
+
 </resources>

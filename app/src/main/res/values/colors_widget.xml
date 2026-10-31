@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- MD3 widget palette (light). -->
+    <color name="widget_surface">#FFEDF3FB</color>
+    <color name="widget_chip_surface">#FFE7EDF4</color>
+    <color name="widget_fab_container">#FF0B5E9E</color>
+    <color name="widget_fab_icon">#FFFFFFFF</color>
+    <color name="widget_date_pill">#FF0B5E9E</color>
+    <color name="widget_date_pill_text">#FFFFFFFF</color>
+    <color name="widget_on_surface">#FF1A1C1E</color>
+    <color name="widget_on_surface_variant">#FF43474E</color>
+
+    <!-- Sample chip colours used only by the widget-picker preview layout.
+         Chip 3 is deliberately pale to show the contrast-aware dark text. -->
+    <color name="widget_preview_chip_1">#FF0B8043</color>
+    <color name="widget_preview_chip_2">#FF3F79BA</color>
+    <color name="widget_preview_chip_3">#FFF6BF26</color>
+
+    <!-- 万年历 almanac badges -->
+    <color name="almanac_yi">#FFC62828</color>
+    <color name="almanac_ji">#FF37474F</color>
+</resources>

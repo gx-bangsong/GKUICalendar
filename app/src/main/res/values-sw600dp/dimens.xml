@@ -24,4 +24,25 @@
     <dimen name="recurrence_picker_height">300dp</dimen>
     <dimen name="recurrence_picker_width">480dp</dimen>
 
+
+    <dimen name="event_info_gutter">48dp</dimen>
+
+
+    <!-- Event detail page: full-screen illustrated header -->
+    <dimen name="event_info_header_height">240dp</dimen>
+    <!-- Standalone agenda card rows (tablet): density set for the wider screen, not a scale of
+         the phone sizes. -->
+    <dimen name="agenda_card_row_padding_horizontal">24dp</dimen>
+    <dimen name="agenda_date_column_width">96dp</dimen>
+    <dimen name="agenda_date_circle_size">52dp</dimen>
+    <dimen name="agenda_date_text_size">20sp</dimen>
+    <dimen name="agenda_weekday_text_size">13sp</dimen>
+    <dimen name="agenda_card_title_text_size">18sp</dimen>
+    <dimen name="agenda_card_meta_text_size">15sp</dimen>
+    <dimen name="agenda_card_text_max_width">560dp</dimen>
+    <dimen name="agenda_card_padding">16dp</dimen>
+    <dimen name="agenda_card_padding_all_day">10dp</dimen>
+    <dimen name="agenda_card_min_height">72dp</dimen>
+    <dimen name="agenda_card_min_height_all_day">48dp</dimen>
+    <dimen name="agenda_card_corner_radius">16dp</dimen>
 </resources>

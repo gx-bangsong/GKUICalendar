@@ -29,14 +29,17 @@ import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.database.Cursor;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Paint.Align;
+import android.graphics.Path;
 import android.graphics.Paint.Style;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.Handler;
 import android.provider.CalendarContract.Attendees;
 import android.provider.CalendarContract.Calendars;
@@ -58,6 +61,7 @@ import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
+import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.ViewConfiguration;
@@ -80,13 +84,17 @@ import com.android.calendar.CalendarController.EventType;
 import com.android.calendar.CalendarController.ViewType;
 import com.android.calendar.settings.GeneralPreferences;
 import com.android.calendar.calendarcommon2.Time;
+import com.android.calendar.event.NewEventCalendarColor;
+import com.android.calendar.subscription.SubscriptionText;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
+import java.text.DateFormatSymbols;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Formatter;
 import java.util.Locale;
+import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -176,6 +184,14 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
     private final Typeface mBold = Typeface.DEFAULT_BOLD;
     private int mFirstJulianDay;
+    /** Cached so onDraw never touches SharedPreferences. */
+    private boolean mSubscriptionsEnabled;
+    private int mSubscriptionTextColor;
+    /** Number of enabled providers = number of badge lines to reserve. */
+    private int mSubscriptionLineCount;
+    /** Sized to SUBSCRIPTION_TEXT_SIZE, used only for ellipsize measurement. */
+    private final android.text.TextPaint mSubscriptionEllipsizePaint =
+            new android.text.TextPaint();
     private int mLoadedFirstJulianDay = -1;
     private int mLastJulianDay;
 
@@ -396,8 +412,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private static int NEW_EVENT_WIDTH = 2;
     private static int NEW_EVENT_MAX_LENGTH = 16;
 
-    private static int CURRENT_TIME_LINE_SIDE_BUFFER = 4;
-    private static int CURRENT_TIME_LINE_TOP_OFFSET = 2;
 
     /* package */ static final int MINUTES_PER_HOUR = 60;
     /* package */ static final int MINUTES_PER_DAY = MINUTES_PER_HOUR * 24;
@@ -411,6 +425,8 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private static int DAY_HEADER_ONE_DAY_RIGHT_MARGIN = 5;
     private static int DAY_HEADER_ONE_DAY_BOTTOM_MARGIN = 6;
     private static int DAY_HEADER_RIGHT_MARGIN = 4;
+    /** Badge text is a touch smaller than the weekday label so 4 lines fit. */
+    private static float SUBSCRIPTION_TEXT_SIZE = 11;
     private static int DAY_HEADER_BOTTOM_MARGIN = 3;
     private static float DAY_HEADER_FONT_SIZE = 14;
     private static float DATE_HEADER_FONT_SIZE = 32;
@@ -443,7 +459,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     // sizing for "box +n" in allDay events
     private static int EVENT_SQUARE_WIDTH = 10;
     private static int EVENT_LINE_PADDING = 4;
-    private static int NEW_EVENT_HINT_FONT_SIZE = 12;
 
     private static int mPressedColor;
     private static int mClickedColor;
@@ -455,12 +470,27 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private static int mWeek_sundayColor;
     private static int mCalendarDateBannerTextColor;
     private static int mCalendarGridAreaSelected;
+    // Rounded hour blocks and the selected-hour block (see drawGridBackground).
+    private static int mHourBlockColor;
+    private static int mSelectedHourColor;
+    private static float HOUR_BLOCK_INSET;
+    private static float HOUR_BLOCK_COLUMN_INSET;
+    private static float HOUR_BLOCK_RADIUS;
+    // Date header geometry (px). Sizes are set in computeDayHeaderHeight() on size change.
+    private static float DAY_HEADER_TOP_PADDING;
+    private static float DAY_HEADER_BOTTOM_PADDING;
+    private static float DATE_CIRCLE_GAP;
+    private static float DATE_CIRCLE_MIN_SIZE;
+    private static float DATE_CIRCLE_SIZE;
+    private static float DATE_CIRCLE_STROKE;
+    private static int mDateTodayFill;
+    private static int mDateTodayText;
+    private static int mDateSelectedOutline;
     private static int mCalendarGridLineInnerHorizontalColor;
     private static int mCalendarGridLineInnerVerticalColor;
     private static int mFutureBgColor;
     private static int mFutureBgColorRes;
     private static int mBgColor;
-    private static int mNewEventHintColor;
     private static int mCalendarHourLabelColor;
     private static int mMoreAlldayEventsTextAlpha = MORE_EVENTS_MAX_ALPHA;
 
@@ -561,6 +591,8 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     /** Distance between the mFirstCell and the top of first fully visible hour. */
     private int mFirstHourOffset;
     private String[] mHourStrs;
+    // Hour and exact-time labels for the current locale and clock. Rebuilt on resume only.
+    private TimeLabelFormat mTimeLabels;
     private String[] mDayStrs;
     private String[] mDayStrs2Letter;
     private boolean mIs24HourFormat;
@@ -572,8 +604,22 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private Event mPrevSelectedEvent;
     private final Rect mPrevBox = new Rect();
     protected final Resources mResources;
-    protected final Drawable mCurrentTimeLine;
-    protected final Drawable mCurrentTimeAnimateLine;
+    // Current-time line and dot: colour and sizes from resources, set in the constructor.
+    private int mNowLineColor;
+    private float mNowLineThickness;
+    private float mNowDotRadius;
+    private float mNowDotInset;
+    // Day and week background mask from Display details. Read in handleOnResume, never onDraw.
+    private boolean mBackgroundMaskOn = false;
+    // Calendar colour of the time block, resolved when the block starts. 0 until then.
+    private int mSlotCalendarColor;
+    private final Paint mSlotLabelPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    // Reused paths for the block fill and outline, with the handle holes cut out.
+    private final Path mSlotBlockPath = new Path();
+    private final Path mSlotFillPath = new Path();
+    private final Path mSlotOutlinePath = new Path();
+    private final Path mSlotHoleFillPath = new Path();
+    private final Path mSlotHoleOutlinePath = new Path();
     protected final Drawable mTodayHeaderDrawable;
     protected final Drawable mExpandAlldayDrawable;
     protected final Drawable mCollapseAlldayDrawable;
@@ -617,6 +663,43 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private static final int SELECTION_LONGPRESS = 3;
 
     private int mSelectionMode = SELECTION_HIDDEN;
+
+    // Temporary time block after an empty slot is tapped in the day view (see
+    // DayTimeSlotPreview). Only used when mNumDays == 1; the week view is unchanged.
+    private static final int SLOT_DRAG_NONE = 0;
+    private static final int SLOT_DRAG_START = 1;
+    private static final int SLOT_DRAG_END = 2;
+    private static final float SLOT_HANDLE_RADIUS_DP = 7f;
+    private static final float SLOT_HANDLE_TOUCH_RADIUS_DP = 24f; // a 48dp target
+    private static final float SLOT_CORNER_DP = 8f;
+    private static final float SLOT_INSET_DP = 2f;
+    private static final float SLOT_STROKE_DP = 2f;
+    // Start and end time chips in the left time column of the block preview.
+    private static final float SLOT_TIME_PAD_X_DP = 4f;
+    private static final float SLOT_TIME_PAD_Y_DP = 2f;
+    private static final float SLOT_TIME_CORNER_DP = 4f;
+    // Smallest scale for the chip text so the time fits the gutter. Times are never cut.
+    private static final float SLOT_TIME_MIN_SCALE = 0.75f;
+    private static final int SLOT_ACTION_OPEN = R.id.day_slot_action_open;
+    private static final int SLOT_ACTION_START_EARLIER = R.id.day_slot_action_start_earlier;
+    private static final int SLOT_ACTION_START_LATER = R.id.day_slot_action_start_later;
+    private static final int SLOT_ACTION_END_EARLIER = R.id.day_slot_action_end_earlier;
+    private static final int SLOT_ACTION_END_LATER = R.id.day_slot_action_end_later;
+    private DayTimeSlotPreview mSlotPreview;
+    private int mSlotPreviewDay;
+    private long mSlotStartMillis;
+    private long mSlotEndMillis;
+    private String mSlotDescription = "";
+    private String mSlotRangeLabel = "";
+    private String mSlotStartLabel = "";
+    private String mSlotEndLabel = "";
+    private int mSlotDrag = SLOT_DRAG_NONE;
+    private boolean mSlotDragMoved;
+    private boolean mSlotSwallowGesture;
+    private float mSlotDownContentY;
+    private int mSlotDownStartMinute;
+    private int mSlotDownEndMinute;
+    private int mSlotTouchSlop;
 
     private boolean mScrolling = false;
 
@@ -678,6 +761,16 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         HOURS_LEFT_MARGIN = (int) mResources.getDimension(R.dimen.hours_left_margin);
         HOURS_RIGHT_MARGIN = (int) mResources.getDimension(R.dimen.hours_right_margin);
         MULTI_DAY_HEADER_HEIGHT = (int) mResources.getDimension(R.dimen.day_header_height);
+        HOUR_BLOCK_INSET = mResources.getDimension(R.dimen.hour_block_inset);
+        HOUR_BLOCK_COLUMN_INSET = mResources.getDimension(R.dimen.hour_block_column_inset);
+        HOUR_BLOCK_RADIUS = mResources.getDimension(R.dimen.hour_block_corner_radius);
+        mNowLineThickness = mResources.getDimension(R.dimen.now_line_thickness);
+        mNowDotRadius = mResources.getDimension(R.dimen.now_dot_radius);
+        mNowDotInset = mResources.getDimension(R.dimen.now_dot_inset);
+        DAY_HEADER_TOP_PADDING = mResources.getDimension(R.dimen.day_header_top_padding);
+        DAY_HEADER_BOTTOM_PADDING = mResources.getDimension(R.dimen.day_header_bottom_padding);
+        DATE_CIRCLE_GAP = mResources.getDimension(R.dimen.day_header_date_circle_gap);
+        DATE_CIRCLE_MIN_SIZE = mResources.getDimension(R.dimen.day_header_date_circle_size);
         int eventTextSizeId;
         if (mNumDays == 1) {
             eventTextSizeId = R.dimen.day_view_event_text_size;
@@ -685,7 +778,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             eventTextSizeId = R.dimen.week_view_event_text_size;
         }
         EVENT_TEXT_FONT_SIZE = (int) mResources.getDimension(eventTextSizeId);
-        NEW_EVENT_HINT_FONT_SIZE = (int) mResources.getDimension(R.dimen.new_event_hint_text_size);
         EVENT_TEXT_TOP_MARGIN = (int) mResources.getDimension(R.dimen.event_text_vertical_margin);
         EVENT_CORNER_RADIUS = mResources.getDimension(R.dimen.event_corner_radius);
         EVENT_TEXT_BOTTOM_MARGIN = EVENT_TEXT_TOP_MARGIN;
@@ -712,14 +804,12 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 MIN_CELL_WIDTH_FOR_TEXT *= mScale;
                 MAX_UNEXPANDED_ALLDAY_HEIGHT *= mScale;
 
-                CURRENT_TIME_LINE_SIDE_BUFFER *= mScale;
-                CURRENT_TIME_LINE_TOP_OFFSET *= mScale;
-
                 MIN_Y_SPAN *= mScale;
                 MAX_CELL_HEIGHT *= mScale;
                 DEFAULT_CELL_HEIGHT *= mScale;
                 DAY_HEADER_HEIGHT *= mScale;
                 DAY_HEADER_RIGHT_MARGIN *= mScale;
+                SUBSCRIPTION_TEXT_SIZE *= mScale;
                 DAY_HEADER_ONE_DAY_LEFT_MARGIN *= mScale;
                 DAY_HEADER_ONE_DAY_RIGHT_MARGIN *= mScale;
                 DAY_HEADER_ONE_DAY_BOTTOM_MARGIN *= mScale;
@@ -751,18 +841,14 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         mAnimateDayEventHeight = (int) MIN_UNEXPANDED_ALLDAY_EVENT_HEIGHT;
 
         HOURS_MARGIN = HOURS_LEFT_MARGIN + HOURS_RIGHT_MARGIN;
-        DAY_HEADER_HEIGHT = mNumDays == 1 ? ONE_DAY_HEADER_HEIGHT : MULTI_DAY_HEADER_HEIGHT;
-        if (LunarUtils.showLunar(mContext) && mNumDays != 1) {
-            DAY_HEADER_HEIGHT = (int) (DAY_HEADER_HEIGHT + DAY_HEADER_FONT_SIZE + 2);
-        }
+        // Must run after density scaling so the badge paint is sized correctly,
+        // and before DAY_HEADER_HEIGHT is derived from the badge line count.
+        refreshSubscriptionState();
+        DAY_HEADER_HEIGHT = computeDayHeaderHeight();
 
-        mCurrentTimeLine = mResources.getDrawable(R.drawable.timeline_indicator_holo_light);
-        mCurrentTimeAnimateLine = mResources
-                .getDrawable(R.drawable.timeline_indicator_activated_holo_light);
         mTodayHeaderDrawable = mResources.getDrawable(R.drawable.today_blue_week_holo_light);
         mExpandAlldayDrawable = mResources.getDrawable(R.drawable.ic_expand_holo_light);
         mCollapseAlldayDrawable = mResources.getDrawable(R.drawable.ic_collapse_holo_light);
-        mNewEventHintColor =  mResources.getColor(R.color.new_event_hint_text_color);
         mAcceptedOrTentativeEventBoxDrawable = mResources
                 .getDrawable(R.drawable.panel_month_event_holo_light);
 
@@ -806,8 +892,27 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         }
     }
 
+    /**
+     * Caches whether any subscription is enabled plus the color to draw its
+     * badges with, so {@link #drawDayHeader} never reads preferences or
+     * resolves theme attributes during onDraw.
+     */
+    private void refreshSubscriptionState() {
+        mSubscriptionLineCount = SubscriptionText.maxLineCount(mContext);
+        mSubscriptionsEnabled = mSubscriptionLineCount > 0;
+        android.util.TypedValue tv = new android.util.TypedValue();
+        if (mContext.getTheme().resolveAttribute(
+                com.google.android.material.R.attr.colorOnSurfaceVariant, tv, true)) {
+            mSubscriptionTextColor = tv.data;
+        } else {
+            mSubscriptionTextColor = Color.GRAY;
+        }
+        mSubscriptionEllipsizePaint.setTextSize(SUBSCRIPTION_TEXT_SIZE);
+    }
+
     private void init(Context context) {
         setFocusable(true);
+        mSlotTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
 
         // Allow focus in touch mode so that we can do keyboard shortcuts
         // even after we've entered touch mode.
@@ -832,6 +937,21 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         mCalendarGridAreaSelected = DynamicTheme.getColor(mContext, "calendar_grid_area_selected");
         mCalendarGridLineInnerHorizontalColor = DynamicTheme.getColor(mContext, "calendar_grid_line_inner_horizontal_color");
         mCalendarGridLineInnerVerticalColor = DynamicTheme.getColor(mContext, "calendar_grid_line_inner_vertical_color");
+        // Hour blocks: grid line colour at low opacity, so they stay quiet in both themes.
+        mHourBlockColor = (mCalendarGridLineInnerHorizontalColor & 0x00FFFFFF) | 0x26000000;
+        // Selected hour: theme primary at low opacity, not a fixed blue.
+        mSelectedHourColor = (com.google.android.material.color.MaterialColors.getColor(mContext,
+                com.google.android.material.R.attr.colorPrimary, mCalendarGridAreaSelected)
+                & 0x00FFFFFF) | 0x33000000;
+        // Now line and its dot: theme primary, the same source as today's date circle.
+        mNowLineColor = com.google.android.material.color.MaterialColors.getColor(mContext,
+                com.google.android.material.R.attr.colorPrimary, mWeek_todayColor);
+        // Date header: today is a filled theme-primary circle, selected is a primary outline.
+        mDateTodayFill = com.google.android.material.color.MaterialColors.getColor(mContext,
+                com.google.android.material.R.attr.colorPrimary, mWeek_todayColor);
+        mDateTodayText = com.google.android.material.color.MaterialColors.getColor(mContext,
+                com.google.android.material.R.attr.colorOnPrimary, Color.WHITE);
+        mDateSelectedOutline = mDateTodayFill;
         mPressedColor = DynamicTheme.getColor(mContext, "pressed");
         mClickedColor = DynamicTheme.getColor(mContext, "day_event_clicked_background_color");
         mEventTextColor = DynamicTheme.getColor(mContext, "calendar_event_text_color");
@@ -882,12 +1002,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         p.setTypeface(null);
         handleOnResume();
 
-        String[] timeStrs = {"12 AM", "12 PM", "22:00"};
-        p.setTextSize(HOURS_TEXT_SIZE);
-        mHoursWidth = HOURS_MARGIN + computeMaxStringWidth(mHoursWidth, timeStrs, p);
-
-        GRID_LINE_LEFT_MARGIN = mHoursWidth;
-
         LayoutInflater inflater;
         inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         mPopupView = inflater.inflate(R.layout.bubble_event, null);
@@ -935,11 +1049,67 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         }
     }
 
+    /**
+     * Rebuilds the hour labels and the exact-time labels when the locale the app uses, or the
+     * 12/24-hour setting, has changed. Called on resume for both ViewSwitcher views, never while
+     * drawing. When the labels change, the time column is measured again.
+     */
+    private void refreshTimeLabels() {
+        Resources res = mContext.getResources();
+        Locale locale = res.getConfiguration().locale;
+        boolean is24 = DateFormat.is24HourFormat(mContext);
+        String tag = locale.toLanguageTag();
+        if (mTimeLabels != null && mTimeLabels.isFor(tag, is24)) {
+            return;
+        }
+        // The AM and PM words come from the same locale as the resource patterns.
+        String[] ampm = DateFormatSymbols.getInstance(locale).getAmPmStrings();
+        mTimeLabels = new TimeLabelFormat(tag, is24, ampm[Calendar.AM], ampm[Calendar.PM],
+                res.getString(R.string.time_label_hour_12h),
+                res.getString(R.string.time_label_minute_12h));
+        mIs24HourFormat = is24;
+        if (mHourStrs == null) {
+            mHourStrs = new String[24];
+        }
+        for (int hour = 0; hour < 24; hour++) {
+            mHourStrs[hour] = mTimeLabels.hourLabel(hour);
+        }
+        updateHoursWidth();
+        if (getWidth() > 0) {
+            remeasure(getWidth(), getHeight());
+            invalidate();
+        }
+    }
+
+    /**
+     * Width of the time column: the widest label of the current format, measured with the real
+     * text. Chinese labels such as "下午12点" and exact times such as "下午12:45" are included, so
+     * nothing is cut or squeezed into the column.
+     */
+    private void updateHoursWidth() {
+        Paint p = new Paint();
+        p.setTextSize(HOURS_TEXT_SIZE);
+        mHoursWidth = HOURS_MARGIN + computeMaxStringWidth(0, mTimeLabels.sampleLabels(), p);
+        GRID_LINE_LEFT_MARGIN = mHoursWidth;
+    }
+
     public void handleOnResume() {
         initAccessibilityVariables();
+        // Pick up subscriptions toggled while we were in the background, and
+        // resize the header so a newly enabled provider gets its own line.
+        int previousLines = mSubscriptionLineCount;
+        refreshSubscriptionState();
+        if (previousLines != mSubscriptionLineCount && mNumDays != 1) {
+            DAY_HEADER_HEIGHT = computeDayHeaderHeight();
+            remeasure(getWidth(), getHeight());
+        }
         mFutureBgColor = mFutureBgColorRes;
-        mIs24HourFormat = DateFormat.is24HourFormat(mContext);
-        mHourStrs = mIs24HourFormat ? CalendarData.s24Hours : CalendarData.s12Hours;
+        boolean maskOn = GeneralPreferences.isDayWeekBackgroundMaskEnabled(mContext);
+        if (maskOn != mBackgroundMaskOn) {
+            mBackgroundMaskOn = maskOn;
+            invalidate();
+        }
+        refreshTimeLabels();
         mFirstDayOfWeek = Utils.getFirstDayOfWeek(mContext);
         mLastSelectionDayForAccessibility = 0;
         mLastSelectionHourForAccessibility = 0;
@@ -2306,12 +2476,11 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
     // Computes the x position for the left side of the given day (base 0)
     private int computeDayLeftPosition(int day) {
-        int effectiveWidth = mViewWidth - mHoursWidth;
-        return day * effectiveWidth / mNumDays + mHoursWidth;
+        return DayGridGeometry.dayColumnLeft(day, mNumDays, mViewWidth, mHoursWidth);
     }
 
     private void drawAllDayHighlights(Rect r, Canvas canvas, Paint p) {
-        if (mFutureBgColor != 0) {
+        if (mBackgroundMaskOn) {
             // First, color the labels area light gray
             r.top = 0;
             r.bottom = DAY_HEADER_HEIGHT;
@@ -2376,7 +2545,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         // r.right = mViewWidth;
         // p.setColor(mCalendarGridAreaBackground);
         // canvas.drawRect(r, p);
-        if (mNumDays == 1 && ONE_DAY_HEADER_HEIGHT == 0) {
+        if (DAY_HEADER_HEIGHT <= 0) {
             return;
         }
 
@@ -2415,28 +2584,51 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         p.setTypeface(null);
     }
 
-    private void drawCurrentTimeLine(Rect r, final int day, final int top, Canvas canvas,
-            Paint p) {
-        r.left = computeDayLeftPosition(day) - CURRENT_TIME_LINE_SIDE_BUFFER + 1;
-        r.right = computeDayLeftPosition(day + 1) + CURRENT_TIME_LINE_SIDE_BUFFER + 1;
+    /** Y of the current time, in grid coordinates. Same mapping as the block edges. */
+    private float nowY() {
+        int minute = mCurrentTime.getHour() * 60 + mCurrentTime.getMinute();
+        return DayGridGeometry.minuteToY(minute, mCellHeight, HOUR_GAP);
+    }
 
-        r.top = top - CURRENT_TIME_LINE_TOP_OFFSET;
-        r.bottom = r.top + mCurrentTimeLine.getIntrinsicHeight();
-
-        mCurrentTimeLine.setBounds(r);
-        mCurrentTimeLine.draw(canvas);
-        if (mAnimateToday) {
-            mCurrentTimeAnimateLine.setBounds(r);
-            mCurrentTimeAnimateLine.setAlpha(mAnimateTodayAlpha);
-            mCurrentTimeAnimateLine.draw(canvas);
+    /**
+     * The current-time line and its dot, in today's column only. Nothing is drawn when today is
+     * not one of the visible columns or when the time is off the visible grid. Drawn after the
+     * events, in grid coordinates, so the header and the all-day area are never covered.
+     */
+    private void drawNowIndicator(Canvas canvas, Paint p) {
+        int column = DayGridGeometry.todayColumn(mTodayJulianDay, mFirstJulianDay, mNumDays);
+        if (column < 0) {
+            return;
         }
+        float y = nowY();
+        if (y < mViewStartY || y >= mViewStartY + mViewHeight - 2) {
+            return;
+        }
+        float columnLeft = computeDayLeftPosition(column);
+        float columnRight = computeDayLeftPosition(column + 1);
+        float dotX = DayGridGeometry.nowDotCentreX(columnLeft, mNowDotRadius, mNowDotInset);
+        Paint.Style savedStyle = p.getStyle();
+        int savedColor = p.getColor();
+        int savedAlpha = p.getAlpha();
+        p.setStyle(Style.FILL);
+        p.setColor(mNowLineColor);
+        p.setAlpha(mAnimateToday ? mAnimateTodayAlpha : 255);
+        p.setAntiAlias(true);
+        float half = mNowLineThickness / 2f;
+        canvas.drawRect(dotX, y - half, columnRight, y + half, p);
+        canvas.drawCircle(dotX, y, mNowDotRadius, p);
+        p.setStyle(savedStyle);
+        p.setColor(savedColor);
+        p.setAlpha(savedAlpha);
     }
 
     private void doDraw(Canvas canvas) {
         Paint p = mPaint;
         Rect r = mRect;
 
-        if (mFutureBgColor != 0) {
+        // Layers from the back: the optional mask, then the rounded hour blocks (day and week),
+        // then the events, then the current-time line, the selection and the time block.
+        if (mBackgroundMaskOn) {
             drawBgColors(r, canvas, p);
         }
         drawGridBackground(r, canvas, p);
@@ -2450,21 +2642,13 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             // TODO Wow, this needs cleanup. drawEvents loop through all the
             // events on every call.
             drawEvents(cell, day, HOUR_GAP, canvas, p);
-            // If this is today
-            if (cell == mTodayJulianDay) {
-                int lineY = mCurrentTime.getHour() * (mCellHeight + HOUR_GAP)
-                        + ((mCurrentTime.getMinute() * mCellHeight) / 60) + 1;
-
-                // And the current time shows up somewhere on the screen
-                if (lineY >= mViewStartY && lineY < mViewStartY + mViewHeight - 2) {
-                    drawCurrentTimeLine(r, day, lineY, canvas, p);
-                }
-            }
         }
         p.setAntiAlias(true);
         p.setAlpha(alpha);
 
+        drawNowIndicator(canvas, p);
         drawSelectedRect(r, canvas, p);
+        drawSlotPreview(canvas, p);
     }
 
     private void drawSelectedRect(Rect r, Canvas canvas, Paint p) {
@@ -2478,37 +2662,23 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
             saveSelectionPosition(r.left, r.top, r.right, r.bottom);
 
-            // Draw the highlight on the grid
-            p.setColor(mCalendarGridAreaSelected);
-            r.top += HOUR_GAP;
-            r.right -= DAY_GAP;
-            p.setAntiAlias(false);
-            canvas.drawRect(r, p);
-
-            // Draw a "new event hint" on top of the highlight
-            // For the week view, show a "+", for day view, show "+ New event"
-            p.setColor(mNewEventHintColor);
-            if (mNumDays > 1) {
-                p.setStrokeWidth(NEW_EVENT_WIDTH);
-                int width = r.right - r.left;
-                int midX = r.left + width / 2;
-                int midY = r.top + mCellHeight / 2;
-                int length = Math.min(mCellHeight, width) - NEW_EVENT_MARGIN * 2;
-                length = Math.min(length, NEW_EVENT_MAX_LENGTH);
-                int verticalPadding = (mCellHeight - length) / 2;
-                int horizontalPadding = (width - length) / 2;
-                canvas.drawLine(r.left + horizontalPadding, midY, r.right - horizontalPadding,
-                        midY, p);
-                canvas.drawLine(midX, r.top + verticalPadding, midX, r.bottom - verticalPadding, p);
-            } else {
-                p.setStyle(Paint.Style.FILL);
-                p.setTextSize(NEW_EVENT_HINT_FONT_SIZE);
-                p.setTextAlign(Paint.Align.LEFT);
-                p.setAntiAlias(true);
-                p.setTypeface(Typeface.defaultFromStyle(Typeface.BOLD));
-                canvas.drawText(mNewEventHintString, r.left + EVENT_TEXT_LEFT_MARGIN,
-                        r.top + Math.abs(p.getFontMetrics().ascent) + EVENT_TEXT_TOP_MARGIN , p);
+            if (isSlotPreviewShown()) {
+                // The time block replaces the single-hour highlight in the day view
+                return;
             }
+
+            // The selected hour uses the same rounded block as the grid, in a translucent
+            // primary colour. There is no sharp rectangle and no "+" hint, so nothing sits
+            // under the rounded time block.
+            final float slotHeight = mCellHeight + HOUR_GAP;
+            mRectF.set(computeDayLeftPosition(daynum) + HOUR_BLOCK_COLUMN_INSET,
+                    DayGridGeometry.hourBlockTop(mSelectionHour, slotHeight, HOUR_BLOCK_INSET),
+                    computeDayLeftPosition(daynum + 1) - HOUR_BLOCK_COLUMN_INSET,
+                    DayGridGeometry.hourBlockBottom(mSelectionHour, slotHeight, HOUR_BLOCK_INSET));
+            p.setStyle(Style.FILL);
+            p.setColor(mSelectedHourColor);
+            p.setAntiAlias(true);
+            canvas.drawRoundRect(mRectF, HOUR_BLOCK_RADIUS, HOUR_BLOCK_RADIUS, p);
         }
     }
 
@@ -2525,11 +2695,28 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         }
         int deltaY = hourStep * totCellHeight;
         int y = i * totCellHeight + mHoursTextHeight / 2 - HOUR_GAP;
+        // While a block is shown, an hour label that would touch one of its time chips is left out.
+        float[] slotLayout = isSlotPreviewShown() ? slotTimeLabelLayout() : null;
+        Paint.FontMetrics hourMetrics = p.getFontMetrics();
+        float hourHeight = hourMetrics.descent - hourMetrics.ascent;
+        float hourOffset = (hourMetrics.ascent + hourMetrics.descent) / 2f;
         for (; i < 24; i += hourStep) {
             String time = mHourStrs[i];
-            canvas.drawText(time, HOURS_LEFT_MARGIN, y, p);
+            if (slotLayout == null || !hourLabelHidden(y + hourOffset, hourHeight, slotLayout)) {
+                canvas.drawText(time, HOURS_LEFT_MARGIN, y, p);
+            }
             y += deltaY;
         }
+        if (slotLayout != null) {
+            drawSlotTimeLabels(canvas, slotLayout);
+        }
+    }
+
+    /** Whether an hour label would touch either of the block's time chips. */
+    private static boolean hourLabelHidden(float hourCentre, float hourHeight, float[] slotLayout) {
+        float chipHeight = slotLayout[2];
+        return SlotTimeLabels.overlaps(hourCentre, hourHeight, slotLayout[0], chipHeight)
+                || SlotTimeLabels.overlaps(hourCentre, hourHeight, slotLayout[1], chipHeight);
     }
 
     private void setupHourTextPaint(Paint p) {
@@ -2540,43 +2727,91 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         p.setAntiAlias(true);
     }
 
+    /**
+     * Header height from the current fonts and subscription count. The date circle grows with
+     * the date font so the number is never clipped or shrunk. Lunar and subscription lines sit
+     * below the circle and are only shown in the multi-day views, as before.
+     */
+    private int computeDayHeaderHeight() {
+        final float density = mResources.getDisplayMetrics().density;
+        DATE_CIRCLE_STROKE = 2f * density;
+        Paint measure = new Paint(Paint.ANTI_ALIAS_FLAG);
+        measure.setTextSize(DATE_HEADER_FONT_SIZE);
+        Paint.FontMetrics dateMetrics = measure.getFontMetrics();
+        final float dateLine = dateMetrics.descent - dateMetrics.ascent;
+        final float digitsWidth = measure.measureText("88");
+        final float innerPad = 2f * density;
+        DATE_CIRCLE_SIZE = Math.max(DATE_CIRCLE_MIN_SIZE,
+                Math.max(dateLine, digitsWidth) + 2f * innerPad);
+
+        measure.setTextSize(DAY_HEADER_FONT_SIZE);
+        Paint.FontMetrics weekdayMetrics = measure.getFontMetrics();
+        final float weekdayLine = weekdayMetrics.descent - weekdayMetrics.ascent;
+        final boolean multiDay = mNumDays != 1;
+        final float lunarLine = (multiDay && LunarUtils.showLunar(mContext))
+                ? DAY_HEADER_FONT_SIZE + 2 : 0;
+        final int subscriptionLines = (multiDay && mSubscriptionsEnabled)
+                ? mSubscriptionLineCount : 0;
+        final float height = DayGridGeometry.dateHeaderHeight(DAY_HEADER_TOP_PADDING,
+                weekdayLine, DATE_CIRCLE_GAP, DATE_CIRCLE_SIZE, lunarLine,
+                subscriptionLines, SUBSCRIPTION_TEXT_SIZE + 2, DAY_HEADER_BOTTOM_PADDING);
+        return (int) Math.ceil(height);
+    }
+
     private void drawDayHeader(String dayStr, int day, int cell, Canvas canvas, Paint p) {
         int dateNum = mFirstVisibleDate + day;
-        int x;
-        int color = p.getColor();
         if (dateNum > mMonthLength) {
             dateNum -= mMonthLength;
         }
         p.setAntiAlias(true);
 
-        int todayIndex = mTodayJulianDay - mFirstJulianDay;
-        // Draw day of the month
-        String dateNumStr = String.valueOf(dateNum);
+        // Today and selected are separate inputs. The state picks at most one circle.
+        final DayGridGeometry.DateState state =
+                DayGridGeometry.dateState(cell, mTodayJulianDay, mSelectionDay);
+        final int weekdayColor = p.getColor();
+        // Single day: the date block sits in the left time-label column, above the hour labels.
+        // Several days: centred over the day's own column. The all-day area keeps the right side.
+        final float cx = DayGridGeometry.dateHeaderCentreX(mNumDays,
+                computeDayLeftPosition(day), computeDayLeftPosition(day + 1),
+                mHoursWidth, HOURS_LEFT_MARGIN, HOURS_RIGHT_MARGIN);
+
+        // Weekday, centred above the date circle
+        p.setTypeface(Typeface.DEFAULT);
+        p.setTextAlign(Align.CENTER);
+        p.setTextSize(DAY_HEADER_FONT_SIZE);
+        Paint.FontMetrics fm = p.getFontMetrics();
+        canvas.drawText(dayStr, cx, DAY_HEADER_TOP_PADDING - fm.ascent, p);
+
+        // Date circle: width equals height and it is centred on the column
+        final float circleTop = DAY_HEADER_TOP_PADDING + (fm.descent - fm.ascent) + DATE_CIRCLE_GAP;
+        final float radius = DATE_CIRCLE_SIZE / 2f;
+        final float cy = circleTop + radius;
+        int numberColor = weekdayColor;
+        p.setStyle(Style.FILL);
+        if (state == DayGridGeometry.DateState.TODAY) {
+            p.setColor(mDateTodayFill);
+            canvas.drawCircle(cx, cy, radius, p);
+            numberColor = mDateTodayText;
+        } else if (state == DayGridGeometry.DateState.SELECTED) {
+            p.setStyle(Style.STROKE);
+            p.setStrokeWidth(DATE_CIRCLE_STROKE);
+            p.setColor(mDateSelectedOutline);
+            canvas.drawCircle(cx, cy, radius - DATE_CIRCLE_STROKE / 2f, p);
+            p.setStyle(Style.FILL);
+        }
+
+        // Date number, centred by FontMetrics. Drawn last so the press feedback never covers it.
+        p.setTypeface(state == DayGridGeometry.DateState.TODAY ? mBold : Typeface.DEFAULT);
+        p.setTextSize(DATE_HEADER_FONT_SIZE);
+        fm = p.getFontMetrics();
+        p.setColor(numberColor);
+        canvas.drawText(String.valueOf(dateNum), cx,
+                DayGridGeometry.centredBaseline(cy, fm.ascent, fm.descent), p);
+
+        float y = circleTop + DATE_CIRCLE_SIZE;
         if (mNumDays > 1) {
-            float y = -1;
+            // Lunar line, below the circle, in its own area
             if (LunarUtils.showLunar(mContext)) {
-                y = DAY_HEADER_HEIGHT - DAY_HEADER_BOTTOM_MARGIN - DATE_HEADER_FONT_SIZE - 2;
-            } else {
-                y = DAY_HEADER_HEIGHT - DAY_HEADER_BOTTOM_MARGIN;
-            }
-            // Draw day of the month
-            x = computeDayLeftPosition(day) + DAY_HEADER_RIGHT_MARGIN;
-            p.setTextAlign(Align.LEFT);
-            p.setTextSize(DATE_HEADER_FONT_SIZE);
-
-            p.setTypeface(todayIndex == day ? mBold : Typeface.DEFAULT);
-            p.setColor(todayIndex == day? mWeek_todayColor : color);
-            canvas.drawText(dateNumStr, x, y, p);
-
-            // Draw day of the week
-            y -= DATE_HEADER_FONT_SIZE;
-            p.setTextSize(DAY_HEADER_FONT_SIZE);
-            p.setTypeface(Typeface.DEFAULT);
-            canvas.drawText(dayStr, x, y, p);
-
-            // To show the lunar info.
-            if (LunarUtils.showLunar(mContext)) {
-                // adjust the year and month
                 int month = mBaseDate.getMonth();
                 int year = mBaseDate.getYear();
                 if (dateNum > mMonthLength || dateNum < mFirstVisibleDate) {
@@ -2586,76 +2821,68 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                         year = year + 1;
                     }
                 }
-
                 String lunarInfo = LunarUtils.get(mContext, year, month, dateNum,
                         LunarUtils.FORMAT_LUNAR_SHORT | LunarUtils.FORMAT_ONE_FESTIVAL,
                         false, null);
+                p.setTextSize(DAY_HEADER_FONT_SIZE);
+                p.setColor(weekdayColor);
+                fm = p.getFontMetrics();
                 if (!TextUtils.isEmpty(lunarInfo)) {
-                    canvas.drawText(lunarInfo, x, y + DAY_HEADER_FONT_SIZE + 2, p);
+                    canvas.drawText(lunarInfo, cx, y - fm.ascent, p);
+                }
+                y += DAY_HEADER_FONT_SIZE + 2;
+            }
+
+            // Subscription badges: one centred line per provider, inside the column
+            if (mSubscriptionsEnabled) {
+                java.util.List<String> subs =
+                        SubscriptionText.lines(mContext, mFirstJulianDay + day);
+                if (!subs.isEmpty()) {
+                    java.util.List<Integer> subColors =
+                            SubscriptionText.lineColors(mContext, mFirstJulianDay + day);
+                    float columnWidth = (float) (mViewWidth - mHoursWidth) / mNumDays
+                            - DAY_HEADER_RIGHT_MARGIN * 2;
+                    p.setTextSize(SUBSCRIPTION_TEXT_SIZE);
+                    fm = p.getFontMetrics();
+                    for (int i = 0; i < subs.size(); i++) {
+                        Integer c = i < subColors.size() ? subColors.get(i) : null;
+                        p.setColor(c != null ? c : mSubscriptionTextColor);
+                        String line = TextUtils.ellipsize(subs.get(i), mSubscriptionEllipsizePaint,
+                                columnWidth, TextUtils.TruncateAt.END).toString();
+                        canvas.drawText(line, cx, y - fm.ascent, p);
+                        y += SUBSCRIPTION_TEXT_SIZE + 2;
+                    }
                 }
             }
-        } else {
-            float y = ONE_DAY_HEADER_HEIGHT - DAY_HEADER_ONE_DAY_BOTTOM_MARGIN;
-            p.setTextAlign(Align.LEFT);
-
-
-            // Draw day of the week
-            x = computeDayLeftPosition(day) + DAY_HEADER_ONE_DAY_LEFT_MARGIN;
-            p.setTextSize(DAY_HEADER_FONT_SIZE);
-            p.setTypeface(Typeface.DEFAULT);
-            canvas.drawText(dayStr, x, y, p);
-
-            // Draw day of the month
-            x += p.measureText(dayStr) + DAY_HEADER_ONE_DAY_RIGHT_MARGIN;
-            p.setTextSize(DATE_HEADER_FONT_SIZE);
-            p.setTypeface(todayIndex == day ? mBold : Typeface.DEFAULT);
-            canvas.drawText(dateNumStr, x, y, p);
         }
+        p.setTextAlign(Align.LEFT);
+        p.setTypeface(null);
     }
 
+    /**
+     * Base layer of the time grid, in day and week alike: one rounded block per day column and
+     * hour, with a small gap between hours and between columns. It never reads the background
+     * mask, and it never changes the time-to-Y mapping, the column edges or the event layout: each
+     * block sits inside its own slot and its own column.
+     */
     private void drawGridBackground(Rect r, Canvas canvas, Paint p) {
+        if (!DayGridGeometry.drawsRoundedHourBlocks(mNumDays)) {
+            return;
+        }
         Paint.Style savedStyle = p.getStyle();
-
-        final float stopX = computeDayLeftPosition(mNumDays);
-        float y = 0;
-        final float deltaY = mCellHeight + HOUR_GAP;
-        int linesIndex = 0;
-        final float startY = 0;
-        final float stopY = HOUR_GAP + 24 * (mCellHeight + HOUR_GAP);
-        float x = mHoursWidth;
-
-        // Draw the inner horizontal grid lines
-        p.setColor(mCalendarGridLineInnerHorizontalColor);
-        p.setStrokeWidth(GRID_LINE_INNER_WIDTH);
-        p.setAntiAlias(false);
-        y = 0;
-        linesIndex = 0;
-        for (int hour = 0; hour <= 24; hour++) {
-            mLines[linesIndex++] = GRID_LINE_LEFT_MARGIN;
-            mLines[linesIndex++] = y;
-            mLines[linesIndex++] = stopX;
-            mLines[linesIndex++] = y;
-            y += deltaY;
-        }
-        if (mCalendarGridLineInnerVerticalColor != mCalendarGridLineInnerHorizontalColor) {
-            canvas.drawLines(mLines, 0, linesIndex, p);
-            linesIndex = 0;
-            p.setColor(mCalendarGridLineInnerVerticalColor);
-        }
-
-        // Draw the inner vertical grid lines
-        for (int day = 0; day <= mNumDays; day++) {
-            x = computeDayLeftPosition(day);
-            mLines[linesIndex++] = x;
-            mLines[linesIndex++] = startY;
-            mLines[linesIndex++] = x;
-            mLines[linesIndex++] = stopY;
-        }
-        canvas.drawLines(mLines, 0, linesIndex, p);
-
-        // Restore the saved style.
-        p.setStyle(savedStyle);
+        int savedColor = p.getColor();
+        p.setStyle(Style.FILL);
+        p.setColor(mHourBlockColor);
         p.setAntiAlias(true);
+        final float slotHeight = mCellHeight + HOUR_GAP;
+        for (int day = 0; day < mNumDays; day++) {
+            for (int hour = 0; hour < 24; hour++) {
+                final float radius = fillHourBlockRect(day, hour, slotHeight);
+                canvas.drawRoundRect(mRectF, radius, radius, p);
+            }
+        }
+        p.setColor(savedColor);
+        p.setStyle(savedStyle);
     }
 
     /**
@@ -2664,8 +2891,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
      * @param p
      */
     private void drawBgColors(Rect r, Canvas canvas, Paint p) {
-        int todayIndex = mTodayJulianDay - mFirstJulianDay;
-        // Draw the hours background color
+        // The hour label column is a flat band, as before.
         r.top = mDestRect.top;
         r.bottom = mDestRect.bottom;
         r.left = 0;
@@ -2674,54 +2900,65 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         p.setStyle(Style.FILL);
         p.setAntiAlias(false);
         canvas.drawRect(r, p);
+        // The future part of the grid is shaped by the hour blocks, so it has the same rounded
+        // corners and leaves the gaps between hours clear. It is not a rectangle.
+        drawFutureHourBlocks(canvas, p);
+    }
 
-        // Draw background for grid area
-        if (mNumDays == 1 && todayIndex == 0) {
-            // Draw a white background for the time later than current time
-            int lineY = mCurrentTime.getHour() * (mCellHeight + HOUR_GAP)
-                    + ((mCurrentTime.getMinute() * mCellHeight) / 60) + 1;
-            if (lineY < mViewStartY + mViewHeight) {
-                lineY = Math.max(lineY, mViewStartY);
-                r.left = mHoursWidth;
-                r.right = mViewWidth;
-                r.top = lineY;
-                r.bottom = mViewStartY + mViewHeight;
-                p.setColor(mFutureBgColor);
-                canvas.drawRect(r, p);
-            }
-        } else if (todayIndex >= 0 && todayIndex < mNumDays) {
-            // Draw today with a white background for the time later than current time
-            int lineY = mCurrentTime.getHour() * (mCellHeight + HOUR_GAP)
-                    + ((mCurrentTime.getMinute() * mCellHeight) / 60) + 1;
-            if (lineY < mViewStartY + mViewHeight) {
-                lineY = Math.max(lineY, mViewStartY);
-                r.left = computeDayLeftPosition(todayIndex) + 1;
-                r.right = computeDayLeftPosition(todayIndex + 1);
-                r.top = lineY;
-                r.bottom = mViewStartY + mViewHeight;
-                p.setColor(mFutureBgColor);
-                canvas.drawRect(r, p);
-            }
-
-            // Paint Tomorrow and later days with future color
-            if (todayIndex + 1 < mNumDays) {
-                r.left = computeDayLeftPosition(todayIndex + 1) + 1;
-                r.right = computeDayLeftPosition(mNumDays);
-                r.top = mDestRect.top;
-                r.bottom = mDestRect.bottom;
-                p.setColor(mFutureBgColor);
-                canvas.drawRect(r, p);
-            }
-        } else if (todayIndex < 0) {
-            // Future
-            r.left = computeDayLeftPosition(0) + 1;
-            r.right = computeDayLeftPosition(mNumDays);
-            r.top = mDestRect.top;
-            r.bottom = mDestRect.bottom;
-            p.setColor(mFutureBgColor);
-            canvas.drawRect(r, p);
-        }
+    /**
+     * Mask layer: the future part of each day column, painted with the same rounded hour blocks
+     * as the grid. The rectangle, the radius, the column inset and the hour gap all come from
+     * fillHourBlockRect, so the mask and the blocks cannot drift apart. A block that the current
+     * time cuts is clipped to a straight edge at that time, and keeps its own outer shape. The
+     * clip and the paint state are restored afterwards. Nothing here reads data or the theme.
+     */
+    private void drawFutureHourBlocks(Canvas canvas, Paint p) {
+        final int todayIndex = mTodayJulianDay - mFirstJulianDay;
+        final float nowTop = nowY();
+        final float slotHeight = mCellHeight + HOUR_GAP;
+        final int savedColor = p.getColor();
+        final Paint.Style savedStyle = p.getStyle();
+        p.setStyle(Style.FILL);
+        p.setColor(mFutureBgColor);
         p.setAntiAlias(true);
+        for (int day = 0; day < mNumDays; day++) {
+            final float futureTop = DayGridGeometry.futureStartY(day, todayIndex, nowTop);
+            if (futureTop == Float.POSITIVE_INFINITY) {
+                continue;
+            }
+            for (int hour = 0; hour < 24; hour++) {
+                final float radius = fillHourBlockRect(day, hour, slotHeight);
+                if (mRectF.bottom <= futureTop) {
+                    continue;
+                }
+                if (mRectF.top >= futureTop) {
+                    canvas.drawRoundRect(mRectF, radius, radius, p);
+                } else {
+                    // Cut by the current time: a straight top edge, the block's own bottom.
+                    final float slop = 2f;
+                    canvas.save();
+                    canvas.clipRect(mRectF.left - slop, futureTop, mRectF.right + slop,
+                            mRectF.bottom + slop);
+                    canvas.drawRoundRect(mRectF, radius, radius, p);
+                    canvas.restore();
+                }
+            }
+        }
+        p.setColor(savedColor);
+        p.setStyle(savedStyle);
+    }
+
+    /**
+     * Sets mRectF to one hour block of one day column and returns its corner radius. Both the grid
+     * background and the future mask use it, so they share one rectangle rule.
+     */
+    private float fillHourBlockRect(int day, int hour, float slotHeight) {
+        final float left = computeDayLeftPosition(day) + HOUR_BLOCK_COLUMN_INSET;
+        final float right = computeDayLeftPosition(day + 1) - HOUR_BLOCK_COLUMN_INSET;
+        final float top = DayGridGeometry.hourBlockTop(hour, slotHeight, HOUR_BLOCK_INSET);
+        final float bottom = DayGridGeometry.hourBlockBottom(hour, slotHeight, HOUR_BLOCK_INSET);
+        mRectF.set(left, top, right, bottom);
+        return DayGridGeometry.hourBlockRadius(HOUR_BLOCK_RADIUS, right - left, bottom - top);
     }
 
     Event getSelectedEvent() {
@@ -3508,18 +3745,23 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
         int floorHalfStroke = (int) Math.floor(EVENT_RECT_STROKE_WIDTH / 2.0f);
         int ceilHalfStroke = (int) Math.ceil(EVENT_RECT_STROKE_WIDTH / 2.0f);
-        r.top = Math.max((int) event.top + EVENT_RECT_TOP_MARGIN + floorHalfStroke, visibleTop);
-        r.bottom = Math.min((int) event.bottom - EVENT_RECT_BOTTOM_MARGIN - ceilHalfStroke,
-                visibleBot);
+        // The rounded shape is the whole event. The viewport is applied as a canvas clip, so a
+        // clipped event keeps its real shape and never shows a false round end at the cut.
+        r.top = (int) event.top + EVENT_RECT_TOP_MARGIN + floorHalfStroke;
+        r.bottom = (int) event.bottom - EVENT_RECT_BOTTOM_MARGIN - ceilHalfStroke;
         r.left += floorHalfStroke;
         r.right -= ceilHalfStroke;
         mRectF.set(r);
-        float radius = EVENT_CORNER_RADIUS;
+        // A short event keeps its corners inside its height, so its shape stays readable.
+        float radius = DayGridGeometry.eventCornerRadius(mRectF.height(), EVENT_CORNER_RADIUS);
         p.setStrokeWidth(EVENT_RECT_STROKE_WIDTH);
         p.setColor(color);
         int alpha = p.getAlpha();
         p.setAlpha(mEventsAlpha);
+        canvas.save();
+        canvas.clipRect(0, visibleTop, mViewWidth, visibleBot);
         canvas.drawRoundRect(mRectF, radius, radius, p);
+        canvas.restore();
         p.setAlpha(alpha);
         p.setStyle(Style.FILL);
 
@@ -3541,7 +3783,10 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
             if (paintIt) {
                 p.setColor(color);
+                canvas.save();
+                canvas.clipRect(0, visibleTop, mViewWidth, visibleBot);
                 canvas.drawRoundRect(mRectF, radius, radius, p);
+                canvas.restore();
             }
         }
 
@@ -3891,6 +4136,503 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         invalidate();
     }
 
+    /**
+     * Whether the temporary time block is drawn and can be touched. Day view only, and only
+     * while its day is the day on screen. Swiping to another day hides it; the view that held
+     * it keeps no visible copy of a day it no longer shows.
+     */
+    private boolean isSlotPreviewShown() {
+        return mSlotPreview != null && mNumDays == 1 && !mSelectionAllday
+                && mSlotPreviewDay == mFirstJulianDay;
+    }
+
+    private void clearSlotPreview() {
+        mSlotPreview = null;
+        mSlotDrag = SLOT_DRAG_NONE;
+        mSlotSwallowGesture = false;
+    }
+
+    private float slotDensity() {
+        return mScale > 0 ? mScale : 1f;
+    }
+
+    private float slotPixelsPerHour() {
+        return mCellHeight + HOUR_GAP;
+    }
+
+    /** Vertical offset of the scrolling grid inside the view. Same formula as onDraw. */
+    private float slotYTranslate() {
+        return -mViewStartY + DAY_HEADER_HEIGHT + mAlldayHeight;
+    }
+
+    /** View coordinates to grid coordinates (the space doDraw draws in). */
+    private float slotContentX(float viewX) {
+        return viewX + mViewStartX;
+    }
+
+    private float slotContentY(float viewY) {
+        return viewY - slotYTranslate();
+    }
+
+    private float slotEdgeY(int minute) {
+        return DayGridGeometry.minuteToY(minute, mCellHeight, HOUR_GAP);
+    }
+
+    private float slotLeft() {
+        int daynum = mSlotPreviewDay - mFirstJulianDay;
+        return computeDayLeftPosition(daynum) + 1 + SLOT_INSET_DP * slotDensity();
+    }
+
+    private float slotRight() {
+        int daynum = mSlotPreviewDay - mFirstJulianDay;
+        return computeDayLeftPosition(daynum + 1) + 1 - DAY_GAP - SLOT_INSET_DP * slotDensity();
+    }
+
+    /** Top of the visible grid, in grid coordinates. Same clip as onDraw. */
+    private float slotVisibleTop() {
+        return mFirstCell - slotYTranslate();
+    }
+
+    private float slotVisibleBottom() {
+        return mViewHeight - slotYTranslate();
+    }
+
+    /**
+     * Centre Y of a handle, in grid coordinates. It is kept inside the visible grid so the
+     * drawn circle is never clipped; the touch test uses the same position.
+     */
+    private float slotHandleY(int edge) {
+        float radius = SLOT_HANDLE_RADIUS_DP * slotDensity();
+        int minute = edge == SLOT_DRAG_START
+                ? mSlotPreview.getStartMinute() : mSlotPreview.getEndMinute();
+        float y = slotEdgeY(minute);
+        float low = slotVisibleTop() + radius;
+        float high = slotVisibleBottom() - radius;
+        if (high < low) {
+            return (low + high) / 2f;
+        }
+        return Math.max(low, Math.min(high, y));
+    }
+
+    /** The handle under a view point, or SLOT_DRAG_NONE. Nearest handle wins if both match. */
+    private int slotHandleAt(float viewX, float viewY) {
+        if (!isSlotPreviewShown()) {
+            return SLOT_DRAG_NONE;
+        }
+        float x = slotContentX(viewX);
+        float y = slotContentY(viewY);
+        float touch = SLOT_HANDLE_TOUCH_RADIUS_DP * slotDensity();
+        int hit = DayGridGeometry.nearestHandle(x, y,
+                slotHandleX(SLOT_DRAG_START), slotHandleY(SLOT_DRAG_START),
+                slotHandleX(SLOT_DRAG_END), slotHandleY(SLOT_DRAG_END), touch);
+        if (hit == 1) {
+            return SLOT_DRAG_START;
+        }
+        return hit == 2 ? SLOT_DRAG_END : SLOT_DRAG_NONE;
+    }
+
+    /**
+     * Centre X of a handle, in grid coordinates. START is on the left inside the top edge, END is
+     * on the right inside the bottom edge. Drawing, the holes and the touch test all use this.
+     */
+    private float slotHandleX(int edge) {
+        float corner = SLOT_CORNER_DP * slotDensity();
+        float radius = SLOT_HANDLE_RADIUS_DP * slotDensity();
+        return DayGridGeometry.handleCentreX(edge == SLOT_DRAG_START,
+                slotLeft(), slotRight(), corner, radius);
+    }
+
+    private boolean isInSlotBlock(float viewX, float viewY) {
+        if (!isSlotPreviewShown()) {
+            return false;
+        }
+        float x = slotContentX(viewX);
+        float y = slotContentY(viewY);
+        return x >= slotLeft() && x <= slotRight()
+                && y >= slotEdgeY(mSlotPreview.getStartMinute())
+                && y <= slotEdgeY(mSlotPreview.getEndMinute());
+    }
+
+    /** Starts a block at the snapped tap minute, with the default event duration. */
+    private void startSlotPreview(int minute) {
+        long durationMillis = Utils.getDefaultEventDurationInMillis(mContext);
+        int durationMinutes = (int) (durationMillis / DateUtils.MINUTE_IN_MILLIS);
+        mSlotPreview = DayTimeSlotPreview.forTap(minute, durationMinutes);
+        mSlotPreviewDay = mSelectionDay;
+        mSlotCalendarColor = resolveSlotCalendarColor();
+        refreshSlotPreview();
+    }
+
+    /**
+     * Recomputes the instants and labels from the block. Called on tap and on every change,
+     * never from onDraw, so the time zone and formatting cost is not paid per frame.
+     */
+    private void refreshSlotPreview() {
+        if (mSlotPreview == null) {
+            return;
+        }
+        String zoneId = Utils.getTimeZone(mContext, mTZUpdater);
+        Time day = new Time(zoneId);
+        day.setJulianDay(mSlotPreviewDay);
+        TimeZone zone = TimeZone.getTimeZone(zoneId);
+        int year = day.getYear();
+        int month = day.getMonth();
+        int monthDay = day.getDay();
+        mSlotStartMillis = mSlotPreview.startMillis(year, month, monthDay, zone);
+        mSlotEndMillis = mSlotPreview.endMillis(year, month, monthDay, zone);
+        int flags = DateUtils.FORMAT_SHOW_TIME;
+        if (mSlotPreview.getEndMinute() >= DayTimeSlotPreview.MINUTES_PER_DAY) {
+            // The block ends at the next midnight, so the end needs its date
+            flags |= DateUtils.FORMAT_SHOW_DATE;
+        }
+        mSlotRangeLabel = Utils.formatDateRange(mContext, mSlotStartMillis, mSlotEndMillis, flags);
+        // The gutter labels are the exact times of the block edges, in the view's format.
+        mSlotStartLabel = mTimeLabels.preciseLabel(mSlotPreview.getStartMinute());
+        mSlotEndLabel = mTimeLabels.preciseLabel(mSlotPreview.getEndMinute());
+        mSlotDescription = getResources().getString(R.string.day_slot_description, mSlotRangeLabel);
+    }
+
+    /** Opens the existing event editor with the block's start and end. Nothing is written here. */
+    private void openSlotPreviewEditor(int rawX, int rawY) {
+        if (!isSlotPreviewShown()) {
+            return;
+        }
+        mSelectionMode = SELECTION_SELECTED;
+        mController.sendEventRelatedEventWithExtra(this, EventType.CREATE_EVENT, -1,
+                mSlotStartMillis, mSlotEndMillis, rawX, rawY, 0, -1);
+    }
+
+    private void announceSlotPreview() {
+        announceForAccessibility(mSlotDescription);
+    }
+
+    /** Restores the edge that was being dragged, then drops the drag. */
+    private void cancelSlotDrag() {
+        if (mSlotDrag == SLOT_DRAG_NONE) {
+            return;
+        }
+        if (mSlotPreview != null && mSlotDragMoved) {
+            if (mSlotDrag == SLOT_DRAG_START) {
+                mSlotPreview.dragStart(mSlotDownStartMinute);
+            } else {
+                mSlotPreview.dragEnd(mSlotDownEndMinute);
+            }
+            refreshSlotPreview();
+        }
+        mSlotDrag = SLOT_DRAG_NONE;
+        mSlotDragMoved = false;
+        invalidate();
+    }
+
+    /**
+     * Handles touches that start on a handle of the time block. Touches that start elsewhere
+     * (including the block body) return false and take the normal grid path, so scrolling,
+     * the day switch and the tap that opens the editor keep working.
+     */
+    private boolean handleSlotPreviewTouch(MotionEvent ev) {
+        if (mSlotPreview == null || mNumDays != 1) {
+            return false;
+        }
+        switch (ev.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN: {
+                mSlotSwallowGesture = false;
+                mSlotDrag = slotHandleAt(ev.getX(), ev.getY());
+                mSlotDragMoved = false;
+                if (mSlotDrag == SLOT_DRAG_NONE) {
+                    return false;
+                }
+                mSlotDownContentY = slotContentY(ev.getY());
+                mSlotDownStartMinute = mSlotPreview.getStartMinute();
+                mSlotDownEndMinute = mSlotPreview.getEndMinute();
+                if (getParent() != null) {
+                    getParent().requestDisallowInterceptTouchEvent(true);
+                }
+                return true;
+            }
+            case MotionEvent.ACTION_MOVE: {
+                if (mSlotSwallowGesture) {
+                    return true;
+                }
+                if (mSlotDrag == SLOT_DRAG_NONE) {
+                    return false;
+                }
+                float dy = slotContentY(ev.getY()) - mSlotDownContentY;
+                if (!mSlotDragMoved && Math.abs(dy) < mSlotTouchSlop) {
+                    return true;
+                }
+                mSlotDragMoved = true;
+                int delta = DayTimeSlotPreview.minuteFromOffset(dy, slotPixelsPerHour());
+                int startBefore = mSlotPreview.getStartMinute();
+                int endBefore = mSlotPreview.getEndMinute();
+                if (mSlotDrag == SLOT_DRAG_START) {
+                    mSlotPreview.dragStart(mSlotDownStartMinute + delta);
+                } else {
+                    mSlotPreview.dragEnd(mSlotDownEndMinute + delta);
+                }
+                if (startBefore != mSlotPreview.getStartMinute()
+                        || endBefore != mSlotPreview.getEndMinute()) {
+                    refreshSlotPreview();
+                    invalidate();
+                }
+                return true;
+            }
+            case MotionEvent.ACTION_UP: {
+                if (mSlotSwallowGesture) {
+                    mSlotSwallowGesture = false;
+                    return true;
+                }
+                if (mSlotDrag == SLOT_DRAG_NONE) {
+                    return false;
+                }
+                boolean moved = mSlotDragMoved;
+                mSlotDrag = SLOT_DRAG_NONE;
+                mSlotDragMoved = false;
+                if (moved) {
+                    // Releasing does not save or invite anyone. The block stays until the user
+                    // taps it to open the editor, or leaves.
+                    announceSlotPreview();
+                    invalidate();
+                } else {
+                    // A tap on a handle counts as a tap on the block
+                    openSlotPreviewEditor((int) ev.getRawX(), (int) ev.getRawY());
+                }
+                return true;
+            }
+            case MotionEvent.ACTION_POINTER_DOWN: {
+                if (mSlotDrag != SLOT_DRAG_NONE) {
+                    // A second finger cancels the handle drag and ends the gesture here
+                    cancelSlotDrag();
+                    mSlotSwallowGesture = true;
+                    return true;
+                }
+                return mSlotSwallowGesture;
+            }
+            case MotionEvent.ACTION_POINTER_UP:
+                return mSlotSwallowGesture || mSlotDrag != SLOT_DRAG_NONE;
+            case MotionEvent.ACTION_CANCEL: {
+                boolean used = mSlotDrag != SLOT_DRAG_NONE || mSlotSwallowGesture;
+                cancelSlotDrag();
+                mSlotSwallowGesture = false;
+                return used;
+            }
+            default:
+                return mSlotDrag != SLOT_DRAG_NONE || mSlotSwallowGesture;
+        }
+    }
+
+    /**
+     * Draws the block and its two hollow handles. The fill is the calendar colour at low opacity,
+     * with the handle holes cut out of the path, so nothing refills a hole. The outline is cut
+     * around the handles too, then each handle is a hollow ring in the solid calendar colour. No
+     * text is drawn here: the times are in the left time column (drawSlotTimeLabels).
+     */
+    private void drawSlotPreview(Canvas canvas, Paint p) {
+        if (!isSlotPreviewShown()) {
+            return;
+        }
+        float density = slotDensity();
+        float left = slotLeft();
+        float right = slotRight();
+        float top = slotEdgeY(mSlotPreview.getStartMinute());
+        float bottom = slotEdgeY(mSlotPreview.getEndMinute());
+        float corner = SLOT_CORNER_DP * density;
+        float stroke = SLOT_STROKE_DP * density;
+        float radius = SLOT_HANDLE_RADIUS_DP * density;
+        // START sits on the top edge, left of centre; END on the bottom edge, right of centre.
+        float startX = slotHandleX(SLOT_DRAG_START);
+        float endX = slotHandleX(SLOT_DRAG_END);
+        float startY = slotHandleY(SLOT_DRAG_START);
+        float endY = slotHandleY(SLOT_DRAG_END);
+        int calendarColor = 0xFF000000 | mSlotCalendarColor;
+
+        mSlotBlockPath.reset();
+        mSlotBlockPath.addRoundRect(left, top, right, bottom, corner, corner, Path.Direction.CW);
+        mSlotHoleFillPath.reset();
+        mSlotHoleOutlinePath.reset();
+        mSlotHoleFillPath.addCircle(startX, startY,
+                DayGridGeometry.handleFillHoleRadius(radius, stroke), Path.Direction.CW);
+        mSlotHoleFillPath.addCircle(endX, endY,
+                DayGridGeometry.handleFillHoleRadius(radius, stroke), Path.Direction.CW);
+        mSlotHoleOutlinePath.addCircle(startX, startY,
+                DayGridGeometry.handleOutlineHoleRadius(radius, stroke), Path.Direction.CW);
+        mSlotHoleOutlinePath.addCircle(endX, endY,
+                DayGridGeometry.handleOutlineHoleRadius(radius, stroke), Path.Direction.CW);
+        mSlotFillPath.reset();
+        mSlotFillPath.op(mSlotBlockPath, mSlotHoleFillPath, Path.Op.DIFFERENCE);
+        mSlotOutlinePath.reset();
+        mSlotOutlinePath.op(mSlotBlockPath, mSlotHoleOutlinePath, Path.Op.DIFFERENCE);
+
+        Paint.Style savedStyle = p.getStyle();
+        int savedColor = p.getColor();
+        float savedStrokeWidth = p.getStrokeWidth();
+        p.setAntiAlias(true);
+        // 1. Block fill, calendar colour at low opacity, holes removed.
+        p.setStyle(Style.FILL);
+        p.setColor((calendarColor & 0x00FFFFFF) | 0x33000000);
+        canvas.drawPath(mSlotFillPath, p);
+        // 2. Block outline in the solid calendar colour, broken around the handles.
+        p.setStyle(Style.STROKE);
+        p.setStrokeWidth(stroke);
+        p.setColor(calendarColor);
+        canvas.drawPath(mSlotOutlinePath, p);
+        // 3. Hollow ring per handle, each at its own position.
+        canvas.drawCircle(startX, startY, radius, p);
+        canvas.drawCircle(endX, endY, radius, p);
+        p.setStyle(savedStyle);
+        p.setColor(savedColor);
+        p.setStrokeWidth(savedStrokeWidth);
+    }
+
+    /**
+     * The colour of the calendar a new event would use. Read once when a block starts, then
+     * cached. Falls back to the theme primary when no calendar can be determined.
+     */
+    private int resolveSlotCalendarColor() {
+        int color = NewEventCalendarColor.resolve(mContext);
+        if (color != 0) {
+            return color;
+        }
+        return com.google.android.material.color.MaterialColors.getColor(mContext,
+                com.google.android.material.R.attr.colorPrimary, mCalendarGridAreaSelected);
+    }
+
+    /**
+     * Layout of the start and end time chips in the left time column, in grid coordinates:
+     * {startCentreY, endCentreY, chipHeight, textSize}. Each chip sits on its block edge. Short
+     * blocks spread the two chips apart, and both stay inside the visible grid. The block's real
+     * boundaries are not moved. Sets the text size on mSlotLabelPaint, and only that paint.
+     */
+    private float[] slotTimeLabelLayout() {
+        float density = slotDensity();
+        Paint m = mSlotLabelPaint;
+        m.setTypeface(Typeface.DEFAULT_BOLD);
+        float maxWidth = computeDayLeftPosition(0) - HOURS_LEFT_MARGIN - HOURS_RIGHT_MARGIN
+                - 2 * SLOT_TIME_PAD_X_DP * density;
+        float size = HOURS_TEXT_SIZE;
+        float minSize = HOURS_TEXT_SIZE * SLOT_TIME_MIN_SCALE;
+        m.setTextSize(size);
+        while (size > minSize
+                && Math.max(m.measureText(mSlotStartLabel), m.measureText(mSlotEndLabel))
+                        > maxWidth) {
+            size -= 0.5f;
+            m.setTextSize(size);
+        }
+        Paint.FontMetrics fm = m.getFontMetrics();
+        float height = (fm.descent - fm.ascent) + 2 * SLOT_TIME_PAD_Y_DP * density;
+        float low = slotVisibleTop();
+        float high = slotVisibleBottom();
+        float[] edges = SlotTimeLabels.centres(slotEdgeY(mSlotPreview.getStartMinute()),
+                slotEdgeY(mSlotPreview.getEndMinute()), height);
+        return new float[] {
+                SlotTimeLabels.clampCentre(edges[0], height, low, high),
+                SlotTimeLabels.clampCentre(edges[1], height, low, high),
+                height,
+                size
+        };
+    }
+
+    /**
+     * The start time at the top of the block and the end time at the bottom, in the left time
+     * column. Each is a solid chip in the calendar colour with text picked for contrast. Drawn
+     * from drawHours, so the gutter layer is not clipped by the event area.
+     */
+    private void drawSlotTimeLabels(Canvas canvas, float[] layout) {
+        float density = slotDensity();
+        Paint m = mSlotLabelPaint;
+        float height = layout[2];
+        float padX = SLOT_TIME_PAD_X_DP * density;
+        float radius = SLOT_TIME_CORNER_DP * density;
+        int chipColor = 0xFF000000 | mSlotCalendarColor;
+        int textColor = SlotTimeLabels.textOn(chipColor);
+        Paint.FontMetrics fm = m.getFontMetrics();
+        String[] texts = {mSlotStartLabel, mSlotEndLabel};
+        for (int i = 0; i < texts.length; i++) {
+            float centre = layout[i];
+            float width = m.measureText(texts[i]) + 2 * padX;
+            mRectF.set(HOURS_LEFT_MARGIN, centre - height / 2f,
+                    HOURS_LEFT_MARGIN + width, centre + height / 2f);
+            m.setStyle(Style.FILL);
+            m.setColor(chipColor);
+            canvas.drawRoundRect(mRectF, radius, radius, m);
+            m.setColor(textColor);
+            float baseline = centre - (fm.ascent + fm.descent) / 2f;
+            canvas.drawText(texts[i], HOURS_LEFT_MARGIN + padX, baseline, m);
+        }
+    }
+
+    /** Accessibility: the block's times are in the description and in the actions. */
+    @Override
+    public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo info) {
+        super.onInitializeAccessibilityNodeInfo(info);
+        if (!isSlotPreviewShown()) {
+            return;
+        }
+        info.setContentDescription(mSlotDescription);
+        Resources res = getResources();
+        info.addAction(new AccessibilityNodeInfo.AccessibilityAction(SLOT_ACTION_OPEN,
+                res.getString(R.string.day_slot_open_action, mSlotRangeLabel)));
+        info.addAction(new AccessibilityNodeInfo.AccessibilityAction(SLOT_ACTION_START_EARLIER,
+                res.getString(R.string.day_slot_start_earlier)));
+        info.addAction(new AccessibilityNodeInfo.AccessibilityAction(SLOT_ACTION_START_LATER,
+                res.getString(R.string.day_slot_start_later)));
+        info.addAction(new AccessibilityNodeInfo.AccessibilityAction(SLOT_ACTION_END_EARLIER,
+                res.getString(R.string.day_slot_end_earlier)));
+        info.addAction(new AccessibilityNodeInfo.AccessibilityAction(SLOT_ACTION_END_LATER,
+                res.getString(R.string.day_slot_end_later)));
+    }
+
+    @Override
+    public boolean performAccessibilityAction(int action, Bundle arguments) {
+        if (!isSlotPreviewShown()) {
+            return super.performAccessibilityAction(action, arguments);
+        }
+        int step = DayTimeSlotPreview.SNAP_MINUTES;
+        if (action == SLOT_ACTION_OPEN) {
+            int[] location = new int[2];
+            getLocationOnScreen(location);
+            openSlotPreviewEditor(location[0] + getWidth() / 2, location[1] + getHeight() / 2);
+            return true;
+        } else if (action == SLOT_ACTION_START_EARLIER) {
+            mSlotPreview.moveStartBy(-step);
+        } else if (action == SLOT_ACTION_START_LATER) {
+            mSlotPreview.moveStartBy(step);
+        } else if (action == SLOT_ACTION_END_EARLIER) {
+            mSlotPreview.moveEndBy(-step);
+        } else if (action == SLOT_ACTION_END_LATER) {
+            mSlotPreview.moveEndBy(step);
+        } else {
+            return super.performAccessibilityAction(action, arguments);
+        }
+        refreshSlotPreview();
+        announceSlotPreview();
+        invalidate();
+        return true;
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasWindowFocus) {
+        super.onWindowFocusChanged(hasWindowFocus);
+        if (!hasWindowFocus) {
+            cancelSlotDrag();
+        }
+    }
+
+    /** Sends the selected hour to the controller so other views follow it. */
+    private void sendSelectedTimeToController() {
+        Time startTime = new Time();
+        startTime.set(mBaseDate);
+        startTime.setJulianDay(mSelectionDay);
+        startTime.setHour(mSelectionHour);
+        startTime.normalize();
+
+        Time endTime = new Time();
+        endTime.set(startTime);
+        endTime.setHour(endTime.getHour() + 1);
+
+        mController.sendEvent(this, EventType.GO_TO, startTime, endTime, -1, ViewType.CURRENT,
+                CalendarController.EXTRA_GOTO_TIME, null, null);
+    }
+
     private void doSingleTapUp(MotionEvent ev) {
         if (!mHandleActionUp || mScrolling) {
             return;
@@ -3900,6 +4642,12 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         int y = (int) ev.getY();
         int selectedDay = mSelectionDay;
         int selectedHour = mSelectionHour;
+
+        if (isInSlotBlock(x, y)) {
+            openSlotPreviewEditor((int) ev.getRawX(), (int) ev.getRawY());
+            return;
+        }
+        clearSlotPreview();
 
         if (mMaxAlldayEvents > mMaxUnexpandedAlldayEventCount) {
             // check if the tap was in the allday expansion area
@@ -3923,6 +4671,17 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 mController.sendEvent(this, EventType.GO_TO, null, null, selectedTime, -1,
                         ViewType.DAY, CalendarController.EXTRA_GOTO_DATE, null, null);
             }
+            return;
+        }
+
+        if (mNumDays == 1 && mSelectedEvent == null && !mSelectionAllday) {
+            // An empty time in the day view: show the temporary block, do not create yet
+            int minute = DayTimeSlotPreview.minuteFromOffset(slotContentY(y), slotPixelsPerHour());
+            startSlotPreview(minute);
+            mSelectionMode = SELECTION_SELECTED;
+            sendSelectedTimeToController();
+            announceSlotPreview();
+            invalidate();
             return;
         }
 
@@ -3966,24 +4725,14 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             }
         } else {
             // Select time
-            Time startTime = new Time();
-            startTime.set(mBaseDate);
-            startTime.setJulianDay(mSelectionDay);
-            startTime.setHour(mSelectionHour);
-            startTime.normalize();
-
-            Time endTime = new Time();
-            endTime.set(startTime);
-            endTime.setHour(endTime.getHour() + 1);
-
             mSelectionMode = SELECTION_SELECTED;
-            mController.sendEvent(this, EventType.GO_TO, startTime, endTime, -1, ViewType.CURRENT,
-                    CalendarController.EXTRA_GOTO_TIME, null, null);
+            sendSelectedTimeToController();
         }
         invalidate();
     }
 
     private void doLongPress(MotionEvent ev) {
+        clearSlotPreview();
         eventClickCleanup();
         if (mScrolling) {
             return;
@@ -4287,6 +5036,10 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     public boolean onTouchEvent(MotionEvent ev) {
         int action = ev.getAction();
         if (DEBUG) Log.e(TAG, "" + action + " ev.getPointerCount() = " + ev.getPointerCount());
+
+        if (handleSlotPreviewTouch(ev)) {
+            return true;
+        }
 
         if ((ev.getActionMasked() == MotionEvent.ACTION_DOWN) ||
                 (ev.getActionMasked() == MotionEvent.ACTION_UP) ||
@@ -4906,6 +5659,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
     @Override
     protected void onDetachedFromWindow() {
+        cancelSlotDrag();
         cleanup();
         super.onDetachedFromWindow();
     }

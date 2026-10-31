@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One calendar in the calendar chip group. The colour marker is set in code as the chip icon;
+     the checked state uses the MD3 filter container and outline, not the check mark. -->
+<com.google.android.material.chip.Chip xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    style="@style/Widget.Material3.Chip.Filter"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    app:checkedIconVisible="false"
+    app:chipIconVisible="true"
+    app:chipIconSize="12dp"
+    app:ensureMinTouchTargetSize="true" />

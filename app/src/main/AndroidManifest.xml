@@ -99,6 +99,12 @@
         </activity>
 
         <activity
+            android:name="com.android.calendar.subscription.ui.SubscriptionHubActivity"
+            android:label="@string/subscription_hub_title"
+            android:exported="false"
+            android:parentActivityName="com.android.calendar.AllInOneActivity" />
+
+        <activity
             android:name="com.android.calendar.date_calculator.DateCalculatorActivity"
             android:label="@string/date_calculator"
             android:parentActivityName="com.android.calendar.AllInOneActivity" />
@@ -118,7 +124,8 @@
         </activity>
 
         <activity android:name="com.android.calendar.event.EditEventActivity"
-            android:configChanges="keyboardHidden|orientation|screenSize">
+            android:configChanges="keyboardHidden|orientation|screenSize"
+            android:windowSoftInputMode="adjustResize">
         </activity>
 
         <activity-alias android:name="com.android.calendar.EditEventActivity"
@@ -287,6 +294,7 @@
 
         <!-- Declarations for the widget -->
         <receiver android:name="com.android.calendar.widget.CalendarAppWidgetProvider"
+            android:label="@string/agenda_widget_label"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -320,6 +328,53 @@
             android:exported="false"
             android:permission="android.permission.BIND_REMOTEVIEWS">
         </service>
+
+        <!-- Countdown / memorial-day widget -->
+        <receiver android:name="com.android.calendar.widget.CountdownWidgetProvider"
+            android:label="@string/countdown_widget_label"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.LOCALE_CHANGED" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.PROVIDER_CHANGED" />
+                <data android:scheme="content" />
+                <data android:host="com.android.calendar" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider"
+                android:resource="@xml/countdown_widget_info" />
+        </receiver>
+
+        <service android:name="com.android.calendar.widget.CountdownWidgetService"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS">
+        </service>
+
+        <!-- 万年历 / 宜忌 widget -->
+        <receiver android:name="com.android.calendar.widget.AlmanacWidgetProvider"
+            android:label="@string/almanac_widget_label"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.LOCALE_CHANGED" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider"
+                android:resource="@xml/almanac_widget_info" />
+        </receiver>
+
+        <receiver android:name="com.android.calendar.search.AppSearchDiagnosticReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.android.calendar.action.RUN_APPSEARCH_DIAG" />
+            </intent-filter>
+        </receiver>
 
         <service android:name="com.android.calendar.AsyncQueryServiceHelper" />
 

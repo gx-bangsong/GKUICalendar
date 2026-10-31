@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Material Symbols Outlined: cake -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="960"
+    android:viewportHeight="960"
+    android:tint="?attr/colorOnSecondaryContainer">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M480,180q-25,0 -42.5,-17.5T420,120q0,-16 9,-30t21,-26l30,-28 30,28q12,12 21,26t9,30q0,25 -17.5,42.5T480,180zM160,880q-33,0 -56.5,-23.5T80,800v-160q0,-33 23.5,-56.5T160,560h40v-160q0,-33 23.5,-56.5T280,320h160v-80h80v80h160q33,0 56.5,23.5T760,400v160h40q33,0 56.5,23.5T880,640v160q0,33 -23.5,56.5T800,880H160zM280,560h400v-160H280v160zM160,800h640v-160h-40q-31,0 -55.5,-14T620,588q-14,20 -37,34t-51,14q-28,0 -51,-14t-37,-34q-14,20 -37.5,34T355,636q-28,0 -51,-14t-37,-34q-20,24 -44.5,38T160,640v160z"/>
+</vector>

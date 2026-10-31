@@ -96,6 +96,8 @@ public class AgendaWindowAdapter extends BaseAdapter
     public static final int INDEX_CAN_ORGANIZER_RESPOND= 16;
     public static final int INDEX_TIME_ZONE = 17;
     public static final int INDEX_CUSTOM_APP_URI = 18;
+    // Series start date (not the instance BEGIN); needed to count anniversary years.
+    public static final int INDEX_DTSTART = 19;
     static final boolean BASICLOG = false;
     static final boolean DEBUGLOG = false;
     private static final String TAG = "AgendaWindowAdapter";
@@ -123,6 +125,7 @@ public class AgendaWindowAdapter extends BaseAdapter
             Instances.CAN_ORGANIZER_RESPOND, // 16
             Instances.EVENT_TIMEZONE, // 17
             Instances.CUSTOM_APP_URI, // 18
+            Instances.DTSTART, // 19
     };
     // Listview may have a bug where the index/position is not consistent when there's a header.
     // position == positionInListView - OFF_BY_ONE_BUG
@@ -214,6 +217,30 @@ public class AgendaWindowAdapter extends BaseAdapter
     private String mSearchQuery;
     private long mSelectedInstanceId = -1;
     private AgendaAdapter.ViewHolder mSelectedVH = null;
+    // true for the standalone agenda's card rows; the month panel keeps the classic rows.
+    private boolean mCardStyle = false;
+
+    /**
+     * Chooses the card rows (standalone agenda) or the classic rows (month panel). A day adapter
+     * fixes its row layout when it is built, so the ones already loaded are rebuilt on their own
+     * cursors. Otherwise a recycled day would keep the row style it was first built with.
+     */
+    public void setCardStyle(boolean cardStyle) {
+        if (cardStyle == mCardStyle) {
+            return;
+        }
+        mCardStyle = cardStyle;
+        synchronized (mAdapterInfos) {
+            for (DayAdapterInfo info : mAdapterInfos) {
+                info.dayAdapter = new AgendaByDayAdapter(mContext, cardStyle);
+                if (info.cursor != null) {
+                    info.dayAdapter.changeCursor(info);
+                    info.size = info.dayAdapter.getCount();
+                }
+            }
+        }
+        notifyDataSetChanged();
+    }
 
     public AgendaWindowAdapter(Context context,
             AgendaListView agendaListView, boolean showEventOnStart) {
@@ -400,23 +427,20 @@ public class AgendaWindowAdapter extends BaseAdapter
         if (yy instanceof AgendaAdapter.ViewHolder) {
             AgendaAdapter.ViewHolder vh = (AgendaAdapter.ViewHolder) yy;
             selected = mSelectedInstanceId == vh.instanceId;
-            vh.selectedMarker.setVisibility((selected && mShowEventOnStart) ?
-                    View.VISIBLE : View.GONE);
-            if (mShowEventOnStart) {
-                GridLayout.LayoutParams lp =
-                        (GridLayout.LayoutParams)vh.textContainer.getLayoutParams();
-                if (selected) {
-                    mSelectedVH = vh;
-                    v.setBackgroundColor(mSelectedItemBackgroundColor);
-                    vh.title.setTextColor(mSelectedItemTextColor);
-                    vh.when.setTextColor(mSelectedItemTextColor);
-                    vh.where.setTextColor(mSelectedItemTextColor);
-                    lp.setMargins(0, 0, 0, 0);
-                    vh.textContainer.setLayoutParams(lp);
-                } else {
-                    lp.setMargins(0, 0, (int)mItemRightMargin, 0);
-                    vh.textContainer.setLayoutParams(lp);
-                }
+            // Runs on every bind, so a recycled row loses the outline of the item it held before.
+            vh.selectedMarker.setVisibility(
+                    AgendaItemStyle.selectionOutlineVisible(selected, mShowEventOnStart)
+                            ? View.VISIBLE : View.GONE);
+            switch (AgendaItemStyle.selectionFeedback(mCardStyle, mShowEventOnStart)) {
+                case CARD_OUTLINE:
+                    bindCardSelection(vh, selected);
+                    break;
+                case CLASSIC_ROW:
+                    bindClassicRowSelection(v, vh, selected);
+                    break;
+                case NONE:
+                default:
+                    break;
             }
         }
 
@@ -424,6 +448,46 @@ public class AgendaWindowAdapter extends BaseAdapter
             Log.e(TAG, "getView " + position + " = " + getViewTitle(v));
         }
         return v;
+    }
+
+    /**
+     * Card rows (standalone agenda, tablet). The outline set in getView is the selection. The row
+     * background and the text colours are left alone: the card keeps its event colour, and the
+     * text colour AgendaAdapter chose for that fill stays readable. Only the selected holder is
+     * kept, for the detail pane.
+     */
+    private void bindCardSelection(AgendaAdapter.ViewHolder vh, boolean selected) {
+        if (selected) {
+            mSelectedVH = vh;
+        }
+    }
+
+    /**
+     * Classic month-panel rows (tablet). The text container of the classic sw600dp row is a
+     * GridLayout child, so its params are read as GridLayout params. A row without those params
+     * is not repainted, rather than crashing.
+     */
+    private void bindClassicRowSelection(View v, AgendaAdapter.ViewHolder vh, boolean selected) {
+        ViewGroup.LayoutParams params = vh.textContainer.getLayoutParams();
+        if (!(params instanceof GridLayout.LayoutParams)) {
+            if (selected) {
+                mSelectedVH = vh;
+            }
+            return;
+        }
+        GridLayout.LayoutParams lp = (GridLayout.LayoutParams) params;
+        if (selected) {
+            mSelectedVH = vh;
+            v.setBackgroundColor(mSelectedItemBackgroundColor);
+            vh.title.setTextColor(mSelectedItemTextColor);
+            vh.when.setTextColor(mSelectedItemTextColor);
+            vh.where.setTextColor(mSelectedItemTextColor);
+            lp.setMargins(0, 0, 0, 0);
+            vh.textContainer.setLayoutParams(lp);
+        } else {
+            lp.setMargins(0, 0, (int) mItemRightMargin, 0);
+            vh.textContainer.setLayoutParams(lp);
+        }
     }
 
     private int findEventPositionNearestTime(Time time, long id) {
@@ -1054,8 +1118,8 @@ public class AgendaWindowAdapter extends BaseAdapter
         int offset; // offset in position in the list view
         int size; // dayAdapter.getCount()
 
-        public DayAdapterInfo(Context context) {
-            dayAdapter = new AgendaByDayAdapter(context);
+        public DayAdapterInfo(Context context, boolean cardStyle) {
+            dayAdapter = new AgendaByDayAdapter(context, cardStyle);
         }
 
         @Override
@@ -1362,7 +1426,7 @@ public class AgendaWindowAdapter extends BaseAdapter
                 DayAdapterInfo info = pruneAdapterInfo(data.queryType);
                 int listPositionOffset = 0;
                 if (info == null) {
-                    info = new DayAdapterInfo(mContext);
+                    info = new DayAdapterInfo(mContext, mCardStyle);
                 } else {
                     if (DEBUGLOG)
                         Log.e(TAG, "processNewCursor listPositionOffsetA="

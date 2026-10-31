@@ -3,6 +3,8 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.lineageos.generatebp.GenerateBpPluginExtension
 import org.lineageos.generatebp.models.Module
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 plugins {
     alias(libs.plugins.android.application)
@@ -27,6 +29,44 @@ configurations.all {
 }
 
 
+// LineageOS built-in package (see upstream AndroidManifest package and src_aosp BuildConfig).
+// namespace stays ws.xsoh.etar, so R and BuildConfig keep their packages.
+val baseApplicationId = "org.lineageos.etar"
+
+// True on GitHub Actions and other CI runners that set CI=true.
+val isCi = System.getenv("CI") == "true"
+
+// Runs git in the repository root. Returns trimmed stdout, or null when git fails.
+fun runGit(vararg args: String): String? = try {
+	val process = ProcessBuilder(listOf("git") + args.toList())
+		.directory(rootProject.projectDir)
+		.redirectErrorStream(true)
+		.start()
+	val out = process.inputStream.bufferedReader().use { it.readText() }.trim()
+	if (process.waitFor() == 0) out else null
+} catch (e: Exception) {
+	null
+}
+
+// versionCode is the number of commits on the checked-out history. It only grows, so every
+// release is newer than the last. A shallow clone undercounts, so a release build refuses to start
+// from one (see the taskGraph check below). Without git (a source archive), the build uses 1.
+val isShallowClone = runGit("rev-parse", "--is-shallow-repository") == "true"
+val appVersionCode: Int = runGit("rev-list", "--count", "HEAD")?.toIntOrNull() ?: 1
+// versionName is yyyyMMdd.<versionCode>; the VERSION_NAME environment variable overrides it.
+val appVersionName: String = System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() }
+	?: "${LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"))}.$appVersionCode"
+
+// Release signing comes only from environment variables. ~/.gradle/gradle.properties is not read,
+// so a developer's local key cannot be used by CI by accident.
+val releaseKeystore: File? = System.getenv("KEYSTORE_FILE")?.takeIf { it.isNotBlank() }?.let { File(it) }
+val releaseStorePass: String? = System.getenv("KEYSTORE_PASS")?.takeIf { it.isNotEmpty() }
+val releaseKeyAlias: String? = System.getenv("KEY_ALIAS")?.takeIf { it.isNotEmpty() }
+val releaseKeyPass: String? = System.getenv("KEY_PASS")?.takeIf { it.isNotEmpty() }
+val releaseSigningReady: Boolean =
+	releaseKeystore?.isFile == true &&
+		releaseStorePass != null && releaseKeyAlias != null && releaseKeyPass != null
+
 android {
 	namespace = "ws.xsoh.etar"
 	testNamespace = "com.android.calendar.tests"
@@ -35,21 +75,42 @@ android {
 	defaultConfig {
 		minSdk = 23
 		targetSdk = 34
-		versionCode = 51
-		versionName = "1.0.51"
-		applicationId = "ws.xsoh.etar"
+		versionCode = appVersionCode
+		versionName = appVersionName
+		applicationId = baseApplicationId
 		testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+	}
+
+	signingConfigs {
+		create("release") {
+			if (releaseSigningReady) {
+				storeFile = releaseKeystore
+				storePassword = releaseStorePass
+				keyAlias = releaseKeyAlias
+				keyPassword = releaseKeyPass
+			}
+		}
 	}
 
 	buildTypes {
 		release {
 			// TODO: could be enabled for ProGuard minimization
 			isMinifyEnabled = false
+			isDebuggable = false
+			// Release key when the environment provides it. Otherwise the debug key, for local builds
+			// only: CI refuses to build release without the release key (see taskGraph check below).
+			signingConfig = if (releaseSigningReady) {
+				signingConfigs.getByName("release")
+			} else {
+				signingConfigs.getByName("debug")
+			}
 			resValue(
 				"string",
 				"search_authority",
 				defaultConfig.applicationId + ".CalendarRecentSuggestionsProvider"
 			)
+			// shortcuts.xml cannot interpolate ${applicationId}; it reads this string instead.
+			resValue("string", "shortcut_target_package", baseApplicationId)
 		}
 
 		debug {
@@ -61,6 +122,7 @@ android {
 				"search_authority",
 				defaultConfig.applicationId + ".debug.CalendarRecentSuggestionsProvider"
 			)
+			resValue("string", "shortcut_target_package", baseApplicationId + ".debug")
 		}
 	}
 
@@ -69,40 +131,6 @@ android {
 		viewBinding = true
 	}
 
-	/*
-	 * To sign release build, create file gradle.properties in ~/.gradle/ with this content:
-	 *
-	 * signingStoreLocation=/home/key.store
-	 * signingStorePassword=xxx
-	 * signingKeyAlias=alias
-	 * signingKeyPassword=xxx
-	 */
-	val signingStoreLocation: String? by project
-	val signingStorePassword: String? by project
-	val signingKeyAlias: String? by project
-	val signingKeyPassword: String? by project
-
-	if (
-		signingStoreLocation != null &&
-		signingStorePassword != null &&
-		signingKeyAlias != null &&
-		signingKeyPassword != null
-	) {
-		println("Found sign properties in gradle.properties! Signing build…")
-
-		signingConfigs {
-			named("release").configure {
-				storeFile = File(signingStoreLocation!!)
-				storePassword = signingStorePassword
-				keyAlias = signingKeyAlias
-				keyPassword = signingKeyPassword
-			}
-		}
-
-		buildTypes.named("release").get().signingConfig = signingConfigs.named("release").get()
-	} else {
-		buildTypes.named("release").get().signingConfig = null
-	}
 
 	lint {
 		lintConfig = file("lint.xml")
@@ -179,9 +207,7 @@ dependencies {
 	// touch this must additionally check Build.VERSION.SDK_INT >= 31.
 	implementation(libs.androidx.appsearch.platform.storage)
 
-	// LocalStorage backend: in-app private index, works on every Android
-	// version this module supports. Used as the fallback on pre-S devices.
-	implementation(libs.androidx.appsearch.local.storage)
+
 }
 
 kapt {
@@ -202,6 +228,30 @@ configure<GenerateBpPluginExtension> {
 	}
 }
 
+// A release build must never be signed with the debug key in CI. Locally it falls back to the
+// debug key with a warning, so development builds keep working without the release secrets.
+// Only tasks that produce or sign a release package count. Test tasks such as testReleaseUnitTest
+// do not, so `./gradlew test` is not affected.
+gradle.taskGraph.whenReady {
+	val packagesRelease = allTasks.any { task ->
+		task.project.path == ":app" && task.name.contains("Release") &&
+			listOf("assemble", "bundle", "package", "validateSigning", "install").any { task.name.startsWith(it) }
+	}
+	if (packagesRelease) {
+		if (isCi && isShallowClone) {
+			throw GradleException("Release build refused: versionCode needs full git history (fetch-depth: 0).")
+		}
+		if (!releaseSigningReady) {
+			val missing = "KEYSTORE_FILE (existing file), KEYSTORE_PASS, KEY_ALIAS, KEY_PASS"
+			if (isCi) {
+				throw GradleException("Release build refused: signing environment incomplete. Need: $missing")
+			}
+			logger.warn("WARNING: release signing environment incomplete ($missing). " +
+				"Local release build is signed with the DEBUG key. Do not distribute it.")
+		}
+	}
+}
+
 // The repository's CI workflows only invoke assembleDebug (no test job), and
 // workflow files cannot be modified by the automation that maintains this
 // branch. Running the JVM unit tests as part of every CI debug build is the
@@ -213,6 +263,31 @@ if (System.getenv("CI") != null) {
 	// or moved to androidTest, CI runs the JVM-capable lunar tests only.
 	tasks.withType<Test>().configureEach {
 		filter.includeTestsMatching("com.android.calendar.lunar.*")
+		filter.includeTestsMatching("com.android.calendar.subscription.*")
+		filter.includeTestsMatching("com.android.calendar.monthagenda.*")
+		filter.includeTestsMatching("com.android.calendar.theme.*")
+		filter.includeTestsMatching("com.android.calendar.settings.*")
+		filter.includeTestsMatching("com.android.calendar.event.DropdownValuesTest")
+		filter.includeTestsMatching("com.android.calendar.timezonepicker.TimeZoneSearchMatcherTest")
+		filter.includeTestsMatching("com.android.calendar.timezonepicker.TimeZoneSearchRoutingTest")
+		filter.includeTestsMatching("com.android.calendar.timezonepicker.TimeZoneSelectionRoutingTest")
+		filter.includeTestsMatching("com.android.calendar.event.CalendarAccountGroupsTest")
+		filter.includeTestsMatching("com.android.calendar.EventInfoRulesTest")
+		filter.includeTestsMatching("com.android.calendar.EventInfoLayoutTest")
+		filter.includeTestsMatching("com.android.calendar.DayTimeSlotPreviewTest")
+		filter.includeTestsMatching("com.android.calendar.DayViewTimeSlotSourceTest")
+		filter.includeTestsMatching("com.android.calendar.DayGridGeometryTest")
+		filter.includeTestsMatching("com.android.calendar.DayTimeGeometryTest")
+		filter.includeTestsMatching("com.android.calendar.agenda.AgendaItemStyleTest")
+		filter.includeTestsMatching("com.android.calendar.agenda.AgendaItemLayoutTest")
+		filter.includeTestsMatching("com.android.calendar.monthagenda.MonthAgendaLayoutProtectionTest")
+		filter.includeTestsMatching("com.android.calendar.SlotTimeLabelsTest")
+		filter.includeTestsMatching("com.android.calendar.NowIndicatorTest")
+		filter.includeTestsMatching("com.android.calendar.DayWeekBackgroundMaskTest")
+		filter.includeTestsMatching("com.android.calendar.EventInfoFullWindowTest")
+		filter.includeTestsMatching("com.android.calendar.TimeLabelFormatTest")
+		filter.includeTestsMatching("com.android.calendar.event.NewEventCalendarColorTest")
+		filter.includeTestsMatching("com.android.calendar.agenda.AgendaCardWiringTest")
 		// List every passing lunar test in the Actions log so the runs are
 		// auditable there directly.
 		testLogging.events(TestLogEvent.PASSED)

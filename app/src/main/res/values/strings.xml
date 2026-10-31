@@ -584,6 +584,48 @@
 
     <!-- Caption to show on gadget when there are no upcoming calendar events -->
     <string name="gadget_no_events">No upcoming calendar events</string>
+    <string name="gadget_description">Your upcoming events at a glance</string>
+    <!-- 万年历 almanac widget. The almanac is a Chinese-calendar concept and
+         lunar-java emits Chinese terms, so these stay Chinese in every locale. -->
+    <string name="almanac_widget_label">万年历</string>
+    <string name="almanac_widget_description">今日黄历宜忌</string>
+    <string name="almanac_yi">宜</string>
+    <string name="almanac_ji">忌</string>
+    <string name="almanac_none">无</string>
+    <string name="almanac_preview_day">22</string>
+    <string name="almanac_preview_month">2026年9月</string>
+    <string name="almanac_preview_lunar">八月十二</string>
+    <string name="almanac_preview_weekday">星期二  秋分</string>
+    <string name="almanac_preview_ganzhi">丙午年 丁酉月 戊辰日</string>
+    <string name="almanac_preview_yi">祖祭 祈福 开光 结婚</string>
+    <string name="almanac_preview_ji">动土 破土 安葬</string>
+
+    <!-- Countdown / memorial-day widget -->
+    <string name="countdown_widget_label">Countdown</string>
+
+    <!-- Picker title for the agenda widget. Without an android:label on the
+         receiver the picker falls back to the application name, so all three
+         widgets were listed as the app itself. -->
+    <string name="agenda_widget_label">Agenda</string>
+    <string name="countdown_widget_description">Days until your countdowns and anniversaries</string>
+    <string name="countdown_widget_empty">No countdowns or anniversaries yet</string>
+    <string name="countdown_widget_today">Today</string>
+    <string name="countdown_widget_days_left">days left</string>
+    <string name="countdown_widget_days_past">days ago</string>
+    <string name="countdown_widget_nth_year">Year %d</string>
+    <string name="countdown_preview_event_1">Trip to Kyoto</string>
+    <string name="countdown_preview_date_1">Aug 14</string>
+    <string name="countdown_preview_days_1">32</string>
+    <string name="countdown_preview_event_2">Our anniversary</string>
+    <string name="countdown_preview_date_2">Year 7 · Sep 2</string>
+    <string name="countdown_preview_days_2">51</string>
+
+    <!-- Sample content shown in the widget picker preview only -->
+    <string name="widget_preview_month">July</string>
+    <string name="widget_preview_date">Tue, Jul 11</string>
+    <string name="widget_preview_event_1">Team standup</string>
+    <string name="widget_preview_event_2">Design review</string>
+    <string name="widget_preview_event_3">Lunch with Sam</string>
 
     <!-- Experimental settings [CHAR LIMIT = 30]-->
     <string name="preferences_experimental_category">Experimental</string>
@@ -895,59 +937,73 @@
     <string name="event_type_countdown">Countdown</string>
     <string name="anniversary_years_passed">Already %d years</string>
     <string name="anniversary_today">Happy Anniversary!</string>
+    <string name="anniversary_today_nth">%d years today</string>
     <string name="countdown_days_remaining">Still %d days</string>
     <string name="countdown_days_passed">Already %d days passed</string>
     <string name="countdown_today">Today is the day!</string>
-    <!-- Shift Scheduling Assistant -->
-    <string name="shift_scheduler_title">Shift Scheduler</string>
-    <string name="shift_presets">Shift Presets</string>
-    <string name="add_shift_preset">Add Shift Preset</string>
-    <string name="edit_shift_preset">Edit Shift Preset</string>
-    <string name="shift_title">Shift Title</string>
-    <string name="start_time">Start Time</string>
-    <string name="end_time">End Time</string>
-    <string name="alarm_offset">Alarm Offset (minutes)</string>
-    <string name="ignore_holiday">Force ring on statutory holidays</string>
-    <string name="save_shift">Save</string>
-    <string name="clear_selection">Clear</string>
-    <string name="select_preset">Select a preset</string>
-    <string name="select_calendar">Select calendar</string>
-    <string name="shift_save_success">Shift events saved</string>
-    <string name="no_dates_selected">No dates selected</string>
-    <string name="delete_preset">Delete Preset</string>
-    <string name="confirm_delete_preset">Are you sure you want to delete this preset?</string>
-    <string name="shift_paint_mode">Paint Mode</string>
-    <string name="shift_add_preset">Add Shift Preset</string>
-    <string name="shift_edit_preset">Edit Shift Preset</string>
-    <string name="shift_start_time">Start Time</string>
-    <string name="shift_end_time">End Time</string>
-    <string name="shift_alarm_offset">Alarm Offset (minutes)</string>
-    <string name="shift_ignore_holiday">Force ring on statutory holidays</string>
-    <string name="shift_save">Save</string>
-    <string name="shift_clear">Clear</string>
-    <string name="shift_select_preset">Select a preset</string>
-    <string name="shift_select_calendar">Select calendar</string>
-    <string name="shift_no_dates">No dates selected</string>
-    <string name="shift_delete">Delete Preset</string>
-    <string name="shift_confirm_delete">Are you sure you want to delete this preset?</string>
-    <string name="shift_rule_generator">Rule Generator</string>
-    <string name="shift_days_on">Days On</string>
-    <string name="shift_days_off">Days Off</string>
-    <string name="shift_auto_fill">Auto-Fill</string>
-    <string name="shift_rotation_rule">Rotation Rule</string>
-    <string name="shift_custom">Custom Rotation</string>
-    <string name="shift_add_day">Add Day</string>
-    <string name="shift_work">Work</string>
-    <string name="shift_rest">Rest</string>
-    <string name="shift_clear_rule">Clear Rule</string>
-    <string name="shift_start_date_label">Start Date</string>
-    <string name="shift_wizard_title">Shift Rule Wizard</string>
-    <string name="shift_wizard_step1">Step 1: Pattern</string>
-    <string name="shift_wizard_step2">Step 2: Start Date</string>
-    <string name="shift_wizard_step3">Step 3: Theme</string>
-    <string name="shift_wizard_next">Next</string>
-    <string name="shift_wizard_back">Back</string>
-    <string name="shift_wizard_generate">Generate</string>
-    <string name="shift_on_days">Days ON</string>
-    <string name="shift_off_days">Days OFF</string>
+    <!-- Date calculator -->
+    <string name="start_date_label">Start Date</string>
+    <!-- Quick reschedule (event info overflow menu) -->
+    <string name="reschedule_label">Move event</string>
+    <string name="reschedule_today">Move to today</string>
+    <string name="reschedule_tomorrow">Move 1 day later</string>
+    <string name="reschedule_yesterday">Move 1 day earlier</string>
+    <string name="reschedule_next_week">Move 1 week later</string>
+    <string name="reschedule_pick_date">Pick a date\u2026</string>
+    <string name="reschedule_move_to_today">Move to today</string>
+    <string name="reschedule_done">Event moved</string>
+    <string name="reschedule_unchanged">Event is already on that day</string>
+    <!-- Month entry layout (月视图布局) -->
+    <string name="month_layout_title">Month view layout</string>
+    <string name="month_layout_classic">Classic month</string>
+    <string name="month_layout_agenda">Month + schedule</string>
+    <string name="agenda_no_events">No events on this day</string>
+    <string name="agenda_rest_day">Rest day</string>
+    <string name="agenda_all_day">All day</string>
+    <plurals name="agenda_events_count">
+        <item quantity="one">%d event</item>
+        <item quantity="other">%d events</item>
+    </plurals>
+    <string name="agenda_handle_description">Drag or tap to show or hide the month</string>
+    <string name="agenda_handle_toggle_action">Show or hide month</string>
+    <string name="agenda_state_expanded">Month shown</string>
+    <string name="agenda_state_collapsed">Month hidden</string>
+    <string name="agenda_previous_month">Previous month</string>
+    <string name="agenda_next_month">Next month</string>
+    <string name="agenda_previous_week">Previous week</string>
+    <string name="agenda_next_week">Next week</string>
+
+    <!-- Event form: calendar account row and chips. -->
+    <string name="calendar_switch_account">Switch account</string>
+    <string name="calendar_choose_account">Choose account</string>
+    <string name="calendar_unavailable">This event\'s calendar is no longer available. Choose a calendar before saving.</string>
+    <string name="calendar_account_unnamed">Unnamed account</string>
+
+    <!-- Event form: full-screen time zone search page. -->
+    <string name="timezone_search_title">Time zone</string>
+    <string name="timezone_search_hint">Search city, country or time zone</string>
+    <string name="timezone_search_clear">Clear search</string>
+    <string name="timezone_search_back">Back</string>
+    <string name="timezone_search_current">Current time zone</string>
+    <string name="timezone_search_candidates">Time zones</string>
+    <string name="timezone_search_no_results">No time zones match \"%1$s\"</string>
+    <string name="timezone_search_unknown">Unrecognised time zone ID</string>
+    <string name="timezone_search_offset_note">GMT offset %1$s as of %2$s</string>
+    <!-- Event detail page action bar -->
+    <string name="event_info_navigate_back">Back</string>
+    <string name="event_info_more_actions">More options</string>
+    <!-- Day view: temporary time block after an empty slot is tapped -->
+    <string name="day_slot_description">New event, %1$s</string>
+    <string name="day_slot_open_action">Create event, %1$s</string>
+    <string name="day_slot_start_earlier">Start 15 minutes earlier</string>
+    <string name="day_slot_start_later">Start 15 minutes later</string>
+    <string name="day_slot_end_earlier">End 15 minutes earlier</string>
+    <string name="day_slot_end_later">End 15 minutes later</string>
+    <string name="preferences_day_week_view">Day and week view</string>
+    <string name="preferences_time_background_mask">Time background mask</string>
+    <string name="preferences_time_background_mask_summary">Grey tint for the time after now and the time column. Off by default.</string>
+
+    <!-- Day and week time column: 12-hour patterns. %1$s = AM/PM word, %2$d = hour, %3$02d = minute. -->
+    <string name="time_label_hour_12h">%2$d %1$s</string>
+    <string name="time_label_minute_12h">%2$d:%3$02d %1$s</string>
 </resources>

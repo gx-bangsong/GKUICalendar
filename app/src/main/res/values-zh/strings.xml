@@ -27,4 +27,27 @@
     <string name="enter_lunar_date_toast">请输入完整的农历年月日</string>
     <string name="invalid_number_toast">请输入有效的数字</string>
     <string name="invalid_lunar_date_toast">无效的农历日期</string>
+    <!-- Month entry layout (月视图布局) -->
+    <string name="month_layout_title">月视图布局</string>
+    <string name="month_layout_classic">经典月历</string>
+    <string name="month_layout_agenda">月历＋日程</string>
+    <string name="agenda_no_events">这一天没有日程</string>
+    <string name="agenda_rest_day">休息日</string>
+    <string name="agenda_all_day">全天</string>
+    <plurals name="agenda_events_count">
+        <item quantity="one">%d 项日程</item>
+        <item quantity="other">%d 项日程</item>
+    </plurals>
+    <string name="agenda_handle_description">拖动或点按以展开或收起月历</string>
+    <string name="agenda_handle_toggle_action">展开或收起月历</string>
+    <string name="agenda_state_expanded">月历已展开</string>
+    <string name="agenda_state_collapsed">月历已收起</string>
+    <string name="agenda_previous_month">上个月</string>
+    <string name="agenda_next_month">下个月</string>
+    <string name="agenda_previous_week">上一周</string>
+    <string name="agenda_next_week">下一周</string>
+
+    <!-- Day and week time column: 12-hour patterns. %1$s = AM/PM word, %2$d = hour, %3$02d = minute. -->
+    <string name="time_label_hour_12h">%1$s%2$d点</string>
+    <string name="time_label_minute_12h">%1$s%2$d:%3$02d</string>
 </resources>

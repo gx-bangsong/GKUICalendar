@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- MD3 widget palette (dark). -->
+    <color name="widget_surface">#FF1A1C1E</color>
+    <color name="widget_chip_surface">#FF25282C</color>
+    <color name="widget_fab_container">#FFA8C8F0</color>
+    <color name="widget_fab_icon">#FF00325A</color>
+    <color name="widget_date_pill">#FFA8C8F0</color>
+    <color name="widget_date_pill_text">#FF00325A</color>
+    <color name="widget_on_surface">#FFE2E2E6</color>
+    <color name="widget_on_surface_variant">#FFC3C7CF</color>
+
+    <color name="widget_preview_chip_1">#FF5E9E74</color>
+    <color name="widget_preview_chip_2">#FF7BA7DC</color>
+    <color name="widget_preview_chip_3">#FFE0C060</color>
+
+    <color name="almanac_yi">#FFE57373</color>
+    <color name="almanac_ji">#FF90A4AE</color>
+</resources>

@@ -28,6 +28,8 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
+import com.android.calendar.subscription.SubscriptionText;
+
 import com.android.calendar.DynamicTheme;
 import com.google.android.material.color.MaterialColors;
 import com.android.calendar.Utils;
@@ -48,6 +50,8 @@ public class AgendaByDayAdapter extends BaseAdapter {
     private static final int TYPE_MEETING = 1;
     private final Context mContext;
     private final AgendaAdapter mAgendaAdapter;
+    // Standalone card rows. The row root keeps no background of its own in this style.
+    private final boolean mCardStyle;
     private final LayoutInflater mInflater;
     // Note: Formatter is not thread safe. Fine for now as it is only used by the main thread.
     private final Formatter mFormatter;
@@ -65,9 +69,20 @@ public class AgendaByDayAdapter extends BaseAdapter {
         }
     };
 
+    /** The classic row, used by the month view's secondary agenda panel. */
     public AgendaByDayAdapter(Context context) {
+        this(context, false);
+    }
+
+    /**
+     * @param cardStyle true for the standalone agenda (coloured cards with a left date column);
+     *     false keeps the classic row used by the month view's secondary agenda panel.
+     */
+    public AgendaByDayAdapter(Context context, boolean cardStyle) {
         mContext = context;
-        mAgendaAdapter = new AgendaAdapter(context, R.layout.agenda_item);
+        mCardStyle = cardStyle;
+        mAgendaAdapter = new AgendaAdapter(context,
+                cardStyle ? R.layout.agenda_item_card : R.layout.agenda_item, cardStyle);
         mInflater = (LayoutInflater) mContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         mStringBuilder = new StringBuilder(50);
         mFormatter = new Formatter(mStringBuilder, Locale.getDefault());
@@ -208,6 +223,8 @@ public class AgendaByDayAdapter extends BaseAdapter {
                 agendaDayView = mInflater.inflate(R.layout.agenda_day, parent, false);
                 holder.dayView = (TextView) agendaDayView.findViewById(R.id.day);
                 holder.dateView = (TextView) agendaDayView.findViewById(R.id.date);
+                holder.subscriptionView =
+                        (TextView) agendaDayView.findViewById(R.id.subscription_badges);
                 holder.julianDay = row.mDay;
                 holder.grayed = false;
                 agendaDayView.setTag(holder);
@@ -249,6 +266,7 @@ public class AgendaByDayAdapter extends BaseAdapter {
             holder.dayView.setText(dayViewText);
             holder.dateView.setText(String.format(Locale.getDefault(), "%d", date.getDay()));
             holder.dayView.setTextColor(MaterialColors.getColor(holder.dayView, com.google.android.material.R.attr.colorOnSurfaceVariant));
+            bindSubscriptions(holder, row.mDay);
             if (row.mDay == mTodayJulianDay) {
                 holder.dateView.setBackgroundResource(R.drawable.circle);
                 holder.dateView.setBackgroundTintList(ColorStateList.valueOf(
@@ -273,13 +291,15 @@ public class AgendaByDayAdapter extends BaseAdapter {
         } else if (row.mType == TYPE_MEETING) {
             View itemView = mAgendaAdapter.getView(row.mPosition, convertView, parent);
             AgendaAdapter.ViewHolder holder = ((AgendaAdapter.ViewHolder) itemView.getTag());
-            // The per-event date column only exists in the phone layout
-            // (layout/agenda_item.xml); the layout-sw600dp agenda row omits
-            // it and the day-header rows carry the date there instead.
+            // The date column is in the phone layouts and in the standalone card rows. The
+            // classic sw600dp row (month panel) has no column, so it is skipped there.
             if (holder.agendaDateColumn != null) {
-                boolean firstEventOfDay = position == 0
-                        || mRowInfo.get(position - 1).mType != TYPE_MEETING
-                        || mRowInfo.get(position - 1).mDay != row.mDay;
+                RowInfo previous = position > 0 ? mRowInfo.get(position - 1) : null;
+                boolean firstEventOfDay = AgendaItemStyle.isFirstEventOfDay(
+                        previous == null,
+                        previous != null && previous.mType == TYPE_MEETING,
+                        previous != null ? previous.mDay : 0,
+                        row.mDay);
                 holder.agendaDateColumn.setVisibility(firstEventOfDay ? View.VISIBLE : View.INVISIBLE);
                 Time eventDate = new Time(mTimeZone);
                 eventDate.setJulianDay(row.mDay);
@@ -315,11 +335,15 @@ public class AgendaByDayAdapter extends BaseAdapter {
             // if event in the past or started already, un-bold the title and set the background
             if ((!allDay && row.mEventStartTimeMilli <= System.currentTimeMillis()) ||
                     (allDay && row.mDay <= mTodayJulianDay)) {
-                itemView.setBackgroundResource(DynamicTheme.getDrawableId(mContext, "agenda_item_bg_secondary"));
+                if (!mCardStyle) {
+                    itemView.setBackgroundResource(DynamicTheme.getDrawableId(mContext, "agenda_item_bg_secondary"));
+                }
                 title.setTypeface(Typeface.DEFAULT);
                 holder.grayed = true;
             } else {
-                itemView.setBackgroundResource(DynamicTheme.getDrawableId(mContext, "agenda_item_bg_primary"));
+                if (!mCardStyle) {
+                    itemView.setBackgroundResource(DynamicTheme.getDrawableId(mContext, "agenda_item_bg_primary"));
+                }
                 title.setTypeface(Typeface.DEFAULT_BOLD);
                 holder.grayed = false;
             }
@@ -676,9 +700,30 @@ public class AgendaByDayAdapter extends BaseAdapter {
         return true;
     }
 
+    /**
+     * Shows the enabled subscriptions' badges under the weekday label, so
+     * agenda view carries the same shift / traffic / period information the
+     * month grid draws. Costs nothing when every provider is disabled.
+     */
+    private void bindSubscriptions(ViewHolder holder, int julianDay) {
+        if (holder.subscriptionView == null) {
+            return;
+        }
+        int fallback = MaterialColors.getColor(holder.subscriptionView,
+                com.google.android.material.R.attr.colorOnSurfaceVariant);
+        CharSequence badges = SubscriptionText.colored(mContext, julianDay, fallback);
+        if (badges == null) {
+            holder.subscriptionView.setVisibility(View.GONE);
+        } else {
+            holder.subscriptionView.setText(badges);
+            holder.subscriptionView.setVisibility(View.VISIBLE);
+        }
+    }
+
     static class ViewHolder {
         TextView dayView;
         TextView dateView;
+        TextView subscriptionView;
         int julianDay;
         boolean grayed;
     }

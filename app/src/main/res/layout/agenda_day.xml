@@ -29,6 +29,17 @@
             android:singleLine="true"
             android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="12sp" />
+
+        <!-- Subscription badges (shift / traffic / period / birthday). -->
+        <TextView
+            android:id="@+id/subscription_badges"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:textSize="10sp"
+            android:visibility="gone" />
     </LinearLayout>
 
     <View

@@ -3,6 +3,10 @@ Etar (from Arabic:  `إِيتَار`)  is an open source material designed calen
 
 [<img src="metadata/en_fdroid.png" height="60" alt="Get it on F-Droid">](https://f-droid.org/packages/ws.xsoh.etar/)[<img src="metadata/en_google_play.png" height="60" alt="Get it on Google Play">](https://play.google.com/store/apps/details?id=ws.xsoh.etar)
 
+> **Release builds are a different app.** Releases from this repository are package `org.lineageos.etar`, signed with the release key. Debug builds are `org.lineageos.etar.debug`. Moving from a debug build to a release build means uninstalling the debug build first, which deletes its data. The earlier Release 1.0 (`ws.xsoh.etar.debug`) is a separate package and can stay installed.
+
+> **Note:** the store links above point to upstream Etar (`ws.xsoh.etar`). This repository's releases use `org.lineageos.etar`, so they cannot update or replace that app.
+
 ![Etar Calendar](metadata/animation.gif)
 
 ## Why?
@@ -75,6 +79,23 @@ tools/bin/sdkmanager platform-tools
 export ANDROID_HOME=/path/to/android-sdk/
 gradle :app:assembleDebug
 ```
+Debug builds are `org.lineageos.etar.debug`, signed with the local debug key. A debug build from another machine may not install over yours.
+
+### Build and release
+Release APKs are built by the GitHub workflow described in [docs/WORKFLOW.md](docs/WORKFLOW.md). Local builds need none of this.
+
+- **Secrets** (repository settings): `KEYSTORE_BASE64` (base64 of the keystore file), `KEYSTORE_PASS`, `KEY_ALIAS`, `KEY_PASS`.
+- **Keystore**, created once by the owner:
+  ```
+  keytool -genkeypair -v -keystore release.jks -alias gkui-release -keyalg RSA -keysize 4096 -validity 10000
+  base64 -w0 release.jks
+  ```
+  Keep the file and its passwords safe. Losing them means a new key, and existing installs can no longer be upgraded.
+- **`release-signer.sha256`** at the repository root holds the SHA-256 of the release certificate (64 hex characters). The release script refuses any APK signed by another key. The owner writes it once, from the value the first run prints.
+- **versionCode** is `git rev-list --count HEAD`, the commit count. It only grows, so each release is newer than the last. This needs a full clone (`fetch-depth: 0`). **versionName** is `yyyyMMdd.<versionCode>`; the `VERSION_NAME` variable overrides it.
+- **Local builds are unaffected.** `gradle :app:assembleDebug` needs no secret. `assembleRelease` without the four variables is signed with the debug key and prints a warning; do not distribute that APK. CI refuses to build release without the release key.
+- **Release output:** package `org.lineageos.etar`, not debuggable, files `GKUICalendar-<versionName>.apk`, its `.sha256`, and `build-info.json`.
+
 ## License
 
 Copyright (c) 2005-2013, The Android Open Source Project

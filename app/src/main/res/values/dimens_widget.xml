@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- MD3 widget metrics -->
+    <dimen name="widget_corner_radius">24dp</dimen>
+    <dimen name="widget_chip_radius">16dp</dimen>
+    <dimen name="widget_fab_radius">16dp</dimen>
+    <dimen name="widget_fab_size">52dp</dimen>
+    <dimen name="widget_date_pill_size">44dp</dimen>
+    <dimen name="widget_padding">14dp</dimen>
+    <dimen name="widget_row_spacing">6dp</dimen>
+    <dimen name="widget_title_text">22sp</dimen>
+    <dimen name="widget_item_text">15sp</dimen>
+    <dimen name="widget_date_num_text">18sp</dimen>
+    <dimen name="widget_date_dow_text">11sp</dimen>
+</resources>

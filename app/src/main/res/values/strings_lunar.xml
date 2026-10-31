@@ -49,4 +49,11 @@
         <item>chongyang</item>
         <item>laba</item>
     </string-array>
+    <!-- Subscreen group headings (MD3 settings pattern). -->
+    <string name="lunar_group_display">Display</string>
+    <string name="lunar_group_festivals">Festivals and solar terms</string>
+    <!-- Summary of the festival multi-choice. The separator is quoted to keep its trailing space. -->
+    <string name="lunar_festival_summary_all">All festivals</string>
+    <string name="lunar_festival_summary_none">No festivals selected</string>
+    <string name="lunar_festival_summary_separator">", "</string>
 </resources>
