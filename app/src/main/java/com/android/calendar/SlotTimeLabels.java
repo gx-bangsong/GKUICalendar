@@ -61,16 +61,31 @@ final class SlotTimeLabels {
     }
 
     /**
-     * Text colour for a solid label chip: white or black, whichever contrasts more with the chip.
-     * Uses the WCAG relative luminance. The alpha of {@code background} is ignored.
+     * Whether a colour is light. A colour is light when black text contrasts more with it than
+     * white text does (WCAG relative luminance). The alpha of {@code rgb} is ignored.
      */
-    static int textOn(int background) {
-        double luminance = 0.2126 * linear((background >> 16) & 0xFF)
-                + 0.7152 * linear((background >> 8) & 0xFF)
-                + 0.0722 * linear(background & 0xFF);
-        double contrastWithWhite = 1.05 / (luminance + 0.05);
-        double contrastWithBlack = (luminance + 0.05) / 0.05;
-        return contrastWithWhite >= contrastWithBlack ? 0xFFFFFFFF : 0xFF000000;
+    static boolean isLight(int rgb) {
+        double luminance = 0.2126 * linear((rgb >> 16) & 0xFF)
+                + 0.7152 * linear((rgb >> 8) & 0xFF)
+                + 0.0722 * linear(rgb & 0xFF);
+        return (luminance + 0.05) / 0.05 > 1.05 / (luminance + 0.05);
+    }
+
+    /**
+     * Moves each RGB channel of {@code base} towards white when {@code lighter} is true, or towards
+     * black otherwise, by {@code amount} (0 to 1). The alpha of {@code base} is kept.
+     */
+    static int shade(int base, boolean lighter, float amount) {
+        int alpha = base & 0xFF000000;
+        int red = shadeChannel((base >> 16) & 0xFF, lighter, amount);
+        int green = shadeChannel((base >> 8) & 0xFF, lighter, amount);
+        int blue = shadeChannel(base & 0xFF, lighter, amount);
+        return alpha | (red << 16) | (green << 8) | blue;
+    }
+
+    private static int shadeChannel(int channel, boolean lighter, float amount) {
+        float value = lighter ? channel + (255 - channel) * amount : channel * (1f - amount);
+        return Math.round(Math.max(0f, Math.min(255f, value)));
     }
 
     private static double linear(int channel) {

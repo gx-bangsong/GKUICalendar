@@ -674,12 +674,9 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private static final float SLOT_CORNER_DP = 8f;
     private static final float SLOT_INSET_DP = 2f;
     private static final float SLOT_STROKE_DP = 2f;
-    // Start and end time chips in the left time column of the block preview.
-    private static final float SLOT_TIME_PAD_X_DP = 4f;
-    private static final float SLOT_TIME_PAD_Y_DP = 2f;
-    private static final float SLOT_TIME_CORNER_DP = 4f;
-    // Smallest scale for the chip text so the time fits the gutter. Times are never cut.
-    private static final float SLOT_TIME_MIN_SCALE = 0.75f;
+    // Start and end times in the left time column of the block preview: the hour label colour,
+    // moved this far towards white (calendar colour is light) or black (calendar colour is dark).
+    private static final float SLOT_TIME_SHADE = 0.2f;
     private static final int SLOT_ACTION_OPEN = R.id.day_slot_action_open;
     private static final int SLOT_ACTION_START_EARLIER = R.id.day_slot_action_start_earlier;
     private static final int SLOT_ACTION_START_LATER = R.id.day_slot_action_start_later;
@@ -4497,28 +4494,17 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     }
 
     /**
-     * Layout of the start and end time chips in the left time column, in grid coordinates:
-     * {startCentreY, endCentreY, chipHeight, textSize}. Each chip sits on its block edge. Short
-     * blocks spread the two chips apart, and both stay inside the visible grid. The block's real
-     * boundaries are not moved. Sets the text size on mSlotLabelPaint, and only that paint.
+     * Layout of the start and end times in the left time column, in grid coordinates:
+     * {startCentreY, endCentreY, textHeight}. Each time sits on its block edge. Short blocks spread
+     * the two times apart, and both stay inside the visible grid. The block's real boundaries are
+     * not moved. Uses the hour label paint (same font and size), and sets it up on mSlotLabelPaint
+     * only.
      */
     private float[] slotTimeLabelLayout() {
-        float density = slotDensity();
         Paint m = mSlotLabelPaint;
-        m.setTypeface(Typeface.DEFAULT_BOLD);
-        float maxWidth = computeDayLeftPosition(0) - HOURS_LEFT_MARGIN - HOURS_RIGHT_MARGIN
-                - 2 * SLOT_TIME_PAD_X_DP * density;
-        float size = HOURS_TEXT_SIZE;
-        float minSize = HOURS_TEXT_SIZE * SLOT_TIME_MIN_SCALE;
-        m.setTextSize(size);
-        while (size > minSize
-                && Math.max(m.measureText(mSlotStartLabel), m.measureText(mSlotEndLabel))
-                        > maxWidth) {
-            size -= 0.5f;
-            m.setTextSize(size);
-        }
+        setupHourTextPaint(m);
         Paint.FontMetrics fm = m.getFontMetrics();
-        float height = (fm.descent - fm.ascent) + 2 * SLOT_TIME_PAD_Y_DP * density;
+        float height = fm.descent - fm.ascent;
         float low = slotVisibleTop();
         float high = slotVisibleBottom();
         float[] edges = SlotTimeLabels.centres(slotEdgeY(mSlotPreview.getStartMinute()),
@@ -4526,37 +4512,26 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         return new float[] {
                 SlotTimeLabels.clampCentre(edges[0], height, low, high),
                 SlotTimeLabels.clampCentre(edges[1], height, low, high),
-                height,
-                size
+                height
         };
     }
 
     /**
      * The start time at the top of the block and the end time at the bottom, in the left time
-     * column. Each is a solid chip in the calendar colour with text picked for contrast. Drawn
-     * from drawHours, so the gutter layer is not clipped by the event area.
+     * column. Plain text, no background. The colour is the hour label colour, a little lighter when
+     * the block's calendar colour is light and a little darker when it is dark. Drawn from
+     * drawHours, so the gutter layer is not clipped by the event area.
      */
     private void drawSlotTimeLabels(Canvas canvas, float[] layout) {
-        float density = slotDensity();
         Paint m = mSlotLabelPaint;
-        float height = layout[2];
-        float padX = SLOT_TIME_PAD_X_DP * density;
-        float radius = SLOT_TIME_CORNER_DP * density;
-        int chipColor = 0xFF000000 | mSlotCalendarColor;
-        int textColor = SlotTimeLabels.textOn(chipColor);
+        setupHourTextPaint(m);
+        boolean lightCalendar = SlotTimeLabels.isLight(0xFF000000 | mSlotCalendarColor);
+        m.setColor(SlotTimeLabels.shade(mCalendarHourLabelColor, lightCalendar, SLOT_TIME_SHADE));
         Paint.FontMetrics fm = m.getFontMetrics();
         String[] texts = {mSlotStartLabel, mSlotEndLabel};
         for (int i = 0; i < texts.length; i++) {
-            float centre = layout[i];
-            float width = m.measureText(texts[i]) + 2 * padX;
-            mRectF.set(HOURS_LEFT_MARGIN, centre - height / 2f,
-                    HOURS_LEFT_MARGIN + width, centre + height / 2f);
-            m.setStyle(Style.FILL);
-            m.setColor(chipColor);
-            canvas.drawRoundRect(mRectF, radius, radius, m);
-            m.setColor(textColor);
-            float baseline = centre - (fm.ascent + fm.descent) / 2f;
-            canvas.drawText(texts[i], HOURS_LEFT_MARGIN + padX, baseline, m);
+            float baseline = layout[i] - (fm.ascent + fm.descent) / 2f;
+            canvas.drawText(texts[i], HOURS_LEFT_MARGIN, baseline, m);
         }
     }
 

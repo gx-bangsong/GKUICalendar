@@ -60,11 +60,18 @@ public class SlotTimeLabelsTest {
     }
 
     @Test
-    public void chipTextIsWhiteOnDarkAndBlackOnLight() {
-        assertEquals(0xFFFFFFFF, SlotTimeLabels.textOn(0xFF000000));
-        assertEquals(0xFF000000, SlotTimeLabels.textOn(0xFFFFFFFF));
-        assertEquals(0xFF000000, SlotTimeLabels.textOn(0xFFFFEB3B));
-        assertEquals(0xFFFFFFFF, SlotTimeLabels.textOn(0xFF1A237E));
+    public void lightAndDarkColoursAreClassifiedForTheTimeText() {
+        assertTrue(SlotTimeLabels.isLight(0xFFFFEB3B));
+        assertTrue(SlotTimeLabels.isLight(0xFFFFFFFF));
+        assertFalse(SlotTimeLabels.isLight(0xFF1A237E));
+        assertFalse(SlotTimeLabels.isLight(0xFF000000));
+    }
+
+    @Test
+    public void shadeMovesTowardsWhiteForLightAndBlackForDark() {
+        assertEquals(0xFF999999, SlotTimeLabels.shade(0xFF808080, true, 0.2f));
+        assertEquals(0xFF666666, SlotTimeLabels.shade(0xFF808080, false, 0.2f));
+        assertEquals(0xFFFFFFFF, SlotTimeLabels.shade(0xFFFFFFFF, true, 0.2f));
     }
 
     @Test
