@@ -2206,9 +2206,12 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
             edit.setVisible(mCanModifyEvent);
             edit.setEnabled(mCanModifyEvent);
         }
-        if (changeColor != null && mColors != null && mColors.length > 0) {
-            changeColor.setVisible(mCanModifyCalendar);
-            changeColor.setEnabled(mCanModifyCalendar);
+        if (changeColor != null) {
+            // Hide the entry when the account has no event colors to choose from; otherwise
+            // it opens an empty picker. The menu XML shows it by default, so set it explicitly.
+            boolean hasColors = mColors != null && mColors.length > 0;
+            changeColor.setVisible(hasColors && mCanModifyCalendar);
+            changeColor.setEnabled(hasColors && mCanModifyCalendar);
         }
         if (reschedule != null) {
             boolean show = EventInfoRules.showReschedule(mCanModifyEvent, mEventId);
