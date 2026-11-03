@@ -517,13 +517,15 @@ public class AlertService {
                 int newState = -1;
                 boolean newAlert = false;
 
-                // clearing out alerts after the events ended. b/1880369
-                if (endTime < currentTime) {
-                    newState = CalendarAlerts.STATE_DISMISSED;
-                }
+                // Uncomment for the behavior of clearing out alerts after the
+                // events ended. b/1880369
+                //
+                // if (endTime < currentTime) {
+                //     newState = CalendarAlerts.DISMISSED;
+                // } else
 
                 // Remove declined events
-                boolean sendAlert = !declined  && newState != CalendarAlerts.STATE_DISMISSED;
+                boolean sendAlert = !declined;
                 // Check for experimental reminder settings.
                 if (remindRespondedOnly) {
                     // If the experimental setting is turned on, then only send
@@ -533,11 +535,24 @@ public class AlertService {
                 if (sendAlert) {
                     if (state == CalendarAlerts.STATE_SCHEDULED || newAlertOverride) {
                         newState = CalendarAlerts.STATE_FIRED;
-                        numFired++;
-                        // If quiet hours are forcing the alarm to be silent,
-                        // keep newAlert as false so it will not make noise.
-                        if (!forceQuiet) {
-                            newAlert = true;
+
+                        // When using local storage to track alert state (BYPASS_DB),
+                        // check if this alert was already fired previously.  The
+                        // calendar provider may re-insert SCHEDULED alert entries
+                        // when events are re-synced (e.g. contact birthday events
+                        // during a contact sync), which would otherwise cause
+                        // duplicate notifications with sound/vibrate.
+                        boolean alreadyFired = AlertUtils.BYPASS_DB
+                                && AlertUtils.hasAlertFiredInSharedPrefs(
+                                        context, eventId, beginTime, alarmTime);
+
+                        if (!alreadyFired) {
+                            numFired++;
+                            // If quiet hours are forcing the alarm to be silent,
+                            // keep newAlert as false so it will not make noise.
+                            if (!forceQuiet) {
+                                newAlert = true;
+                            }
                         }
 
                         // Record the received time in the CalendarAlerts table.
