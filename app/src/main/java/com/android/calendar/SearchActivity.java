@@ -96,7 +96,7 @@ public class SearchActivity extends AppCompatActivity implements CalendarControl
 
     @Override
     protected void onCreate(Bundle icicle) {
-        DynamicThemeKt.applyTheme(this);
+        DynamicThemeKt.applyThemeAndPrimaryColor(this);
         super.onCreate(icicle);
         // This needs to be created before setContentView
         mController = CalendarController.getInstance(this);

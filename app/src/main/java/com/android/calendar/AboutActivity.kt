@@ -2,7 +2,7 @@ package com.android.calendar
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import com.android.calendar.theme.applyTheme
+import com.android.calendar.theme.applyThemeAndPrimaryColor
 
 import ws.xsoh.etar.R
 import ws.xsoh.etar.databinding.SimpleFrameLayoutMaterialBinding
@@ -10,7 +10,7 @@ import ws.xsoh.etar.databinding.SimpleFrameLayoutMaterialBinding
 class AboutActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        applyTheme()
+        applyThemeAndPrimaryColor()
         super.onCreate(savedInstanceState)
 
         val binding: SimpleFrameLayoutMaterialBinding = SimpleFrameLayoutMaterialBinding.inflate(layoutInflater)
