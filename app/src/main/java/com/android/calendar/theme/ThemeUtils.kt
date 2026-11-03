@@ -4,8 +4,8 @@ import android.content.Context
 import android.content.res.Configuration
 import android.os.Build
 import com.android.calendar.Utils
+import com.android.calendar.theme.model.Color
 import com.android.calendar.theme.model.Theme
-import kotlin.text.lowercase
 
 object ThemeUtils {
 
@@ -37,5 +37,4 @@ object ThemeUtils {
         val color = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Color.MONET.name else Color.TEAL.name
         return Color.valueOf(color.uppercase())
     }
-
 }

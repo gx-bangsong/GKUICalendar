@@ -43,6 +43,7 @@ import com.android.calendar.calendarcommon2.Time;
 
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.Locale;
 
 import ws.xsoh.etar.R;
 
@@ -170,9 +171,9 @@ public class SimpleDayPickerFragment extends ListFragment implements OnScrollLis
         mTempTime.setTimezone(tz);
 
         Context c = getActivity();
-        mSaturdayColor = DynamicThemeKt.getColor(c, "month_saturday");
-        mSundayColor = DynamicThemeKt.getColor(c, "month_sunday");
-        mDayNameColor = DynamicThemeKt.getColor(c, "month_day_names_color");
+        mSaturdayColor = DynamicTheme.getColor(c, "month_saturday");
+        mSundayColor = DynamicTheme.getColor(c, "month_sunday");
+        mDayNameColor = DynamicTheme.getColor(c, "month_day_names_color");
 
         // Adjust sizes for screen density
         if (mScale == 0) {
@@ -296,7 +297,9 @@ public class SimpleDayPickerFragment extends ListFragment implements OnScrollLis
      * preference space.
      */
     protected void doResumeUpdates() {
-        mFirstDayOfWeek = Utils.getFirstDayOfWeek(getContext());
+        // Get default week start based on locale, subtracting one for use with android Time.
+        Calendar cal = Calendar.getInstance(Locale.getDefault());
+        mFirstDayOfWeek = cal.getFirstDayOfWeek() - 1;
 
         mShowWeekNumber = false;
 
