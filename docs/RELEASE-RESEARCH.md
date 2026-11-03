@@ -35,7 +35,7 @@ the LineageOS built-in package.
 |---|---|---|
 | `app/build.gradle.kts` `applicationId` | `ws.xsoh.etar` | changed to `org.lineageos.etar` |
 | `res/xml-v25/shortcuts.xml` `targetPackage` | `ws.xsoh.etar` | now `@string/shortcut_target_package`, set per build type |
-| `search/CalendarAppSearchIndexer.kt` `DATABASE_NAME`, `EVENTS_NAMESPACE` | `ws.xsoh.etar.events` | changed to `org.lineageos.etar.events` |
+| `search/CalendarAppSearchIndexer.kt` `DATABASE_NAME`, `EVENTS_NAMESPACE` | `ws.xsoh.etar.events` | removed: the whole AppSearch experiment (`search/` package, its dependencies and its diagnostic receiver) is deleted |
 | `icalendar/VCalendar.java` `PRODUCT_IDENTIFIER` | `-//Calendar//ws.xsoh.etar` | unchanged (ICS identity) |
 | `icalendar/VEvent.java` UID suffix | `@ws.xsoh.etar` | unchanged (ICS identity) |
 | `AndroidManifest.xml` `android:authorities` | `${applicationId}.provider`, `.androidx-startup`, `.CalendarRecentSuggestionsProvider` | already follow `applicationId`, no change |
@@ -85,6 +85,6 @@ the LineageOS built-in package.
 - `sdkmanager` licence handling and the `build-tools;36.0.0` package on the runner.
 - `aapt2 dump badging` and `xmltree` output format on a real APK (the stubs follow the documented format).
 - `resValue` string reference in `xml-v25/shortcuts.xml` on device (shortcut launch).
-- AppSearch index: switching the namespace starts an empty index that needs a reindex.
+- AppSearch: removed from this branch, so no index exists to migrate.
 - AOSP tree: the fork's manifest has no `package` attribute, so the AOSP build's package name is not defined by
   this repository. Not changed here.
