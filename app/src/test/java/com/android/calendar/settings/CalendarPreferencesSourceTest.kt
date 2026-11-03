@@ -75,4 +75,20 @@ class CalendarPreferencesSourceTest {
         assertTrue(src.contains("override fun onCreateRecyclerView"))
         assertTrue(src.contains("wrapSettingsListWidth(list, parent, resources.displayMetrics.density)"))
     }
+
+    @Test
+    fun displayNameRenameUsesMd3TextDialog() {
+        val src = source("CalendarPreferences.kt")
+        assertTrue(src.contains("showSettingsTextDialog(preference)"))
+        assertTrue(source("SettingsTextDialogFragment.kt").contains("MaterialAlertDialogBuilder"))
+        assertTrue(layout("settings_text_dialog.xml").contains("Widget.Material3.TextInputLayout.OutlinedBox"))
+    }
+
+    @Test
+    fun manageNotificationsRowHandlesClickInsteadOfOnlyAnIntent() {
+        val src = source("CalendarPreferences.kt")
+        assertTrue(Regex("setOnPreferenceClickListener\\s*\\{\\s*openNotificationSettings\\(\\)").containsMatchIn(src))
+        assertTrue(src.contains("createPerCalendarChannels(context, nm)"))
+        assertTrue(src.contains("Settings.ACTION_APP_NOTIFICATION_SETTINGS"))
+    }
 }

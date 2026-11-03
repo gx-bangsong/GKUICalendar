@@ -20,14 +20,18 @@ package com.android.calendar.settings
 import android.accounts.Account
 import android.accounts.AccountManager
 import android.accounts.AuthenticatorDescription
+import android.app.NotificationManager
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
+import android.os.Build
 import android.os.Bundle
 import android.provider.CalendarContract
 import android.provider.Settings
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import androidx.preference.EditTextPreference
 import androidx.preference.Preference
@@ -38,6 +42,7 @@ import androidx.preference.SwitchPreferenceCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.android.calendar.Utils
 import com.android.calendar.alerts.channelId
+import com.android.calendar.alerts.createPerCalendarChannels
 import com.android.calendar.persistence.ICalendarRepository
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import ws.xsoh.etar.R
@@ -138,10 +143,10 @@ class CalendarPreferences : PreferenceFragmentCompat() {
         if(Utils.isOreoOrLater()){
             val notificationPreference = Preference(context).apply {
                 title = getString(R.string.preferences_manage_notifications)
-                intent = Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).apply {
-                    putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
-                    putExtra(Settings.EXTRA_CHANNEL_ID, channelId(this@CalendarPreferences.calendarId))
-                }
+            }
+            notificationPreference.setOnPreferenceClickListener {
+                openNotificationSettings()
+                true
             }
             screen.addPreference(notificationPreference)
         }
@@ -187,6 +192,43 @@ class CalendarPreferences : PreferenceFragmentCompat() {
             if (pref is SwitchPreferenceCompat) {
                 pref.widgetLayoutResource = R.layout.preference_md3_switch
             }
+        }
+    }
+
+    /**
+     * Opens this calendar's notification channel page. The channel is normally created by the
+     * alert worker, which may not have run yet (for example after a calendar was added). Create
+     * the channels first. If this calendar still has no channel, open the app's notification page
+     * instead, so the tap always does something.
+     */
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun openNotificationSettings() {
+        val context = requireContext()
+        val nm = context.getSystemService(NotificationManager::class.java)
+        createPerCalendarChannels(context, nm)
+
+        val channel = channelId(calendarId)
+        val intent = if (nm.getNotificationChannel(channel) != null) {
+            Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).apply {
+                putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                putExtra(Settings.EXTRA_CHANNEL_ID, channel)
+            }
+        } else {
+            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+            }
+        }
+        try {
+            startActivity(intent)
+        } catch (e: ActivityNotFoundException) {
+            // No settings page on this device. Nothing else to show.
+        }
+    }
+
+    override fun onDisplayPreferenceDialog(preference: Preference) {
+        // The display name row uses the MD3 text dialog. Other rows keep the framework dialog.
+        if (!showSettingsTextDialog(preference)) {
+            super.onDisplayPreferenceDialog(preference)
         }
     }
 
