@@ -71,12 +71,34 @@ lines use the v3.1 labels produces `expected exactly one signer, found 0`; the n
 the same input. The gate now prints the whole `apksigner verify --verbose --print-certs` output to
 the job log, so the next run shows the real labels either way.
 
+## Release notes
+
+The body is written for the person installing the app, not for the build. It comes from three
+places, in this order:
+
+1. **`CHANGELOG.md`, the first `## ` section** — the update notes, in Chinese and English. This is
+   the only hand-written part. Write what a user can see, not commit subjects. Only the top
+   section is published; move older ones below it. After a release, rename
+   `## 未发布 / Unreleased` to the version and open a new empty one on top.
+2. **Install notes** — generated, bilingual, because they name the actual `applicationId` and
+   warn that a release build cannot update a `…debug` build in place.
+3. **Build information** — generated, inside a collapsed `<details>` block: applicationId,
+   versionCode, versionName, signer SHA-256, APK SHA-256 and the source link that meets the GPL
+   source obligation.
+
+`ci-build.sh` reads the changelog **before** Gradle starts. A missing file or an empty top
+section fails the run there, so a release can never be published with empty notes. The script
+only reads `CHANGELOG.md`; it never writes it.
+
+`build-info.json` is unchanged and stays the machine-readable contract for GKUI-Pack.
+
 ## Signing chain
 
 | Step | Where | Behaviour |
 |---|---|---|
 | Secrets → env | workflow `env:` | `KEYSTORE_BASE64`, `KEYSTORE_PASS`, `KEY_ALIAS`, `KEY_PASS`, never as arguments |
 | Presence check | `ci-build.sh` `require_signing_env` | before Gradle; names every missing variable and refuses |
+| Release notes check | `ci-build.sh` `require_changelog` | before Gradle; the top `CHANGELOG.md` section must not be empty |
 | Decode | `ci-build.sh` `decode_keystore` | private temp file, `umask 077`, removed by the EXIT trap, exports `KEYSTORE_FILE` |
 | Keystore check | `ci-build.sh` `check_keystore` | before Gradle; `keytool -list` with `-storepass:env` proves the store opens and the alias exists |
 | Second line of defence | `app/build.gradle.kts` task graph | a CI release build with a missing input throws before packaging and lists what is missing |

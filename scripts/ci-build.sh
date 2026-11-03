@@ -10,7 +10,8 @@
 #   GKUICalendar-<versionName>.apk
 #   GKUICalendar-<versionName>.apk.sha256
 #   build-info.json   (read by GKUI-Pack apps.yaml; keep the field names stable)
-# and, outside dist/, build/release-notes.md for the release body.
+# and, outside dist/, build/release-notes.md for the release body: the top section of
+# CHANGELOG.md (Chinese and English), the install notes and the build information.
 # The tag v<versionName> is written to GITHUB_OUTPUT as "tag".
 
 set -euo pipefail
@@ -22,6 +23,7 @@ readonly EXPECTED_APPLICATION_ID="org.lineageos.etar"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly REPO_ROOT
 readonly SIGNER_FILE="${REPO_ROOT}/release-signer.sha256"
+readonly CHANGELOG_FILE="${REPO_ROOT}/CHANGELOG.md"
 readonly APK_IN="${REPO_ROOT}/app/build/outputs/apk/release/app-release.apk"
 readonly DIST_DIR="${REPO_ROOT}/dist"
 readonly NOTES_FILE="${REPO_ROOT}/build/release-notes.md"
@@ -60,6 +62,35 @@ find_build_tool() {
         die "${name} not found under ${sdk}/build-tools; install a build-tools package"
     fi
     echo "${found}"
+}
+
+# Prints the body of the first "## " section of CHANGELOG.md: no heading, no leading or trailing
+# blank lines. Prints nothing when the file or the section is missing. Only the top section is
+# published; older versions stay below it.
+changelog_body() {
+    [[ -f "${CHANGELOG_FILE}" ]] || return 0
+    awk '
+        /^## / { section++; next }
+        section > 1 { exit }
+        section == 1 { lines[++n] = $0 }
+        END {
+            first = 1; last = n
+            while (first <= last && lines[first] ~ /^[[:space:]]*$/) first++
+            while (last >= first && lines[last] ~ /^[[:space:]]*$/) last--
+            for (i = first; i <= last; i++) print lines[i]
+        }
+    ' "${CHANGELOG_FILE}"
+}
+
+# The release body is written for people who install the app, so it must exist before the build
+# spends minutes producing an APK that would then be published with empty notes.
+require_changelog() {
+    if [[ ! -f "${CHANGELOG_FILE}" ]]; then
+        die "CHANGELOG.md is missing; the release body comes from its first \"## \" section"
+    fi
+    if [[ -z "$(changelog_body)" ]]; then
+        die "the first \"## \" section of CHANGELOG.md is empty; write the update notes in Chinese and English before publishing"
+    fi
 }
 
 # Checks the signing environment before anything is built. A release build costs minutes, so a
@@ -157,6 +188,7 @@ main() {
         die "ci-build.sh is for CI only (CI=true); local release builds use Gradle directly"
     fi
     require_signing_env
+    require_changelog
     local aapt2 apksigner
     aapt2="$(find_build_tool aapt2)"
     apksigner="$(find_build_tool apksigner)"
@@ -289,20 +321,46 @@ main() {
           commit: $commit, source_url: $source_url}' \
         > "${DIST_DIR}/build-info.json"
 
+    local changelog
+    changelog="$(changelog_body)"
     mkdir -p "$(dirname "${NOTES_FILE}")"
     cat > "${NOTES_FILE}" <<NOTES
-Release build of ${APP_NAME}, signed with the release key.
+# ${APP_NAME} ${version_name}
 
-- applicationId: \`${app_id}\`
-- versionCode: ${version_code}
-- versionName: ${version_name}
-- signer SHA-256: \`${fingerprint}\`
-- APK SHA-256: \`${apk_sha}\`
-- Source code for this build: ${source_url}
+${changelog}
 
-This release is signed with a different key from the debug builds. Earlier debug builds
-(\`${app_id}.debug\`) cannot be updated in place: uninstall them first. Uninstalling removes
-their data.
+---
+
+## 安装说明
+
+- 本安装包使用**正式发布密钥**签名。
+- 它与 debug 包（\`${app_id}.debug\`）的签名不同，**无法覆盖安装**。请先卸载 debug 包，再安装本包。
+- 卸载会清除应用数据，请先导出需要保留的事件。
+
+## Install notes
+
+- This package is signed with the **release key**.
+- Its signature differs from the debug builds (\`${app_id}.debug\`), so it **cannot update them in place**. Uninstall the debug build first, then install this one.
+- Uninstalling removes the app's data. Export anything you want to keep beforehand.
+
+---
+
+<details>
+<summary>构建信息 / Build info</summary>
+
+| 项目 / Field | 值 / Value |
+|---|---|
+| applicationId | \`${app_id}\` |
+| versionCode | ${version_code} |
+| versionName | ${version_name} |
+| 签名证书 / Signer SHA-256 | \`${fingerprint}\` |
+| APK SHA-256 | \`${apk_sha}\` |
+| 源码 / Source code | ${source_url} |
+
+本版本的完整源代码见上方链接（GPL）。
+The complete source code for this build is at the link above (GPL).
+
+</details>
 NOTES
 
     if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
