@@ -76,7 +76,8 @@ final class TimeLabelFormat {
     /**
      * The exact time of a minute of the displayed day, for the preview's start and end labels. The
      * value 1440 is the end of the day. In 24-hour form it is "24:00". In 12-hour form it is the
-     * midnight that ends the day, shown as the morning hour 12.
+     * midnight that ends the day, shown as the morning hour 12. On a whole hour in 12-hour form the
+     * label is the same as the hour column (for example "上午9点"); only other minutes add ":mm".
      */
     String preciseLabel(int minuteOfDay) {
         if (mIs24Hour && minuteOfDay >= MINUTES_PER_DAY) {
@@ -87,6 +88,9 @@ final class TimeLabelFormat {
         int min = minute % 60;
         if (mIs24Hour) {
             return String.format(Locale.ROOT, "%02d:%02d", hour, min);
+        }
+        if (min == 0) {
+            return mHourLabels[hour];
         }
         return String.format(Locale.ROOT, mMinutePattern12, period(hour), twelve(hour), min);
     }

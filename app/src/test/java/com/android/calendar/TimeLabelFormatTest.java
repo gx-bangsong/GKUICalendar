@@ -85,15 +85,23 @@ public class TimeLabelFormatTest {
         TimeLabelFormat f = zh12();
         assertEquals("上午9:15", f.preciseLabel(9 * 60 + 15));
         assertEquals("下午1:30", f.preciseLabel(13 * 60 + 30));
-        assertEquals("上午12:00", f.preciseLabel(0));
         assertEquals("下午12:45", f.preciseLabel(12 * 60 + 45));
+    }
+
+    @Test
+    public void wholeHoursReadLikeTheHourColumn() {
+        TimeLabelFormat f = zh12();
+        assertEquals(f.hourLabel(9), f.preciseLabel(9 * 60));
+        assertEquals("上午9点", f.preciseLabel(9 * 60));
+        assertEquals("下午1点", f.preciseLabel(13 * 60));
+        assertEquals("上午12点", f.preciseLabel(0));
     }
 
     @Test
     public void endOfDayIsNeverAfternoonTwelve() {
         TimeLabelFormat f = zh12();
         String end = f.preciseLabel(TimeLabelFormat.MINUTES_PER_DAY);
-        assertEquals("上午12:00", end);
+        assertEquals("上午12点", end);
         assertFalse(end.startsWith("下午"));
     }
 
@@ -123,6 +131,7 @@ public class TimeLabelFormatTest {
         assertEquals("12 AM", f.hourLabel(0));
         assertEquals("12 PM", f.hourLabel(12));
         assertEquals("9:15 AM", f.preciseLabel(9 * 60 + 15));
+        assertEquals("9 AM", f.preciseLabel(9 * 60));
     }
 
     // ---------- Cache identity and sample widths ----------
@@ -143,7 +152,7 @@ public class TimeLabelFormatTest {
         assertEquals(49, samples.length);
         assertTrue(contains(samples, "上午9点"));
         assertTrue(contains(samples, "下午12:45"));
-        assertTrue(contains(samples, "上午12:00"));
+        assertTrue(contains(samples, "上午12点"));
     }
 
     @Test
