@@ -28,6 +28,7 @@ import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Parcelable
 import android.os.Vibrator
 import android.provider.CalendarContract
 import android.provider.CalendarContract.CalendarCache
@@ -35,15 +36,17 @@ import android.provider.SearchRecentSuggestions
 import android.provider.Settings
 import android.text.TextUtils
 import android.util.SparseIntArray
+import android.view.LayoutInflater
+import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.content.ContextCompat
-import androidx.preference.CheckBoxPreference
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceManager
-import androidx.preference.SwitchPreference
+import androidx.preference.SwitchPreferenceCompat
+import androidx.recyclerview.widget.RecyclerView
 import com.android.calendar.CalendarController
 import com.android.calendar.CalendarRecentSuggestionsProvider
 import com.android.calendar.CalendarUtils
@@ -51,28 +54,28 @@ import com.android.calendar.DynamicTheme
 import com.android.calendar.Utils
 import com.android.calendar.alerts.AlertReceiver
 import com.android.calendar.event.EventViewUtils
-import com.android.calendar.timezonepicker.TimeZoneInfo
-import com.android.calendar.timezonepicker.TimeZonePickerDialog
 import com.android.calendar.timezonepicker.TimeZonePickerUtils
+import com.android.calendar.timezonepicker.TimeZoneSearchFragment
+import com.android.calendar.timezonepicker.TimeZoneSelectionRouting
 import ws.xsoh.etar.R
 import java.util.TimeZone
 
 class GeneralPreferences : PreferenceFragmentCompat(),
-        OnSharedPreferenceChangeListener, Preference.OnPreferenceChangeListener,
-        TimeZonePickerDialog.OnTimeZoneSetListener {
+        OnSharedPreferenceChangeListener, Preference.OnPreferenceChangeListener {
 
     private lateinit var themePref: ListPreference
-    private lateinit var realEventColors: SwitchPreference
-    private lateinit var pureBlackNightModePref: SwitchPreference
-    private lateinit var doNotCheckBatteryOptimizationPref: SwitchPreference
+    private lateinit var realEventColors: SwitchPreferenceCompat
+    private lateinit var pureBlackNightModePref: SwitchPreferenceCompat
+    private lateinit var doNotCheckBatteryOptimizationPref: SwitchPreferenceCompat
     private lateinit var defaultStartPref: ListPreference
-    private lateinit var hideDeclinedPref: SwitchPreference
+    private lateinit var monthLayoutPref: ListPreference
+    private lateinit var hideDeclinedPref: SwitchPreferenceCompat
     private lateinit var weekStartPref: ListPreference
     private lateinit var dayWeekPref: ListPreference
     private lateinit var defaultEventDurationPref: ListPreference
-    private lateinit var useHomeTzPref: CheckBoxPreference
+    private lateinit var useHomeTzPref: SwitchPreferenceCompat
     private lateinit var homeTzPref: Preference
-    private lateinit var popupPref: SwitchPreference
+    private lateinit var popupPref: SwitchPreferenceCompat
     private lateinit var snoozeDelayPref: ListPreference
     private lateinit var useDefaultCustomSnoozeDelayPref: Preference
     private lateinit var defaultReminderPref: ListPreference
@@ -83,9 +86,9 @@ class GeneralPreferences : PreferenceFragmentCompat(),
     private lateinit var notificationPref: Preference
 
     // < 26
-    private lateinit var alertPref: CheckBoxPreference
+    private lateinit var alertPref: SwitchPreferenceCompat
     private lateinit var ringtonePref: Preference
-    private lateinit var vibratePref: SwitchPreference
+    private lateinit var vibratePref: SwitchPreferenceCompat
 
     private lateinit var tzPickerUtils: TimeZonePickerUtils
     private var timeZoneId: String? = null
@@ -103,14 +106,47 @@ class GeneralPreferences : PreferenceFragmentCompat(),
         activity?.title = getString(R.string.preferences_list_general)
     }
 
+    // The list position when this page's view is destroyed, for example when a sub-page opens.
+    // The fragment instance stays on the back stack, but its view and RecyclerView state are
+    // rebuilt on return, so the position is kept here and restored once preferences are bound.
+    private var listScrollState: Parcelable? = null
+
+    override fun onDestroyView() {
+        // Save before super, which clears the list reference.
+        listView?.layoutManager?.let { listScrollState = it.onSaveInstanceState() }
+        super.onDestroyView()
+    }
+
+    override fun onBindPreferences() {
+        super.onBindPreferences()
+        // Restore after the adapter is set. Restoring earlier can be lost when the adapter changes.
+        val state = listScrollState ?: return
+        listScrollState = null
+        listView?.layoutManager?.onRestoreInstanceState(state)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Result of the shared full-screen time zone page. It is owned by this fragment, so it
+        // is removed with the fragment, and a rotation re-registers it on the new instance.
+        requireActivity().supportFragmentManager.setFragmentResultListener(
+                TimeZoneSelectionRouting.REQUEST_KEY_HOME, this) { _, result ->
+            onHomeTimeZoneResult(result)
+        }
 
         themePref = preferenceScreen.findPreference(KEY_THEME_PREF)!!
         realEventColors = preferenceScreen.findPreference(KEY_REAL_EVENT_COLORS)!!
         pureBlackNightModePref = preferenceScreen.findPreference(KEY_PURE_BLACK_NIGHT_MODE)!!
         doNotCheckBatteryOptimizationPref = preferenceScreen.findPreference(KEY_DO_NOT_CHECK_BATTERY_OPTIMIZATION)!!
         defaultStartPref = preferenceScreen.findPreference(KEY_DEFAULT_START)!!
+        // Settings can open before the calendar activity, so migrate here too.
+        com.android.calendar.monthagenda.MonthLayoutRules.migrate(
+            getSharedPreferences(requireContext()),
+            getSharedPreferences(requireContext()).getInt(KEY_START_VIEW, DEFAULT_START_VIEW)
+        )
+        monthLayoutPref = preferenceScreen.findPreference(
+            com.android.calendar.monthagenda.MonthLayoutRules.KEY_MONTH_LAYOUT)!!
         hideDeclinedPref = preferenceScreen.findPreference(KEY_HIDE_DECLINED)!!
         weekStartPref = preferenceScreen.findPreference(KEY_WEEK_START_DAY)!!
         dayWeekPref = preferenceScreen.findPreference(KEY_DAYS_PER_WEEK)!!
@@ -164,6 +200,7 @@ class GeneralPreferences : PreferenceFragmentCompat(),
         defaultReminderPref.summary = defaultReminderPref.entry
         snoozeDelayPref.summary = snoozeDelayPref.entry
         defaultStartPref.summary = defaultStartPref.entry
+        monthLayoutPref.summary = monthLayoutPref.entry
         skipRemindersPref.summary = skipRemindersPref.entry
 
         // This triggers an asynchronous call to the provider to refresh the data in shared pref
@@ -181,31 +218,49 @@ class GeneralPreferences : PreferenceFragmentCompat(),
         val timezoneName = tzPickerUtils.getGmtDisplayName(activity, timeZoneId,
                 System.currentTimeMillis(), false)
         homeTzPref.summary = timezoneName ?: timeZoneId
-
-        val tzpd = requireActivity().supportFragmentManager
-                .findFragmentByTag(FRAG_TAG_TIME_ZONE_PICKER) as TimeZonePickerDialog?
-        tzpd?.setOnTimeZoneSetListener(this)
-
     }
 
     private fun handleUseCustomSnoozeDelayVisibility() {
         useDefaultCustomSnoozeDelayPref.isEnabled = Integer.parseInt(snoozeDelayPref.value) >= 0
     }
 
-    private fun showTimezoneDialog() {
-        val arguments = Bundle().apply {
-            putLong(TimeZonePickerDialog.BUNDLE_START_TIME_MILLIS, System.currentTimeMillis())
-            putString(TimeZonePickerDialog.BUNDLE_TIME_ZONE, Utils.getTimeZone(activity, null))
+    /**
+     * Opens the shared full-screen page for the home time zone. It starts from the stored home
+     * zone, not from Utils.getTimeZone, which returns the device zone while the switch is off.
+     * The offset text uses the current time.
+     */
+    private fun showHomeTimeZonePage() {
+        val a = activity ?: return
+        val prefs = CalendarUtils.getSharedPreferences(a, Utils.SHARED_PREFS_NAME)
+        val storedZoneId = prefs.getString(KEY_HOME_TZ, TimeZone.getDefault().id)
+        TimeZoneSearchFragment.open(a.supportFragmentManager,
+                TimeZoneSelectionRouting.REQUEST_KEY_HOME, storedZoneId,
+                System.currentTimeMillis())
+    }
+
+    /**
+     * Writes the home time zone only when the switch is on and the calendar permission is
+     * granted at the moment the result arrives. Cancel, an unknown ID or a changed state writes
+     * nothing. The event time and the event itself are never touched here.
+     */
+    private fun onHomeTimeZoneResult(result: Bundle) {
+        val a = activity ?: return
+        val zoneId = result.getString(TimeZoneSearchFragment.RESULT_TIME_ZONE_ID)
+        val prefs = CalendarUtils.getSharedPreferences(a, Utils.SHARED_PREFS_NAME)
+        val enabled = prefs.getBoolean(KEY_HOME_TZ_ENABLED, false)
+        val granted = enabled && Utils.isCalendarPermissionGranted(a, true)
+        val action = TimeZoneSelectionRouting.decide(
+                TimeZoneSelectionRouting.Target.HOME_PREFERENCE, zoneId, enabled, granted)
+        if (action != TimeZoneSelectionRouting.Action.WRITE_HOME_ZONE || zoneId == null) {
+            return
         }
-
-        val fm = requireActivity().supportFragmentManager
-        var tzpd: TimeZonePickerDialog? = fm.findFragmentByTag(FRAG_TAG_TIME_ZONE_PICKER) as TimeZonePickerDialog?
-        tzpd?.dismiss()
-
-        tzpd = TimeZonePickerDialog()
-        tzpd.arguments = arguments
-        tzpd.setOnTimeZoneSetListener(this)
-        tzpd.show(fm, FRAG_TAG_TIME_ZONE_PICKER)
+        // Keep the value used by the switch in step, so turning it off and on again keeps the
+        // zone the user chose.
+        timeZoneId = zoneId
+        val displayName = tzPickerUtils.getGmtDisplayName(
+                a, zoneId, System.currentTimeMillis(), false)
+        homeTzPref.summary = displayName ?: zoneId
+        Utils.setTimeZone(a, zoneId)
     }
 
     override fun onStart() {
@@ -222,6 +277,7 @@ class GeneralPreferences : PreferenceFragmentCompat(),
         pureBlackNightModePref.onPreferenceChangeListener = listener
         doNotCheckBatteryOptimizationPref.onPreferenceChangeListener = listener
         defaultStartPref.onPreferenceChangeListener = listener
+        monthLayoutPref.onPreferenceChangeListener = listener
         hideDeclinedPref.onPreferenceChangeListener = listener
         weekStartPref.onPreferenceChangeListener = listener
         dayWeekPref.onPreferenceChangeListener = listener
@@ -239,6 +295,23 @@ class GeneralPreferences : PreferenceFragmentCompat(),
     override fun onStop() {
         preferenceScreen.sharedPreferences?.unregisterOnSharedPreferenceChangeListener(this)
         super.onStop()
+    }
+
+    override fun onCreateRecyclerView(
+        inflater: LayoutInflater,
+        parent: ViewGroup,
+        savedInstanceState: Bundle?
+    ): RecyclerView {
+        val list = super.onCreateRecyclerView(inflater, parent, savedInstanceState)
+        // Width limit in the measure pass; see SettingsListLayout.kt.
+        return wrapSettingsListWidth(list, parent, resources.displayMetrics.density)
+    }
+
+    override fun onDisplayPreferenceDialog(preference: Preference) {
+        // The list rows use the MD3 choice dialog. Other rows keep the framework behaviour.
+        if (!showSettingsChoiceDialog(preference)) {
+            super.onDisplayPreferenceDialog(preference)
+        }
     }
 
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String?) {
@@ -334,6 +407,11 @@ class GeneralPreferences : PreferenceFragmentCompat(),
                 defaultStartPref.summary = defaultStartPref.entries[i]
                 return true
             }
+            monthLayoutPref -> {
+                val i = monthLayoutPref.findIndexOfValue(newValue as String)
+                monthLayoutPref.summary = monthLayoutPref.entries[i]
+                return true
+            }
             skipRemindersPref -> {
                 skipRemindersPref.value = newValue as String
                 skipRemindersPref.summary = skipRemindersPref.entry
@@ -383,7 +461,7 @@ class GeneralPreferences : PreferenceFragmentCompat(),
     override fun onPreferenceTreeClick(preference: Preference): Boolean {
         when (preference.key) {
             KEY_HOME_TZ -> {
-                showTimezoneDialog()
+                showHomeTimeZonePage()
                 return true
             }
             KEY_CLEAR_SEARCH_HISTORY -> {
@@ -473,13 +551,6 @@ class GeneralPreferences : PreferenceFragmentCompat(),
         }
     }
 
-    override fun onTimeZoneSet(tzi: TimeZoneInfo) {
-        val timeZoneDisplayName = tzPickerUtils.getGmtDisplayName(
-                activity, tzi.mTzId, System.currentTimeMillis(), false)
-        homeTzPref.summary = timeZoneDisplayName
-        Utils.setTimeZone(activity, tzi.mTzId)
-    }
-
     companion object {
         // Preference keys
         const val KEY_THEME_PREF = "pref_theme"
@@ -540,7 +611,9 @@ class GeneralPreferences : PreferenceFragmentCompat(),
         const val SHARED_PREFS_NAME_NO_BACKUP = "com.android.calendar_preferences_no_backup"
         private const val KEY_HOME_TZ_ENABLED = "preferences_home_tz_enabled"
         private const val KEY_HOME_TZ = "preferences_home_tz"
-        private const val FRAG_TAG_TIME_ZONE_PICKER = "TimeZonePicker"
+
+        // Day and week view background mask (Display details). Off by default.
+        const val KEY_DAY_WEEK_BACKGROUND_MASK = "pref_day_week_background_mask"
 
         // experimental
         const val KEY_OTHER_COPY_DB = "preferences_copy_db"
@@ -551,6 +624,15 @@ class GeneralPreferences : PreferenceFragmentCompat(),
         /** Return a properly configured SharedPreferences instance  */
         fun getSharedPreferences(context: Context): SharedPreferences {
             return context.getSharedPreferences(SHARED_PREFS_NAME, Context.MODE_PRIVATE)
+        }
+
+        /**
+         * Whether the day and week views draw the grey time-background mask. Read when the view
+         * resumes, never per frame.
+         */
+        @JvmStatic
+        fun isDayWeekBackgroundMaskEnabled(context: Context): Boolean {
+            return getSharedPreferences(context).getBoolean(KEY_DAY_WEEK_BACKGROUND_MASK, false)
         }
 
         /** Set the default shared preferences in the proper context */

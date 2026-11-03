@@ -52,6 +52,7 @@ public class AgendaFragment extends Fragment implements CalendarController.Event
 
     protected static final String BUNDLE_KEY_RESTORE_TIME = "key_restore_time";
     protected static final String BUNDLE_KEY_RESTORE_INSTANCE_ID = "key_restore_instance_id";
+    protected static final String BUNDLE_KEY_CARD_STYLE = "key_card_style";
     private static final String TAG = AgendaFragment.class.getSimpleName();
     private static boolean DEBUG = false;
     private final Time mTime;
@@ -74,6 +75,7 @@ public class AgendaFragment extends Fragment implements CalendarController.Event
     private EventInfoFragment mEventFragment;
     private String mQuery;
     private boolean mUsedForSearch = false;
+    private boolean mCardStyle = false;
     private boolean mIsTabletConfig;
     private EventInfo mOnAttachedInfo = null;
     private boolean mOnAttachAllDay = false;
@@ -84,12 +86,20 @@ public class AgendaFragment extends Fragment implements CalendarController.Event
     private Time mLastHandledEventTime = null;
 
     public AgendaFragment() {
-        this(0, false);
+        this(0, false, false);
     }
 
     // timeMillis - time of first event to show
     // usedForSearch - indicates if this fragment is used in the search fragment
     public AgendaFragment(long timeMillis, boolean usedForSearch) {
+        this(timeMillis, usedForSearch, false);
+    }
+
+    // timeMillis - time of first event to show
+    // usedForSearch - indicates if this fragment is used in the search fragment
+    // cardStyle - the standalone agenda shows card rows. The month panel and search keep the
+    //             classic rows.
+    public AgendaFragment(long timeMillis, boolean usedForSearch, boolean cardStyle) {
         mInitialTimeMillis = timeMillis;
         mTime = new Time();
         mLastHandledEventTime = new Time();
@@ -101,6 +111,7 @@ public class AgendaFragment extends Fragment implements CalendarController.Event
         }
         mLastHandledEventTime.set(mTime);
         mUsedForSearch = usedForSearch;
+        mCardStyle = cardStyle;
     }
 
     @Override
@@ -124,6 +135,7 @@ public class AgendaFragment extends Fragment implements CalendarController.Event
         mIsTabletConfig =
             Utils.getConfigBool(mActivity, R.bool.tablet_config);
         if (icicle != null) {
+            mCardStyle = icicle.getBoolean(BUNDLE_KEY_CARD_STYLE, mCardStyle);
             long prevTime = icicle.getLong(BUNDLE_KEY_RESTORE_TIME, -1);
             if (prevTime != -1) {
                 mTime.set(prevTime);
@@ -144,6 +156,7 @@ public class AgendaFragment extends Fragment implements CalendarController.Event
 
         mAgendaListView = (AgendaListView)v.findViewById(R.id.agenda_events_list);
         mAgendaListView.setClickable(true);
+        mAgendaListView.setCardStyle(mCardStyle);
 
         if (savedInstanceState != null) {
             long instanceId = savedInstanceState.getLong(BUNDLE_KEY_RESTORE_INSTANCE_ID, -1);
@@ -238,6 +251,7 @@ public class AgendaFragment extends Fragment implements CalendarController.Event
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
+        outState.putBoolean(BUNDLE_KEY_CARD_STYLE, mCardStyle);
         if (mAgendaListView == null) {
             return;
         }

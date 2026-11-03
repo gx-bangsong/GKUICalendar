@@ -363,35 +363,92 @@
     <string name="event_type_countdown">倒数日</string>
     <string name="anniversary_years_passed">已经 %d 年</string>
     <string name="anniversary_today">周年快乐！</string>
+    <string name="anniversary_today_nth">今天是第 %d 年</string>
     <string name="countdown_days_remaining">还剩下 %d 天</string>
     <string name="countdown_days_passed">已经过去 %d 天</string>
     <string name="countdown_today">就在今天！</string>
-    <!-- Shift Scheduling Assistant -->
-    <string name="shift_scheduler_title">轮班排班</string>
-    <string name="shift_presets">班次预设</string>
-    <string name="add_shift_preset">添加班次预设</string>
-    <string name="edit_shift_preset">编辑班次预设</string>
-    <string name="shift_title">班次名称</string>
-    <string name="start_time">开始时间</string>
-    <string name="end_time">结束时间</string>
-    <string name="alarm_offset">闹钟提前（分钟）</string>
-    <string name="ignore_holiday">法定节假日强制响铃</string>
-    <string name="save_shift">保存</string>
-    <string name="clear_selection">清除</string>
-    <string name="select_preset">选择预设</string>
-    <string name="select_calendar">选择日历</string>
-    <string name="shift_save_success">轮班日程已保存</string>
-    <string name="no_dates_selected">未选择日期</string>
-    <string name="delete_preset">删除预设</string>
-    <string name="confirm_delete_preset">确定要删除这个预设吗？</string>
-    <string name="shift_paint_mode">画笔模式</string>
-    <string name="shift_wizard_title">排班规则向导</string>
-    <string name="shift_wizard_step1">步骤 1: 周期</string>
-    <string name="shift_wizard_step2">步骤 2: 开始日期</string>
-    <string name="shift_wizard_step3">步骤 3: 主题</string>
-    <string name="shift_wizard_next">下一步</string>
-    <string name="shift_wizard_back">上一步</string>
-    <string name="shift_wizard_generate">生成</string>
-    <string name="shift_on_days">上班天数</string>
-    <string name="shift_off_days">休息天数</string>
+    <!-- Date calculator -->
+    <string name="start_date_label">开始日期</string>
+    <string name="end_date">结束日期</string>
+    <!-- 快速改期 -->
+    <string name="reschedule_label">移动日程</string>
+    <string name="reschedule_today">移到今天</string>
+    <string name="reschedule_tomorrow">推迟一天</string>
+    <string name="reschedule_yesterday">提前一天</string>
+    <string name="reschedule_next_week">推迟一周</string>
+    <string name="reschedule_pick_date">选择日期\u2026</string>
+    <string name="reschedule_move_to_today">移动到今天</string>
+    <string name="reschedule_done">已移动日程</string>
+    <string name="reschedule_unchanged">日程已在该日期</string>
+    <string name="gadget_description">一眼查看即将到来的日程</string>
+    <string name="widget_preview_month">7月</string>
+    <string name="widget_preview_date">7月11日 周二</string>
+    <string name="widget_preview_event_1">早会</string>
+    <string name="widget_preview_event_2">设计评审</string>
+    <string name="widget_preview_event_3">午餐约会</string>
+    <string name="countdown_widget_label">倒数日</string>
+    <string name="agenda_widget_label">日程</string>
+    <string name="countdown_widget_description">倒数日与纪念日还有多少天</string>
+    <string name="countdown_widget_empty">暂无倒数日或纪念日</string>
+    <string name="countdown_widget_today">今天</string>
+    <string name="countdown_widget_days_left">天后</string>
+    <string name="countdown_widget_days_past">天前</string>
+    <string name="countdown_widget_nth_year">第 %d 年</string>
+    <string name="countdown_preview_event_1">京都之旅</string>
+    <string name="countdown_preview_date_1">8月14日</string>
+    <string name="countdown_preview_days_1">32</string>
+    <string name="countdown_preview_event_2">结婚纪念日</string>
+    <string name="countdown_preview_date_2">第 7 年 · 9月2日</string>
+    <string name="countdown_preview_days_2">51</string>
+    <!-- Month entry layout (月视图布局) -->
+    <string name="month_layout_title">月视图布局</string>
+    <string name="month_layout_classic">经典月历</string>
+    <string name="month_layout_agenda">月历＋日程</string>
+    <string name="agenda_no_events">这一天没有日程</string>
+    <string name="agenda_rest_day">休息日</string>
+    <string name="agenda_all_day">全天</string>
+    <plurals name="agenda_events_count">
+        <item quantity="one">%d 项日程</item>
+        <item quantity="other">%d 项日程</item>
+    </plurals>
+    <string name="agenda_handle_description">拖动或点按以展开或收起月历</string>
+    <string name="agenda_handle_toggle_action">展开或收起月历</string>
+    <string name="agenda_state_expanded">月历已展开</string>
+    <string name="agenda_state_collapsed">月历已收起</string>
+    <string name="agenda_previous_month">上个月</string>
+    <string name="agenda_next_month">下个月</string>
+
+    <!-- Event form: calendar account row and chips. -->
+    <string name="calendar_switch_account">切换账号</string>
+    <string name="calendar_choose_account">选择账号</string>
+    <string name="calendar_unavailable">此事件的日历已不可用，请先选择其他日历再保存。</string>
+    <string name="calendar_account_unnamed">未命名账号</string>
+
+    <!-- Event form: full-screen time zone search page. -->
+    <string name="timezone_search_title">时区</string>
+    <string name="timezone_search_hint">搜索城市、国家或时区</string>
+    <string name="timezone_search_clear">清除搜索</string>
+    <string name="timezone_search_back">返回</string>
+    <string name="timezone_search_current">当前时区</string>
+    <string name="timezone_search_candidates">时区列表</string>
+    <string name="timezone_search_no_results">没有与“%1$s”匹配的时区</string>
+    <string name="timezone_search_unknown">无法识别的时区 ID</string>
+    <string name="timezone_search_offset_note">GMT 偏移 %1$s（截至 %2$s）</string>
+    <!-- Event detail page action bar -->
+    <string name="event_info_navigate_back">返回</string>
+    <string name="event_info_more_actions">更多选项</string>
+    <!-- Day view: temporary time block after an empty slot is tapped -->
+    <string name="day_slot_description">新建事件，%1$s</string>
+    <string name="day_slot_open_action">用此时间新建事件，%1$s</string>
+    <string name="day_slot_start_earlier">提前 15 分钟开始</string>
+    <string name="day_slot_start_later">推迟 15 分钟开始</string>
+    <string name="day_slot_end_earlier">提前 15 分钟结束</string>
+    <string name="day_slot_end_later">推迟 15 分钟结束</string>
+    <string name="preferences_day_week_view">日/周视图</string>
+    <string name="preferences_time_background_mask">时间背景遮罩</string>
+    <string name="preferences_time_background_mask_summary">为当前时间之后的时段和时间栏显示灰色背景。默认关闭。</string>
+
+    <!-- Day and week time column: 12-hour patterns. %1$s = AM/PM word, %2$d = hour, %3$02d = minute. -->
+    <string name="time_label_hour_12h">%1$s%2$d点</string>
+    <string name="time_label_minute_12h">%1$s%2$d:%3$02d</string>
 </resources>

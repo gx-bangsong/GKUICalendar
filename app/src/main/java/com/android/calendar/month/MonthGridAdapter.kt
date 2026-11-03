@@ -1,31 +1,44 @@
+/*
+ * Copyright (C) 2026 The Etar Calendar Authors
+ */
 package com.android.calendar.month
 
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import com.android.calendar.Event
-import java.util.Calendar
 
 /**
- * Adapter for the seven-column month grid. The adapter owns cell positioning;
- * event rendering remains inside MonthDayCellView.
+ * Adapter for the seven-column month grid used by the month-and-agenda layout of the month entry.
+ * The adapter owns cell geometry; each cell renders itself in [MonthDayCellView].
+ * Event details are shown in the companion day list, so cells only carry colors.
  */
 class MonthGridAdapter(
     private val onDayClick: (Int) -> Unit
 ) : RecyclerView.Adapter<MonthGridAdapter.CellHolder>() {
+
     data class Cell(
         val julianDay: Int,
         val dayOfMonth: Int,
         val currentMonth: Boolean,
         val today: Boolean,
-        val events: List<Event>
+        val selected: Boolean,
+        val lunarText: String?,
+        val eventColors: List<Int>,
+        val description: String,
+        /** True when the lunar row is shown, so it keeps its space even while the text loads. */
+        val lunarEnabled: Boolean = false,
+        /** Festival or solar-term day: drawn bold in the primary colour. */
+        val lunarEmphasized: Boolean = false
     )
-
-    private var cells: List<Cell> = emptyList()
 
     class CellHolder(val view: MonthDayCellView) : RecyclerView.ViewHolder(view)
 
-    fun submitCells(newCells: List<Cell>) {
+    private var cells: List<Cell> = emptyList()
+    private var cellHeightPx: Int = 0
+
+    /** Replaces all cells. [newCellHeightPx] is the height of every row. */
+    fun submitCells(newCells: List<Cell>, newCellHeightPx: Int) {
         cells = newCells
+        cellHeightPx = newCellHeightPx
         notifyDataSetChanged()
     }
 
@@ -34,8 +47,11 @@ class MonthGridAdapter(
 
     override fun onBindViewHolder(holder: CellHolder, position: Int) {
         val cell = cells[position]
-        holder.view.bind(cell.dayOfMonth, cell.currentMonth, cell.today, cell.events)
-        holder.itemView.setOnClickListener { onDayClick(cell.julianDay) }
+        holder.view.layoutParams = RecyclerView.LayoutParams(
+            RecyclerView.LayoutParams.MATCH_PARENT, cellHeightPx
+        )
+        holder.view.bind(cell, cellHeightPx)
+        holder.view.setOnClickListener { onDayClick(cell.julianDay) }
     }
 
     override fun getItemCount(): Int = cells.size

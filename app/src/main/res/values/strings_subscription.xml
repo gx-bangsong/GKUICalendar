@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="subscription_hub_title">Subscriptions</string>
+    <string name="sub_section_subscribed">Subscribed</string>
+    <string name="sub_state_enabled">Enabled</string>
+    <string name="sub_state_disabled">Not enabled</string>
+
+    <string name="sub_lunar_name">Lunar calendar</string>
+    <string name="sub_lunar_summary">Shows lunar dates around major Chinese festivals</string>
+
+    <string name="sub_shift_name">Shift assistant</string>
+    <string name="sub_shift_summary">Rotation shifts on duty / rest days</string>
+
+    <!-- Traffic subscription (Phase 1c placeholder provider) -->
+    <string name="sub_traffic_name">Traffic restriction</string>
+    <string name="sub_traffic_summary">License-plate driving restrictions reminder</string>
+
+    <!-- Shift settings — Xiaomi-style quick presets + custom cycle editor -->
+    <string name="sub_shift_state_disabled">Not enabled</string>
+    <string name="sub_shift_choose_preset">Quick presets</string>
+    <string name="sub_shift_preset_three">三班倒</string>
+    <string name="sub_shift_preset_fourthree">四班三倒</string>
+    <string name="sub_shift_preset_one_one">上一休一</string>
+    <string name="sub_shift_preset_two_two">上二休二</string>
+    <string name="sub_shift_preset_day">常白班</string>
+    <string name="sub_shift_disable">Disable shift reminders</string>
+    <string name="sub_shift_cycle_label">倒班周期</string>
+    <string name="sub_shift_cycle_days_fmt">每一轮%d天</string>
+    <string name="sub_shift_anchor_label">倒班开始日</string>
+    <string name="sub_shift_per_rotation_label">每轮倒班提醒</string>
+    <string name="sub_shift_day_n_fmt">第%d天</string>
+    <string name="sub_shift_rest">休息</string>
+    <string name="sub_shift_anchor_date_fmt">%1$d年%2$d月%3$d日</string>
+    <string name="sub_shift_anchor_weekday_fmt">%1$s %2$s</string>
+    <string name="sub_shift_preview_title">Next 14 days</string>
+
+    <string name="sub_period_name">Period tracker</string>
+    <string name="sub_lunar_birthday_name">Lunar birthdays</string>
+
+    <!-- Traffic restriction (限行) subscription -->
+    <string name="sub_traffic_state_disabled">Not enabled</string>
+    <string name="sub_traffic_disable">Disable restriction reminders</string>
+    <string name="sub_traffic_mode_label">Rule type</string>
+    <string name="sub_traffic_mode_tail">Tail number</string>
+    <string name="sub_traffic_mode_odd_even">Odd / even</string>
+    <string name="sub_traffic_plate_label">My plate tail digit</string>
+    <string name="sub_traffic_plate_hint">Pick the last digit of your plate (letters count as 0). Tap again to clear.</string>
+    <string name="sub_traffic_rule_label">Current rotation</string>
+    <string name="sub_traffic_rule_odd_even_body">Odd tail digits are restricted on odd days of the month, even tail digits on even days. Weekends are unrestricted.</string>
+    <string name="sub_traffic_rotate_group">Shift rotation by one group</string>
+    <string name="sub_traffic_holiday_note">Rotation groups change quarterly. Statutory-holiday adjustments are not applied automatically yet.</string>
+    <string name="sub_traffic_preview_title">Next 14 days</string>
+    <string name="sub_traffic_preview_restricted">restricted</string>
+    <string name="sub_traffic_preview_free">free</string>
+    <string name="sub_traffic_badge_digits_fmt">%1$d and %2$d</string>
+    <string name="sub_traffic_badge_restricted">restricted</string>
+    <string name="sub_traffic_summary_tail_fmt">Tail number · plate ending in %1$d</string>
+
+    <!-- Shared short weekday names used by subscription previews -->
+    <string name="sub_weekday_sun">Sun</string>
+    <string name="sub_weekday_mon">Mon</string>
+    <string name="sub_weekday_tue">Tue</string>
+    <string name="sub_weekday_wed">Wed</string>
+    <string name="sub_weekday_thu">Thu</string>
+    <string name="sub_weekday_fri">Fri</string>
+    <string name="sub_weekday_sat">Sat</string>
+
+    <!-- Shared -->
+    <string name="sub_days_fmt">%1$d d</string>
+    <string name="sub_stepper_minus">−</string>
+    <string name="sub_stepper_plus">+</string>
+
+    <!-- Period tracker -->
+    <string name="sub_period_summary">Cycle, fertile window and next-period predictions</string>
+    <string name="sub_period_state_disabled">Not enabled</string>
+    <string name="sub_period_disable">Disable period tracking</string>
+    <string name="sub_period_anchor_label">Last period started</string>
+    <string name="sub_period_anchor_hint">Pick the first day of your most recent period.</string>
+    <string name="sub_period_anchor_unset">Not set</string>
+    <string name="sub_period_cycle_label">Cycle length</string>
+    <string name="sub_period_length_label">Period length</string>
+    <string name="sub_period_privacy_note">All data stays on this device. Predictions are estimates and are not contraception advice.</string>
+    <string name="sub_period_preview_title">Next 30 days</string>
+    <string name="sub_period_no_anchor">Set your last period date</string>
+    <string name="sub_period_starts_today">Period predicted to start today</string>
+    <string name="sub_period_days_until_fmt">%1$d days until next period</string>
+    <string name="sub_period_badge_period">period</string>
+    <string name="sub_period_badge_predicted">due</string>
+    <string name="sub_period_badge_ovulation">ovulation</string>
+    <string name="sub_period_badge_fertile">fertile</string>
+    <string name="sub_period_badge_none">—</string>
+
+    <!-- Lunar birthdays -->
+    <string name="sub_lunar_birthday_summary">Birthdays that follow the lunar calendar</string>
+    <string name="sub_birthday_state_disabled">Not enabled</string>
+    <string name="sub_birthday_disable">Disable lunar birthdays</string>
+    <string name="sub_birthday_name_hint">Name</string>
+    <string name="sub_birthday_name_required">Enter a name</string>
+    <string name="sub_birthday_lunar_date_label">Lunar birthday</string>
+    <string name="sub_birthday_lunar_date_fmt">Month %1$d, day %2$d</string>
+    <string name="sub_birthday_month_label">Lunar month</string>
+    <string name="sub_birthday_day_label">Lunar day</string>
+    <string name="sub_birthday_add">Add birthday</string>
+    <string name="sub_birthday_list_label">Saved birthdays</string>
+    <string name="sub_birthday_remove">Remove</string>
+    <string name="sub_birthday_empty">No birthdays yet</string>
+    <string name="sub_birthday_count_fmt">%1$d birthdays</string>
+    <string name="sub_birthday_badge_fmt">%1$s</string>
+
+    <!-- Editable shift clock times -->
+    <string name="sub_shift_name_morning">早班</string>
+    <string name="sub_shift_name_afternoon">中班</string>
+    <string name="sub_shift_name_night">晚班</string>
+    <string name="sub_shift_times_hint">Long-press a shift to change its start and end time.</string>
+    <string name="sub_shift_duration_fmt">%1$dh %2$dm</string>
+    <string name="sub_shift_cycle_length_label">Days in rotation</string>
+</resources>

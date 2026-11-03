@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- MD3 dialog window background: extra-large 28dp corners on the dialog
+     surface colour. Used by the framework picker dialogs, which do not pick
+     up MaterialAlertDialog's own shape. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:inset="16dp">
+    <shape android:shape="rectangle">
+        <corners android:radius="28dp" />
+        <solid android:color="?attr/colorSurfaceContainer" />
+    </shape>
+</inset>

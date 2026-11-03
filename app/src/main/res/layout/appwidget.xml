@@ -14,48 +14,72 @@
      limitations under the License.
 -->
 
+<!-- Material 3 agenda widget: rounded surface container, large month title
+     and a filled FAB, with the event list flowing underneath. -->
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_background"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/widget_container_bg"
     android:clickable="true"
     android:focusable="true"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:paddingStart="@dimen/widget_padding"
+    android:paddingEnd="@dimen/widget_padding"
+    android:paddingTop="@dimen/widget_padding"
+    android:paddingBottom="4dp">
 
-    <!-- Header -->
-    <RelativeLayout
+    <!-- Header: month title + add button -->
+    <LinearLayout
         android:id="@+id/header"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical|start"
-        android:minHeight="48dip"
-        android:orientation="vertical"
-        android:paddingStart="8dip"
-        android:paddingEnd="2dip">
-        <TextView
-            android:id="@+id/day_of_week"
-            style="@style/WidgetDayOfWeekStyle"
-            android:layout_marginTop="3dip"
-            android:shadowColor="#0dffffff"
-            android:shadowRadius="3"
-            android:textColor="@color/appwidget_week" />
-        <TextView
-            android:layout_below="@+id/day_of_week"
-            android:id="@+id/date"
-            style="@style/WidgetDateStyle"
-            android:textColor="@color/appwidget_month" />
+        android:baselineAligned="false"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
 
-        <ImageView
-            android:paddingStart="8dip"
-            android:paddingEnd="8dip"
-            android:layout_centerVertical="true"
-            android:layout_alignParentEnd="true"
-            android:id="@+id/iv_add"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:src="@drawable/ic_add_event"/>
-    </RelativeLayout>
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <!-- Month, shown large like a MD3 headline -->
+            <TextView
+                android:id="@+id/date"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textColor="@color/widget_on_surface"
+                android:textSize="@dimen/widget_title_text" />
+
+            <TextView
+                android:id="@+id/day_of_week"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:textColor="@color/widget_on_surface_variant"
+                android:textSize="@dimen/widget_date_dow_text" />
+        </LinearLayout>
+
+        <!-- Filled FAB -->
+        <FrameLayout
+            android:id="@+id/iv_add"
+            android:layout_width="@dimen/widget_fab_size"
+            android:layout_height="@dimen/widget_fab_size"
+            android:background="@drawable/widget_fab_bg"
+            android:contentDescription="@string/day_view_new_event_hint">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_add_event"
+                android:tint="@color/widget_fab_icon" />
+        </FrameLayout>
+    </LinearLayout>
 
     <!-- Event list -->
     <ListView
@@ -63,11 +87,11 @@
         android:layout_width="match_parent"
         android:layout_height="0dip"
         android:layout_weight="1"
-        android:paddingTop="6dp"
+        android:paddingTop="10dp"
         android:clipToPadding="false"
         android:cacheColorHint="@null"
         android:divider="@null"
-        android:dividerHeight="4dp"
+        android:dividerHeight="@dimen/widget_row_spacing"
         android:scrollbarThumbVertical="@color/appwidget_scrollbar"
         android:listSelector="@android:color/transparent" />
 </LinearLayout>

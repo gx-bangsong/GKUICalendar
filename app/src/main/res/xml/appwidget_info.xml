@@ -15,10 +15,11 @@
 -->
 
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
-    android:minWidth="110dip"
+    android:minWidth="180dip"
     android:minHeight="180dip"
-    android:minResizeWidth="110dip"
+    android:minResizeWidth="140dip"
     android:minResizeHeight="110dip"
+    android:description="@string/gadget_description"
     android:updatePeriodMillis="0"
     android:previewImage="@drawable/calendar_widget_preview"
     android:initialLayout="@layout/appwidget"

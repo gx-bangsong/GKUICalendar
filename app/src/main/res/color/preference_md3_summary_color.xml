@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Row summary for the Material 3 settings rows. Disabled text is 38% of the content colour (MD3). -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:alpha="0.38" android:color="?attr/colorOnSurfaceVariant" android:state_enabled="false" />
+    <item android:color="?attr/colorOnSurfaceVariant" />
+</selector>

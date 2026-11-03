@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The one action set of the full-screen event detail page. It floats over the illustrated
+  header: back on the left; edit (only when the event is editable) and more options on the
+  right. Each target is 48dp for touch. The translucent circle and the icon are separate views,
+  so the circle's alpha never fades the icon. Insets are applied by EventInfoFragment so the row
+  clears the status bar and display cutout.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/event_info_action_bar"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="@dimen/event_info_action_bar_padding">
+
+    <!-- Back / up: same behaviour as the former toolbar navigation icon -->
+    <FrameLayout
+        android:id="@+id/event_info_nav_back"
+        android:layout_width="@dimen/event_info_action_size"
+        android:layout_height="@dimen/event_info_action_size"
+        android:layout_gravity="start|center_vertical"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:clickable="true"
+        android:focusable="true"
+        android:contentDescription="@string/event_info_navigate_back">
+        <View
+            android:layout_width="@dimen/event_info_action_circle_size"
+            android:layout_height="@dimen/event_info_action_circle_size"
+            android:layout_gravity="center"
+            android:background="@drawable/event_info_action_circle"
+            android:importantForAccessibility="no" />
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="center"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_arrow_back"
+            app:tint="#FFFFFFFF" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end|center_vertical"
+        android:orientation="horizontal">
+
+        <!-- Edit: GONE until EventInfoFragment finds that the user can edit this event -->
+        <FrameLayout
+            android:id="@+id/event_info_action_edit"
+            android:layout_width="@dimen/event_info_action_size"
+            android:layout_height="@dimen/event_info_action_size"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/edit_label"
+            android:visibility="gone">
+            <View
+                android:layout_width="@dimen/event_info_action_circle_size"
+                android:layout_height="@dimen/event_info_action_circle_size"
+                android:layout_gravity="center"
+                android:background="@drawable/event_info_action_circle"
+                android:importantForAccessibility="no" />
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:importantForAccessibility="no"
+                android:src="@drawable/outline_edit_event"
+                app:tint="#FFFFFFFF" />
+        </FrameLayout>
+
+        <!-- More: delete, duplicate, share, export, colour and reschedule -->
+        <FrameLayout
+            android:id="@+id/event_info_action_more"
+            android:layout_width="@dimen/event_info_action_size"
+            android:layout_height="@dimen/event_info_action_size"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/event_info_more_actions">
+            <View
+                android:layout_width="@dimen/event_info_action_circle_size"
+                android:layout_height="@dimen/event_info_action_circle_size"
+                android:layout_gravity="center"
+                android:background="@drawable/event_info_action_circle"
+                android:importantForAccessibility="no" />
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_event_info_more"
+                app:tint="#FFFFFFFF" />
+        </FrameLayout>
+    </LinearLayout>
+</FrameLayout>

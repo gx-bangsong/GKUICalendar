@@ -20,8 +20,12 @@ import android.app.Application;
 import android.content.ComponentCallbacks2;
 import android.content.SharedPreferences;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import com.android.calendar.lunar.LunarCache;
 import com.android.calendar.lunar.LunarWindow;
+import com.android.calendar.monthagenda.MonthFirstRun;
 import com.android.calendar.settings.GeneralPreferences;
 import com.android.calendar.settings.LunarPreferences;
 import com.android.calendar.settings.ViewDetailsPreferences;
@@ -40,12 +44,18 @@ public class CalendarApplication extends Application {
         final int SHARED_PREFS_VERSION = 2;
         final String VERSION_KEY = "spv";
         SharedPreferences preferences = GeneralPreferences.Companion.getSharedPreferences(this);
+        // Record the keys that exist before any default or version write below. A fresh install
+        // has none. An upgrade, a restored backup or an explicit choice has some.
+        final Set<String> existingKeys = new HashSet<>(preferences.getAll().keySet());
         if (preferences.getInt(VERSION_KEY, 0) != SHARED_PREFS_VERSION) {
             GeneralPreferences.Companion.setDefaultValues(this);
             ViewDetailsPreferences.Companion.setDefaultValues(this);
             LunarPreferences.Companion.setDefaultValues(this);
             preferences.edit().putInt(VERSION_KEY, SHARED_PREFS_VERSION).apply();
         }
+        // First-run month default for a new Chinese (zh) install. It runs once, after the defaults
+        // above, and never for an install that already had state.
+        MonthFirstRun.initialize(preferences, existingKeys, MonthFirstRun.uiLanguage(this));
 
         // Save the version number, for upcoming 'What's new' screen.  This will be later be
         // moved to that implementation.

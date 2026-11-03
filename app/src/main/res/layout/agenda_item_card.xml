@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Standalone agenda, phone: a left date column (weekday above the date number) and a right
+     coloured rounded block. The classic row, agenda_item.xml, is kept for the month panel. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingHorizontal="@dimen/agenda_card_row_padding_horizontal"
+    android:paddingVertical="4dp">
+    <!-- Left date column. The weekday sits above the number, which is centred in a fixed circle.
+         The column is hidden (not removed) on later rows of the same day, so rows stay aligned. -->
+    <LinearLayout
+        android:id="@+id/agenda_event_date_column"
+        android:layout_width="@dimen/agenda_date_column_width"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center_horizontal">
+        <TextView
+            android:id="@+id/agenda_event_day"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="@dimen/agenda_weekday_text_size" />
+        <TextView
+            android:id="@+id/agenda_event_date"
+            android:layout_width="@dimen/agenda_date_circle_size"
+            android:layout_height="@dimen/agenda_date_circle_size"
+            android:layout_marginTop="2dp"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="@dimen/agenda_date_text_size"
+            android:textStyle="bold" />
+    </LinearLayout>
+    <!-- Right coloured block. The event colour is the card fill, so no colour dot, connector or
+         side bar is drawn. -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/agenda_event_card"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        app:cardCornerRadius="@dimen/agenda_card_corner_radius"
+        app:cardElevation="0dp"
+        app:strokeWidth="0dp"
+        app:cardBackgroundColor="?attr/colorSurfaceContainer">
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/agenda_item_content"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="@dimen/agenda_card_min_height"
+            android:padding="@dimen/agenda_card_padding">
+            <!-- Title first, then time, then location. Long text ends with an ellipsis. -->
+            <LinearLayout
+                android:id="@+id/agenda_item_text_container"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
+                <TextView
+                    android:id="@+id/title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="2"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="@dimen/agenda_card_title_text_size"
+                    android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/when"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="@dimen/agenda_card_meta_text_size" />
+                <TextView
+                    android:id="@+id/where"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="@dimen/agenda_card_meta_text_size" />
+            </LinearLayout>
+            <!-- Selection: an outline over the whole block, not a side bar. Shown by
+                 AgendaWindowAdapter only while the event is open in the two-pane layout. -->
+            <View
+                android:id="@+id/selected_marker"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/agenda_selected_outline"
+                android:contentDescription="@string/acessibility_selected_marker_description"
+                android:visibility="gone"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </com.google.android.material.card.MaterialCardView>
+</LinearLayout>

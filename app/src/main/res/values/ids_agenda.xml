@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Accessibility action ids of the month grid (previous and next week or month). -->
+<resources>
+    <item name="agenda_action_previous" type="id" />
+    <item name="agenda_action_next" type="id" />
+</resources>

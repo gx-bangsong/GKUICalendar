@@ -24,8 +24,8 @@ fun AppCompatActivity.applyThemeAndPrimaryColor(useColorPrimaryForStatusBar: Boo
 
     val uiModeManager = getSystemService(Context.UI_MODE_SERVICE) as UiModeManager
 
-    // Handle black theme/mode
-    if (selectedTheme == Theme.SYSTEM && isPureBlackModeEnabled && isSystemInDarkTheme || selectedTheme == Theme.DARK && isPureBlackModeEnabled) {
+    // Pure black background (AMOLED). The rule lives in ThemeRules so it can be tested.
+    if (ThemeRules.usesBlackBackground(selectedTheme, isPureBlackModeEnabled, isSystemInDarkTheme)) {
         theme.applyStyle(R.style.colorBackgroundBlack, true)
     }
 

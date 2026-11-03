@@ -320,4 +320,54 @@
     <string name="chips_action_copy" msgid="6984158516334578792">"複製"</string>
     <string name="chips_action_cancel" msgid="2582257014578396781">"取消"</string>
     <string name="chips_permission_text" msgid="5601284803674008863">"允許聯絡人建議"</string>
+    <!-- Month entry layout (月视图布局) -->
+    <string name="month_layout_title">月視圖版面</string>
+    <string name="month_layout_classic">經典月曆</string>
+    <string name="month_layout_agenda">月曆＋日程</string>
+    <string name="agenda_no_events">這一天沒有行程</string>
+    <string name="agenda_rest_day">休息日</string>
+    <string name="agenda_all_day">全天</string>
+    <plurals name="agenda_events_count">
+        <item quantity="one">%d 項行程</item>
+        <item quantity="other">%d 項行程</item>
+    </plurals>
+    <string name="agenda_handle_description">拖動或點按以展開或收起月曆</string>
+    <string name="agenda_handle_toggle_action">展開或收起月曆</string>
+    <string name="agenda_state_expanded">月曆已展開</string>
+    <string name="agenda_state_collapsed">月曆已收起</string>
+    <string name="agenda_previous_month">上個月</string>
+    <string name="agenda_next_month">下個月</string>
+    <string name="agenda_previous_week">上一週</string>
+    <string name="agenda_next_week">下一週</string>
+
+    <!-- Event form: calendar account row and chips. -->
+    <string name="calendar_switch_account">切換帳號</string>
+    <string name="calendar_choose_account">選擇帳號</string>
+    <string name="calendar_unavailable">此事件的日曆已無法使用，請先選擇其他日曆再儲存。</string>
+    <string name="calendar_account_unnamed">未命名帳號</string>
+
+    <!-- Event form: full-screen time zone search page. -->
+    <string name="timezone_search_title">時區</string>
+    <string name="timezone_search_hint">搜尋城市、國家或時區</string>
+    <string name="timezone_search_clear">清除搜尋</string>
+    <string name="timezone_search_back">返回</string>
+    <string name="timezone_search_current">目前時區</string>
+    <string name="timezone_search_candidates">時區列表</string>
+    <string name="timezone_search_no_results">沒有與「%1$s」相符的時區</string>
+    <string name="timezone_search_unknown">無法識別的時區 ID</string>
+    <string name="timezone_search_offset_note">GMT 偏移 %1$s（截至 %2$s）</string>
+    <!-- Event detail page action bar -->
+    <string name="event_info_navigate_back">返回</string>
+    <string name="event_info_more_actions">更多選項</string>
+    <!-- Day view: temporary time block after an empty slot is tapped -->
+    <string name="day_slot_description">新增事件，%1$s</string>
+    <string name="day_slot_open_action">以此時間新增事件，%1$s</string>
+    <string name="day_slot_start_earlier">提前 15 分鐘開始</string>
+    <string name="day_slot_start_later">延後 15 分鐘開始</string>
+    <string name="day_slot_end_earlier">提前 15 分鐘結束</string>
+    <string name="day_slot_end_later">延後 15 分鐘結束</string>
+
+    <!-- Day and week time column: 12-hour patterns. %1$s = AM/PM word, %2$d = hour, %3$02d = minute. -->
+    <string name="time_label_hour_12h">%1$s%2$d點</string>
+    <string name="time_label_minute_12h">%1$s%2$d:%3$02d</string>
 </resources>

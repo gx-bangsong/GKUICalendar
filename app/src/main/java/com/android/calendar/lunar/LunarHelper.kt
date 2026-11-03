@@ -117,6 +117,17 @@ object LunarHelper {
     fun daysBefore(festivalKey: String): Int =
         if (festivalKey == KEY_SPRING) 15 else 5
 
+    /**
+     * Whether a month grid reserves a lunar slot at all. Both enabled modes need one, because
+     * CONTEXTUAL can show text on festival windows. Which days fill the slot is decided per day
+     * by [getLunarInfo], never by this check.
+     */
+    @JvmStatic
+    fun needsLunarSlot(mode: LunarMode): Boolean = when (mode) {
+        LunarMode.OFF -> false
+        LunarMode.CONTEXTUAL, LunarMode.ALWAYS -> true
+    }
+
     /** Parses a `pref_lunar_mode` value; anything unknown means OFF. */
     @JvmStatic
     fun parseMode(value: String?): LunarMode = when (value) {
@@ -187,7 +198,7 @@ object LunarHelper {
             return null
         }
         val settings = LunarWindow.Settings(enabledFestivals, includeJieqi)
-        LunarCache.onSettingsChanged(settings.signature() + "|" + fullLabel)
+        LunarCache.onSettingsChanged(settings.signature() + "|" + mode.name + "|" + fullLabel)
         val context = LunarWindow.findFestivalContext(julianDay, todayJulianDay, settings)
         if (context != null && context.festivalKey != null) {
             // EMPHASIZED: the festival/jieqi day itself.

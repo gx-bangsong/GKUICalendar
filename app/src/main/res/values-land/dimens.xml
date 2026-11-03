@@ -18,4 +18,7 @@
 
     <dimen name="recurrence_picker_width">500dp</dimen>
     <dimen name="recurrence_picker_height">281dp</dimen>
+
+    <!-- Event detail page: full-screen illustrated header -->
+    <dimen name="event_info_header_height">112dp</dimen>
 </resources>

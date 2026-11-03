@@ -1,6 +1,7 @@
 package com.android.calendar.theme
 
 import android.content.Context
+import android.content.res.Configuration
 import android.os.Build
 import com.android.calendar.Utils
 import com.android.calendar.theme.model.Color
@@ -22,6 +23,15 @@ object ThemeUtils {
         )
         return Theme.valueOf(theme.uppercase())
     }
+
+    /** Key of the theme the screen is using right now; compared with the key taken at creation. */
+    fun effectiveThemeKey(context: Context): String = ThemeRules.effectiveKey(
+        getTheme(context),
+        context.isPureBlackModeEnabled,
+        (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+            Configuration.UI_MODE_NIGHT_YES,
+        getColor().name
+    )
 
     fun getColor(): Color {
         val color = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Color.MONET.name else Color.TEAL.name

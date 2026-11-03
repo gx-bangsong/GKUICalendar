@@ -3,6 +3,10 @@ Etar（源自阿拉伯语: `إِيتَار`）是一款为每个人设计的开�
 
 [<img src="metadata/en_fdroid.png" height="60" alt="在 F-Droid 上获取">](https://f-droid.org/packages/ws.xsoh.etar/)[<img src="metadata/en_google_play.png" height="60" alt="在 Google Play 上获取">](https://play.google.com/store/apps/details?id=ws.xsoh.etar)
 
+> **Release 版本是另一个应用。** 本仓库的 Release 包名为 `org.lineageos.etar`，使用 release 签名。调试版包名为 `org.lineageos.etar.debug`。从调试版切换到 release 版需要先卸载调试版，数据会被删除。此前的 Release 1.0（`ws.xsoh.etar.debug`）是另一个包，可以同时保留。
+
+> **注意：** 上方的商店链接指向上游 Etar（`ws.xsoh.etar`）。本仓库的 Release 使用 `org.lineageos.etar`，无法更新或替换该应用。
+
 ![Etar 日历](metadata/animation.gif)
 
 ## 为什么？
@@ -64,6 +68,23 @@ tools/bin/sdkmanager platform-tools
 export ANDROID_HOME=/path/to/android-sdk/
 gradle :app:assembleDebug
 ```
+调试版包名为 `org.lineageos.etar.debug`，使用本机的调试签名。其他机器构建的调试版可能无法覆盖安装。
+
+### 构建与发布
+Release APK 由 [docs/WORKFLOW.md](docs/WORKFLOW.md) 中描述的 GitHub 工作流构建。本地构建不需要这些配置。
+
+- **Secrets**（仓库设置）：`KEYSTORE_BASE64`（keystore 文件的 base64）、`KEYSTORE_PASS`、`KEY_ALIAS`、`KEY_PASS`。
+- **Keystore**，由所有者创建一次：
+  ```
+  keytool -genkeypair -v -keystore release.jks -alias gkui-release -keyalg RSA -keysize 4096 -validity 10000
+  base64 -w0 release.jks
+  ```
+  请妥善保管文件和口令。丢失后只能换新密钥，已安装的版本将无法升级。
+- **`release-signer.sha256`** 位于仓库根目录，内容为 release 证书的 SHA-256（64 位十六进制）。发布脚本会拒绝由其他密钥签名的 APK。由所有者在首次运行打印该值后写入一次。
+- **versionCode** 为 `git rev-list --count HEAD`，即提交数。提交数只会增长，因此每个版本都比上一个新。这需要完整克隆（`fetch-depth: 0`）。**versionName** 为 `yyyyMMdd.<versionCode>`，可由 `VERSION_NAME` 变量覆盖。
+- **本地构建不受影响。** `gradle :app:assembleDebug` 不需要任何 secret。若缺少四个变量，本地的 `assembleRelease` 会使用调试签名并打印警告，此类 APK 不要分发。CI 在缺少 release 密钥时拒绝构建 release。
+- **Release 产物：** 包名 `org.lineageos.etar`，不可调试，文件为 `GKUICalendar-<versionName>.apk`、对应的 `.sha256` 和 `build-info.json`。
+
 ## 许可证
 
 Copyright (c) 2005-2013, The Android Open Source Project

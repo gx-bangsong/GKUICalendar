@@ -16,7 +16,8 @@
 
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@android:id/content"
-    android:layout_height="24sp"
+    android:layout_height="wrap_content"
+    android:minHeight="40dp"
     android:layout_width="match_parent">
 
     <FrameLayout
@@ -29,21 +30,19 @@
         android:id="@+id/agenda_item_color"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:scaleType="fitXY"
-        android:layout_marginStart="4dp"
-        android:layout_marginEnd="4dp" />
+        android:scaleType="fitXY" />
 
     <TextView
         android:id="@+id/title"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:paddingStart="8dip"
-        android:paddingEnd="8dip"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:paddingTop="9dp"
+        android:paddingBottom="9dp"
         android:maxLines="1"
-        android:textSize="12sp"
-        android:textStyle="bold"
-        android:ellipsize="marquee"
-        android:textColor="@color/appwidget_title"
-        android:gravity="center_vertical|start"
-        style="?android:attr/textAppearanceMediumInverse" />
+        android:textSize="@dimen/widget_item_text"
+        android:ellipsize="end"
+        android:textColor="@color/widget_on_surface"
+        android:gravity="center_vertical|start" />
 </FrameLayout>

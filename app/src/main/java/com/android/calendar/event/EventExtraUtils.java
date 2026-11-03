@@ -22,17 +22,29 @@ public class EventExtraUtils {
         return ChronoUnit.DAYS.between(today, targetDate);
     }
 
+    /**
+     * @param startMillis the ORIGINAL date of the anniversary/birthday, not the
+     *                    start of the occurrence being rendered. Anniversaries
+     *                    repeat yearly, so passing the occurrence start would
+     *                    always yield 0 years.
+     */
     public static String getAnniversaryDisplayString(Context context, long startMillis, long todayMillis) {
         // All-day events in Android are stored as midnight UTC.
         LocalDate startDate = java.time.Instant.ofEpochMilli(startMillis).atZone(java.time.ZoneOffset.UTC).toLocalDate();
         LocalDate today = java.time.Instant.ofEpochMilli(todayMillis).atZone(java.time.ZoneId.systemDefault()).toLocalDate();
 
+        long years = calculateYearsSince(startDate, today);
+
         if (startDate.getMonth() == today.getMonth() && startDate.getDayOfMonth() == today.getDayOfMonth()) {
-            return context.getString(R.string.anniversary_today);
+            // On the day itself ChronoUnit gives the completed count, which is
+            // exactly the ordinal being celebrated.
+            if (years <= 0) {
+                return context.getString(R.string.anniversary_today);
+            }
+            return context.getString(R.string.anniversary_today_nth, (int) years);
         }
 
-        long years = calculateYearsSince(startDate, today);
-        return context.getString(R.string.anniversary_years_passed, (int)years);
+        return context.getString(R.string.anniversary_years_passed, (int) years);
     }
 
     public static String getCountdownDisplayString(Context context, long targetMillis, long todayMillis) {

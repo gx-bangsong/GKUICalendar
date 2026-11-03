@@ -93,4 +93,53 @@
     <dimen name="month_event_corner_radius">8dp</dimen>
     <dimen name="agenda_item_corner_radius">16dp</dimen>
     <dimen name="action_bar_button_corner_radius">24dp</dimen>
+
+    <!-- Horizontal gutter for the event detail column. Wide screens get a
+         larger gutter so the content stays a readable measure instead of
+         stretching the full window width. -->
+    <dimen name="event_info_gutter">0dp</dimen>
+
+    <!-- Settings sub-pages (Material 3). The group heading and the row text share one start and
+         end inset, so their text starts at the same edge. Used by preference_md3_category.xml and
+         preference_md3.xml only. -->
+    <dimen name="preference_md3_content_start">16dp</dimen>
+    <dimen name="preference_md3_content_end">16dp</dimen>
+
+
+    <!-- Event detail page: full-screen illustrated header -->
+    <dimen name="event_info_header_height">216dp</dimen>
+    <dimen name="event_info_panel_overlap">-28dp</dimen>
+    <dimen name="event_info_panel_corner_radius">28dp</dimen>
+    <dimen name="event_info_action_size">48dp</dimen>
+    <dimen name="event_info_action_bar_padding">8dp</dimen>
+    <dimen name="event_info_action_circle_size">40dp</dimen>
+    <dimen name="event_info_color_marker_radius">4dp</dimen>
+
+    <!-- Shared day and week grid: date header circle and rounded hour blocks. -->
+    <dimen name="day_header_top_padding">4dp</dimen>
+    <dimen name="day_header_date_circle_gap">2dp</dimen>
+    <dimen name="day_header_date_circle_size">32dp</dimen>
+    <dimen name="day_header_bottom_padding">4dp</dimen>
+    <dimen name="hour_block_corner_radius">8dp</dimen>
+    <dimen name="hour_block_inset">1.5dp</dimen>
+    <dimen name="hour_block_column_inset">2dp</dimen>
+    <dimen name="agenda_card_corner_radius">12dp</dimen>
+    <!-- Standalone agenda: card padding, minimum height and the invited outline. -->
+    <dimen name="agenda_card_padding">12dp</dimen>
+    <dimen name="agenda_card_padding_all_day">8dp</dimen>
+    <dimen name="agenda_card_min_height">56dp</dimen>
+    <dimen name="agenda_card_min_height_all_day">40dp</dimen>
+    <dimen name="agenda_card_outline_width">2dp</dimen>
+    <!-- Standalone agenda card rows (phone). The tablet values are in values-sw600dp. -->
+    <dimen name="agenda_card_row_padding_horizontal">12dp</dimen>
+    <dimen name="agenda_date_column_width">72dp</dimen>
+    <dimen name="agenda_date_circle_size">44dp</dimen>
+    <dimen name="agenda_date_text_size">18sp</dimen>
+    <dimen name="agenda_weekday_text_size">12sp</dimen>
+    <dimen name="agenda_card_title_text_size">16sp</dimen>
+    <dimen name="agenda_card_meta_text_size">14sp</dimen>
+    <!-- Current-time line: clean line and dot, drawn in code. -->
+    <dimen name="now_line_thickness">2dp</dimen>
+    <dimen name="now_dot_radius">4dp</dimen>
+    <dimen name="now_dot_inset">1dp</dimen>
 </resources>

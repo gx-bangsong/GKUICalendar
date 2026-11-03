@@ -22,4 +22,9 @@
     <string name="lunar_show_jieqi_title">显示二十四节气</string>
     <string name="lunar_detail_always_title">显示完整农历日期（如八月十五）</string>
     <string name="lunar_mode_default" translatable="false">contextual</string>
+    <string name="lunar_group_display">显示</string>
+    <string name="lunar_group_festivals">节日与节气</string>
+    <string name="lunar_festival_summary_all">全部节日</string>
+    <string name="lunar_festival_summary_none">未选择节日</string>
+    <string name="lunar_festival_summary_separator">"、"</string>
 </resources>

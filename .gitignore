@@ -40,3 +40,8 @@ proguard/
 
 # Android Studio captures folder
 captures/
+
+# Release signing material and release output. Never commit keys or built artifacts.
+*.jks*
+*.keystore
+dist/
