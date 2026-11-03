@@ -51,7 +51,6 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
 import android.provider.CalendarContract;
 import android.provider.CalendarContract.Attendees;
 import android.provider.CalendarContract.Calendars;
@@ -99,6 +98,8 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -141,6 +142,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -232,12 +234,9 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
             | TOKEN_QUERY_REMINDERS | TOKEN_QUERY_VISIBLE_CALENDARS | TOKEN_QUERY_COLORS
             | TOKEN_QUERY_EXTENDED;
 
-    public static final File EXPORT_SDCARD_DIRECTORY = new File(
-            Environment.getExternalStorageDirectory(), "CalendarEvents");
-
     private enum ShareType {
-        SDCARD,
-        INTENT
+        INTENT,
+        EXPORT_SAF
     }
 
     private static final String[] EVENT_PROJECTION = new String[] {
@@ -468,6 +467,33 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
     private boolean mIsTabletConfig;
     private AppCompatActivity mActivity;
     private Context mContext;
+    private VCalendar mLastCalendarToExport;
+
+    // Writes the .ics export to the document the user picked with ACTION_CREATE_DOCUMENT.
+    private final ActivityResultLauncher<Intent> mExportLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                    Uri uri = result.getData().getData();
+                    if (uri != null) {
+                        try (OutputStream outputStream =
+                                     mActivity.getContentResolver().openOutputStream(uri)) {
+                            if (IcalendarUtils.writeCalendarToStream(mLastCalendarToExport,
+                                    outputStream)) {
+                                Toast.makeText(mActivity, R.string.cal_export_success,
+                                        Toast.LENGTH_SHORT).show();
+                            } else {
+                                Toast.makeText(mActivity, R.string.cal_export_error,
+                                        Toast.LENGTH_SHORT).show();
+                            }
+                        } catch (IOException e) {
+                            Log.e(TAG, "Error writing ics file", e);
+                            Toast.makeText(mActivity, R.string.cal_export_error,
+                                    Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                }
+            });
     private final Runnable mTZUpdater = new Runnable() {
         @Override
         public void run() {
@@ -1162,7 +1188,7 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
         } else if (itemId == R.id.info_action_share_event) {
             shareEvent(ShareType.INTENT);
         } else if (itemId == R.id.info_action_export) {
-            shareEvent(ShareType.SDCARD);
+            shareEvent(ShareType.EXPORT_SAF);
         } else if (itemId == R.id.info_action_duplicate) {
             duplicateEvent();
         } else if (itemId == R.id.info_action_reschedule) {
@@ -1430,15 +1456,17 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
                 filePrefix += " ";
             }
 
-            File dir;
-            if (type == ShareType.SDCARD) {
-                dir = EXPORT_SDCARD_DIRECTORY;
-                if (!dir.exists()) {
-                    dir.mkdir();
-                }
-            } else {
-                dir = mActivity.getExternalCacheDir();
+            if (type == ShareType.EXPORT_SAF) {
+                mLastCalendarToExport = calendar;
+                Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+                intent.addCategory(Intent.CATEGORY_OPENABLE);
+                intent.setType("text/calendar");
+                intent.putExtra(Intent.EXTRA_TITLE, filePrefix.trim() + ".ics");
+                mExportLauncher.launch(intent);
+                return;
             }
+
+            File dir = mActivity.getExternalCacheDir();
 
             File inviteFile = IcalendarUtils.createTempFile(filePrefix, ".ics",
                     dir);

@@ -898,7 +898,7 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
         }
 
         MenuItem item = menu.findItem(R.id.action_import);
-        item.setVisible(ImportActivity.hasThingsToImport());
+        item.setVisible(true);
 
         mSearchMenu = menu.findItem(R.id.action_search);
         mSearchView = (SearchView) menu.findItem(R.id.action_search).getActionView();
@@ -949,6 +949,21 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
         return true;
     }
 
+    private static final int REQUEST_CODE_IMPORT = 101;
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_CODE_IMPORT && resultCode == RESULT_OK && data != null) {
+            Uri uri = data.getData();
+            if (uri != null) {
+                Intent importIntent = new Intent(this, ImportActivity.class);
+                importIntent.setData(uri);
+                startActivity(importIntent);
+            }
+        }
+        super.onActivityResult(requestCode, resultCode, data);
+    }
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         Time t = null;
@@ -986,7 +1001,12 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
         } else if (itemId == R.id.action_search) {
             return false;
         } else if (itemId == R.id.action_import) {
-            ImportActivity.pickImportFile(this);
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("*/*");
+            String[] mimetypes = {"text/calendar", "text/x-vcalendar", "application/ics"};
+            intent.putExtra(Intent.EXTRA_MIME_TYPES, mimetypes);
+            startActivityForResult(intent, REQUEST_CODE_IMPORT);
         } else if (itemId == R.id.action_date_calculator) {
             startActivity(new Intent(this, com.android.calendar.date_calculator.DateCalculatorActivity.class));
         } else if (itemId == R.id.action_subscriptions) {
