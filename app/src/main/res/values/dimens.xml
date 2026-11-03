@@ -138,6 +138,10 @@
     <dimen name="agenda_weekday_text_size">12sp</dimen>
     <dimen name="agenda_card_title_text_size">16sp</dimen>
     <dimen name="agenda_card_meta_text_size">14sp</dimen>
+    <!-- Reading cap for the card text. Only layout-sw600dp/agenda_item_card.xml reads it, but the
+         base value must exist: a resource declared only under a qualifier fails lint
+         (MissingDefaultResource) and cannot be resolved in every configuration. -->
+    <dimen name="agenda_card_text_max_width">560dp</dimen>
     <!-- Current-time line: clean line and dot, drawn in code. -->
     <dimen name="now_line_thickness">2dp</dimen>
     <dimen name="now_dot_radius">4dp</dimen>

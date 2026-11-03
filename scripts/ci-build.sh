@@ -10,7 +10,8 @@
 #   GKUICalendar-<versionName>.apk
 #   GKUICalendar-<versionName>.apk.sha256
 #   build-info.json   (read by GKUI-Pack apps.yaml; keep the field names stable)
-# and, outside dist/, build/release-notes.md for the release body.
+# and, outside dist/, build/release-notes.md for the release body: the top section of
+# CHANGELOG.md (Chinese and English), the install notes and the build information.
 # The tag v<versionName> is written to GITHUB_OUTPUT as "tag".
 
 set -euo pipefail
@@ -22,6 +23,7 @@ readonly EXPECTED_APPLICATION_ID="org.lineageos.etar"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly REPO_ROOT
 readonly SIGNER_FILE="${REPO_ROOT}/release-signer.sha256"
+readonly CHANGELOG_FILE="${REPO_ROOT}/CHANGELOG.md"
 readonly APK_IN="${REPO_ROOT}/app/build/outputs/apk/release/app-release.apk"
 readonly DIST_DIR="${REPO_ROOT}/dist"
 readonly NOTES_FILE="${REPO_ROOT}/build/release-notes.md"
@@ -60,6 +62,68 @@ find_build_tool() {
         die "${name} not found under ${sdk}/build-tools; install a build-tools package"
     fi
     echo "${found}"
+}
+
+# Prints the body of the first "## " section of CHANGELOG.md: no heading, no leading or trailing
+# blank lines. Prints nothing when the file or the section is missing. Only the top section is
+# published; older versions stay below it.
+changelog_body() {
+    [[ -f "${CHANGELOG_FILE}" ]] || return 0
+    awk '
+        /^## / { section++; next }
+        section > 1 { exit }
+        section == 1 { lines[++n] = $0 }
+        END {
+            first = 1; last = n
+            while (first <= last && lines[first] ~ /^[[:space:]]*$/) first++
+            while (last >= first && lines[last] ~ /^[[:space:]]*$/) last--
+            for (i = first; i <= last; i++) print lines[i]
+        }
+    ' "${CHANGELOG_FILE}"
+}
+
+# The release body is written for people who install the app, so it must exist before the build
+# spends minutes producing an APK that would then be published with empty notes.
+require_changelog() {
+    if [[ ! -f "${CHANGELOG_FILE}" ]]; then
+        die "CHANGELOG.md is missing; the release body comes from its first \"## \" section"
+    fi
+    if [[ -z "$(changelog_body)" ]]; then
+        die "the first \"## \" section of CHANGELOG.md is empty; write the update notes in Chinese and English before publishing"
+    fi
+}
+
+# Checks the signing environment before anything is built. A release build costs minutes, so a
+# missing secret must fail here with a readable message, not after the APK has been packaged.
+require_signing_env() {
+    local name missing=()
+    for name in KEYSTORE_BASE64 KEYSTORE_PASS KEY_ALIAS KEY_PASS; do
+        if [[ -z "${!name:-}" ]]; then
+            missing+=("${name}")
+        fi
+    done
+    if (( ${#missing[@]} > 0 )); then
+        die "release signing environment incomplete; missing: ${missing[*]}. \
+Set the repository secrets KEYSTORE_BASE64, KEYSTORE_PASS, KEY_ALIAS and KEY_PASS \
+(see docs/WORKFLOW.md). Release builds in CI never fall back to the debug key."
+    fi
+}
+
+# Opens the decoded keystore with the JDK before Gradle runs. A wrong store password or an alias
+# that is not in the keystore would otherwise surface only inside the build. The password is
+# passed by environment reference, so it never appears in a process list.
+check_keystore() {
+    local keytool out
+    keytool="$(command -v keytool || true)"
+    if [[ -z "${keytool}" ]]; then
+        die "keytool not found on PATH; a JDK is required to check the release keystore"
+    fi
+    if ! out="$("${keytool}" -list -keystore "${KEYSTORE_FILE}" \
+            -storepass:env KEYSTORE_PASS -alias "${KEY_ALIAS}" 2>&1)"; then
+        printf '%s\n' "${out}" >&2
+        die "cannot open the release keystore with KEYSTORE_PASS and KEY_ALIAS; check the secrets"
+    fi
+    log "release keystore and key alias verified before the build"
 }
 
 # Decodes the keystore into a private temporary file. The file is removed on exit.
@@ -123,14 +187,14 @@ main() {
     if [[ "${CI:-}" != "true" ]]; then
         die "ci-build.sh is for CI only (CI=true); local release builds use Gradle directly"
     fi
-    require_env KEYSTORE_PASS
-    require_env KEY_ALIAS
-    require_env KEY_PASS
+    require_signing_env
+    require_changelog
     local aapt2 apksigner
     aapt2="$(find_build_tool aapt2)"
     apksigner="$(find_build_tool apksigner)"
 
     decode_keystore
+    check_keystore
 
     log "building release APK"
     cd "${REPO_ROOT}"
@@ -174,15 +238,30 @@ main() {
     log "applicationId=${app_id} versionCode=${version_code} versionName=${version_name}"
 
     # --- Gate 2: signing certificate -------------------------------------------------------
+    # Both streams are captured and printed: apksigner writes certificates to stdout and problems
+    # to stderr, and the job log is the only record of what this gate actually saw.
     local signer_out signer_count fingerprint expected
-    if ! signer_out="$("${apksigner}" verify --print-certs "${APK_IN}")"; then
+    local -a fingerprints=()
+    if ! signer_out="$("${apksigner}" verify --verbose --print-certs "${APK_IN}" 2>&1)"; then
+        printf '%s\n' "${signer_out}" >&2
         die "apksigner verify failed: the APK is not correctly signed"
     fi
-    signer_count="$(grep -c '^Signer #[0-9]* certificate SHA-256 digest:' <<<"${signer_out}" || true)"
+    printf '%s\n' "${signer_out}" >&2
+
+    # apksigner labels the certificate "Signer #1" for the v1/v2/v3 schemes, but
+    # "Signer (minSdkVersion=..., maxSdkVersion=...)" as soon as the APK also verifies with v3.1
+    # (build-tools 33 and newer). Matching only "Signer #N" reads such an APK as unsigned.
+    # The same certificate is printed once per scheme, so the gate counts distinct digests, not
+    # lines. "Source Stamp Signer" is a stamp rather than an APK signer and is not matched.
+    mapfile -t fingerprints < <(
+        sed -n 's/^Signer.* certificate SHA-256 digest: \([0-9a-fA-F]\{64\}\)[[:space:]]*$/\1/p' \
+            <<<"${signer_out}" | tr 'A-F' 'a-f' | sort -u
+    )
+    signer_count="${#fingerprints[@]}"
     if [[ "${signer_count}" != "1" ]]; then
-        die "expected exactly one signer, found ${signer_count}"
+        die "expected exactly one signer, found ${signer_count} distinct signing certificates in apksigner output"
     fi
-    fingerprint="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' <<<"${signer_out}" | normalise_fingerprint)"
+    fingerprint="${fingerprints[0]}"
     if [[ ! "${fingerprint}" =~ ^[0-9a-f]{64}$ ]]; then
         die "could not read the signer SHA-256 from apksigner output"
     fi
@@ -242,20 +321,46 @@ main() {
           commit: $commit, source_url: $source_url}' \
         > "${DIST_DIR}/build-info.json"
 
+    local changelog
+    changelog="$(changelog_body)"
     mkdir -p "$(dirname "${NOTES_FILE}")"
     cat > "${NOTES_FILE}" <<NOTES
-Release build of ${APP_NAME}, signed with the release key.
+# ${APP_NAME} ${version_name}
 
-- applicationId: \`${app_id}\`
-- versionCode: ${version_code}
-- versionName: ${version_name}
-- signer SHA-256: \`${fingerprint}\`
-- APK SHA-256: \`${apk_sha}\`
-- Source code for this build: ${source_url}
+${changelog}
 
-This release is signed with a different key from the debug builds. Earlier debug builds
-(\`${app_id}.debug\`) cannot be updated in place: uninstall them first. Uninstalling removes
-their data.
+---
+
+## 安装说明
+
+- 本安装包使用**正式发布密钥**签名。
+- 它与 debug 包（\`${app_id}.debug\`）的签名不同，**无法覆盖安装**。请先卸载 debug 包，再安装本包。
+- 卸载会清除应用数据，请先导出需要保留的事件。
+
+## Install notes
+
+- This package is signed with the **release key**.
+- Its signature differs from the debug builds (\`${app_id}.debug\`), so it **cannot update them in place**. Uninstall the debug build first, then install this one.
+- Uninstalling removes the app's data. Export anything you want to keep beforehand.
+
+---
+
+<details>
+<summary>构建信息 / Build info</summary>
+
+| 项目 / Field | 值 / Value |
+|---|---|
+| applicationId | \`${app_id}\` |
+| versionCode | ${version_code} |
+| versionName | ${version_name} |
+| 签名证书 / Signer SHA-256 | \`${fingerprint}\` |
+| APK SHA-256 | \`${apk_sha}\` |
+| 源码 / Source code | ${source_url} |
+
+本版本的完整源代码见上方链接（GPL）。
+The complete source code for this build is at the link above (GPL).
+
+</details>
 NOTES
 
     if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
