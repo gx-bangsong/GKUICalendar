@@ -248,14 +248,23 @@ main() {
     fi
     printf '%s\n' "${signer_out}" >&2
 
-    # apksigner labels the certificate "Signer #1" for the v1/v2/v3 schemes, but
-    # "Signer (minSdkVersion=..., maxSdkVersion=...)" as soon as the APK also verifies with v3.1
-    # (build-tools 33 and newer). Matching only "Signer #N" reads such an APK as unsigned.
-    # The same certificate is printed once per scheme, so the gate counts distinct digests, not
-    # lines. "Source Stamp Signer" is a stamp rather than an APK signer and is not matched.
+    # apksigner does not use one stable label for the certificate. Seen in the wild:
+    #   Signer #1 certificate SHA-256 digest: …                                  (older tools)
+    #   Signer (minSdkVersion=…, maxSdkVersion=…) certificate SHA-256 digest: …  (v3.1 rotation)
+    #   V2 Signer: certificate SHA-256 digest: …                                 (build-tools 36)
+    # Matching one spelling reads a correctly signed APK as unsigned. Select the certificate
+    # lines by what they are, not by how the signer is named: any line that names a Signer and
+    # carries a certificate SHA-256 digest, excluding the source stamp, which is not an APK
+    # signer. The same certificate is printed once per scheme, so count distinct digests.
+    # "public key SHA-256 digest" lines are not certificates and never match.
     mapfile -t fingerprints < <(
-        sed -n 's/^Signer.* certificate SHA-256 digest: \([0-9a-fA-F]\{64\}\)[[:space:]]*$/\1/p' \
-            <<<"${signer_out}" | tr 'A-F' 'a-f' | sort -u
+        grep -i 'certificate SHA-256 digest:' <<<"${signer_out}" \
+            | grep -i 'signer' \
+            | grep -vi 'stamp' \
+            | sed -n 's/.*certificate SHA-256 digest: *\([0-9a-fA-F]*\).*/\1/p' \
+            | tr 'A-F' 'a-f' \
+            | grep -E '^[0-9a-f]{64}$' \
+            | sort -u
     )
     signer_count="${#fingerprints[@]}"
     if [[ "${signer_count}" != "1" ]]; then

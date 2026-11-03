@@ -54,22 +54,30 @@ the base value. `abortOnError` was `false`, which is why lint could not fail the
 `true` in CI (see [Lint gate](#lint-gate)).
 
 **2. `assembleRelease` succeeded, then the signer gate said `expected exactly one signer, found 0`.**
-The APK was **not** unsigned. The run shows `validateSigningRelease` executing, the Gradle guard
-not firing (it refuses a CI release build when a signing input is missing), the output named
-`app-release.apk` (AGP names an unsigned release `app-release-unsigned.apk`), and `apksigner verify`
-exiting 0 — an unsigned APK makes it exit 1 with `DOES NOT VERIFY`, which the script reports as
-"apksigner verify failed". The failure was in how the gate **read** apksigner's output:
-it matched only `^Signer #N certificate SHA-256 digest:`. When an APK also verifies with the v3.1
-scheme, apksigner (build-tools 33+) prints the same certificate as
-`Signer (minSdkVersion=…, maxSdkVersion=…) certificate SHA-256 digest: …`, once per scheme, so the
-old pattern counted zero. The gate now matches any `Signer…` certificate line, counts **distinct**
-SHA-256 digests, and still requires exactly one. The workflow installs `build-tools;36.0.0`.
+The APK was **not** unsigned, and the key was the right one. The gate could not read apksigner's
+output. This is now confirmed, not inferred: after the gate was changed to log the full
+`apksigner verify --verbose --print-certs` output, run `41591366639` printed
 
-The old script never logged apksigner's output, so the exact label of that run cannot be read back
-from the log. The mechanism is reproduced: feeding the old script a verified APK whose certificate
-lines use the v3.1 labels produces `expected exactly one signer, found 0`; the new script accepts
-the same input. The gate now prints the whole `apksigner verify --verbose --print-certs` output to
-the job log, so the next run shows the real labels either way.
+```
+Number of signers: 1
+V2 Signer: certificate DN: CN=GKUI Release, O=gx-bangsong, C=CN
+V2 Signer: certificate SHA-256 digest: 2eaa964c9eae1ee70e131a6ca5f8f06d7c1c152a037cac33d01f585c758f214a
+```
+
+That digest is exactly the value pinned in `release-signer.sha256`. **build-tools 36.0.0 labels the
+certificate `V2 Signer:` — scheme-prefixed — not `Signer #1`.** Older tools use `Signer #1`, and a
+v3.1 rotation target uses `Signer (minSdkVersion=…, maxSdkVersion=…)`. The gate matched one
+spelling, so it counted zero certificates on a correctly signed APK.
+
+The gate no longer depends on the label at all: it takes every line that names a signer and
+carries a `certificate SHA-256 digest`, drops the source stamp (a stamp is not an APK signer),
+and counts **distinct** digests. One certificate printed once per scheme still counts as one
+signer; a second, different certificate is still refused. `release-signer.sha256` and its
+comparison are unchanged.
+
+The earlier guess in this document — that the v3.1 rotation label was the trigger — was
+directionally right about the label changing but wrong about which label. The logged output
+above is the evidence that settled it.
 
 ## Release notes
 
