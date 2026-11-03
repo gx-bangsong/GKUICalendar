@@ -27,7 +27,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Toast;
 
 import com.android.calendar.Utils;
-import com.android.calendar.theme.DynamicThemeKt;
+import com.android.calendar.DynamicTheme;
 
 import java.util.Arrays;
 
@@ -49,7 +49,7 @@ public class QuickResponseActivity extends ListActivity implements OnItemClickLi
     @Override
     protected void onCreate(Bundle icicle) {
         super.onCreate(icicle);
-        setTheme(DynamicThemeKt.getDialogStyle(this));
+        setTheme(DynamicTheme.getDialogStyle(this));
         Intent intent = getIntent();
         if (intent == null) {
             finish();
