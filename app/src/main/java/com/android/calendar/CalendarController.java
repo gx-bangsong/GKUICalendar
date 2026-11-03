@@ -362,7 +362,9 @@ public class CalendarController {
                     handled = true;
                 }
             }
-            for (Entry<Integer, EventHandler> entry : eventHandlers.entrySet()) {
+            for (Iterator<Entry<Integer, EventHandler>> handlers =
+                 eventHandlers.entrySet().iterator(); handlers.hasNext(); ) {
+                Entry<Integer, EventHandler> entry = handlers.next();
                 int key = entry.getKey();
                 if (mFirstEventHandler != null && key == mFirstEventHandler.first) {
                     // If this was the 'first' handler it was already handled
@@ -635,13 +637,13 @@ public class CalendarController {
         Log.d(TAG, "Refreshing " + accounts.length + " accounts");
 
         String authority = Calendars.CONTENT_URI.getAuthority();
-        for (Account account : accounts) {
+        for (int i = 0; i < accounts.length; i++) {
             if (Log.isLoggable(TAG, Log.DEBUG)) {
-                Log.d(TAG, "Refreshing calendars for: " + account);
+                Log.d(TAG, "Refreshing calendars for: " + accounts[i]);
             }
             Bundle extras = new Bundle();
             extras.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
-            ContentResolver.requestSync(account, authority, extras);
+            ContentResolver.requestSync(accounts[i], authority, extras);
         }
     }
 
