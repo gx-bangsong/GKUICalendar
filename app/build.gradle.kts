@@ -67,6 +67,19 @@ val releaseSigningReady: Boolean =
 	releaseKeystore?.isFile == true &&
 		releaseStorePass != null && releaseKeyAlias != null && releaseKeyPass != null
 
+// Named individually so a failed release build says which variable is missing instead of
+// reprinting the whole list.
+val missingSigningInputs: List<String> = buildList {
+	// A local copy, so the null check smart-casts without depending on how the script exposes
+	// top-level properties.
+	val keystore = releaseKeystore
+	if (keystore == null) add("KEYSTORE_FILE")
+	else if (!keystore.isFile) add("KEYSTORE_FILE (not an existing file: ${keystore.path})")
+	if (releaseStorePass == null) add("KEYSTORE_PASS")
+	if (releaseKeyAlias == null) add("KEY_ALIAS")
+	if (releaseKeyPass == null) add("KEY_PASS")
+}
+
 android {
 	namespace = "ws.xsoh.etar"
 	testNamespace = "com.android.calendar.tests"
@@ -232,9 +245,14 @@ gradle.taskGraph.whenReady {
 			throw GradleException("Release build refused: versionCode needs full git history (fetch-depth: 0).")
 		}
 		if (!releaseSigningReady) {
-			val missing = "KEYSTORE_FILE (existing file), KEYSTORE_PASS, KEY_ALIAS, KEY_PASS"
+			val missing = missingSigningInputs.joinToString(", ")
 			if (isCi) {
-				throw GradleException("Release build refused: signing environment incomplete. Need: $missing")
+				throw GradleException(
+					"Release build refused before packaging: signing environment incomplete. " +
+						"Missing: $missing. CI never falls back to the debug key; set the " +
+						"KEYSTORE_BASE64, KEYSTORE_PASS, KEY_ALIAS and KEY_PASS secrets " +
+						"(see docs/WORKFLOW.md)."
+				)
 			}
 			logger.warn("WARNING: release signing environment incomplete ($missing). " +
 				"Local release build is signed with the DEBUG key. Do not distribute it.")

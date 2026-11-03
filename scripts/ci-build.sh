@@ -62,6 +62,39 @@ find_build_tool() {
     echo "${found}"
 }
 
+# Checks the signing environment before anything is built. A release build costs minutes, so a
+# missing secret must fail here with a readable message, not after the APK has been packaged.
+require_signing_env() {
+    local name missing=()
+    for name in KEYSTORE_BASE64 KEYSTORE_PASS KEY_ALIAS KEY_PASS; do
+        if [[ -z "${!name:-}" ]]; then
+            missing+=("${name}")
+        fi
+    done
+    if (( ${#missing[@]} > 0 )); then
+        die "release signing environment incomplete; missing: ${missing[*]}. \
+Set the repository secrets KEYSTORE_BASE64, KEYSTORE_PASS, KEY_ALIAS and KEY_PASS \
+(see docs/WORKFLOW.md). Release builds in CI never fall back to the debug key."
+    fi
+}
+
+# Opens the decoded keystore with the JDK before Gradle runs. A wrong store password or an alias
+# that is not in the keystore would otherwise surface only inside the build. The password is
+# passed by environment reference, so it never appears in a process list.
+check_keystore() {
+    local keytool out
+    keytool="$(command -v keytool || true)"
+    if [[ -z "${keytool}" ]]; then
+        die "keytool not found on PATH; a JDK is required to check the release keystore"
+    fi
+    if ! out="$("${keytool}" -list -keystore "${KEYSTORE_FILE}" \
+            -storepass:env KEYSTORE_PASS -alias "${KEY_ALIAS}" 2>&1)"; then
+        printf '%s\n' "${out}" >&2
+        die "cannot open the release keystore with KEYSTORE_PASS and KEY_ALIAS; check the secrets"
+    fi
+    log "release keystore and key alias verified before the build"
+}
+
 # Decodes the keystore into a private temporary file. The file is removed on exit.
 # Global, so the EXIT trap can still see it after the function returns.
 KEYSTORE_TMP=""
@@ -123,14 +156,13 @@ main() {
     if [[ "${CI:-}" != "true" ]]; then
         die "ci-build.sh is for CI only (CI=true); local release builds use Gradle directly"
     fi
-    require_env KEYSTORE_PASS
-    require_env KEY_ALIAS
-    require_env KEY_PASS
+    require_signing_env
     local aapt2 apksigner
     aapt2="$(find_build_tool aapt2)"
     apksigner="$(find_build_tool apksigner)"
 
     decode_keystore
+    check_keystore
 
     log "building release APK"
     cd "${REPO_ROOT}"
@@ -174,15 +206,30 @@ main() {
     log "applicationId=${app_id} versionCode=${version_code} versionName=${version_name}"
 
     # --- Gate 2: signing certificate -------------------------------------------------------
+    # Both streams are captured and printed: apksigner writes certificates to stdout and problems
+    # to stderr, and the job log is the only record of what this gate actually saw.
     local signer_out signer_count fingerprint expected
-    if ! signer_out="$("${apksigner}" verify --print-certs "${APK_IN}")"; then
+    local -a fingerprints=()
+    if ! signer_out="$("${apksigner}" verify --verbose --print-certs "${APK_IN}" 2>&1)"; then
+        printf '%s\n' "${signer_out}" >&2
         die "apksigner verify failed: the APK is not correctly signed"
     fi
-    signer_count="$(grep -c '^Signer #[0-9]* certificate SHA-256 digest:' <<<"${signer_out}" || true)"
+    printf '%s\n' "${signer_out}" >&2
+
+    # apksigner labels the certificate "Signer #1" for the v1/v2/v3 schemes, but
+    # "Signer (minSdkVersion=..., maxSdkVersion=...)" as soon as the APK also verifies with v3.1
+    # (build-tools 33 and newer). Matching only "Signer #N" reads such an APK as unsigned.
+    # The same certificate is printed once per scheme, so the gate counts distinct digests, not
+    # lines. "Source Stamp Signer" is a stamp rather than an APK signer and is not matched.
+    mapfile -t fingerprints < <(
+        sed -n 's/^Signer.* certificate SHA-256 digest: \([0-9a-fA-F]\{64\}\)[[:space:]]*$/\1/p' \
+            <<<"${signer_out}" | tr 'A-F' 'a-f' | sort -u
+    )
+    signer_count="${#fingerprints[@]}"
     if [[ "${signer_count}" != "1" ]]; then
-        die "expected exactly one signer, found ${signer_count}"
+        die "expected exactly one signer, found ${signer_count} distinct signing certificates in apksigner output"
     fi
-    fingerprint="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' <<<"${signer_out}" | normalise_fingerprint)"
+    fingerprint="${fingerprints[0]}"
     if [[ ! "${fingerprint}" =~ ^[0-9a-f]{64}$ ]]; then
         die "could not read the signer SHA-256 from apksigner output"
     fi
