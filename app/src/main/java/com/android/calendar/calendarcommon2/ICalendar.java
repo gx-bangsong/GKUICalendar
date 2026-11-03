@@ -452,6 +452,7 @@ public class ICalendar {
                 // for now, we ignore the parse error.  Google Calendar seems
                 // to be emitting some misformatted iCalendar objects.
             }
+            continue;
         }
         return component;
     }
