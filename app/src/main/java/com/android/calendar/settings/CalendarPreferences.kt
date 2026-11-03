@@ -26,12 +26,16 @@ import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.provider.CalendarContract
 import android.provider.Settings
+import android.view.LayoutInflater
+import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.preference.EditTextPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
-import androidx.preference.SwitchPreference
+import androidx.preference.PreferenceGroup
+import androidx.preference.SwitchPreferenceCompat
+import androidx.recyclerview.widget.RecyclerView
 import com.android.calendar.Utils
 import com.android.calendar.alerts.channelId
 import com.android.calendar.persistence.ICalendarRepository
@@ -73,7 +77,7 @@ class CalendarPreferences : PreferenceFragmentCompat() {
         val currentColor = preferenceManager.preferenceDataStore!!.getInt(COLOR_KEY, -1)
         val authenticatorInfo = getAuthenticatorInfo(account)
 
-        val visiblePreference = SwitchPreference(context).apply {
+        val visiblePreference = SwitchPreferenceCompat(context).apply {
             key = VISIBLE_KEY
             title = getString(R.string.preferences_calendar_visible)
         }
@@ -161,7 +165,39 @@ class CalendarPreferences : PreferenceFragmentCompat() {
             infoCategory.addPreference(accountPreference)
         }
 
+        applyMd3Layouts(screen)
         preferenceScreen = screen
+    }
+
+    /**
+     * Material 3 rows for this page, the same layouts the lunar page uses. Categories get the MD3
+     * heading. Each switch gets the MaterialSwitch widget, which only SwitchPreferenceCompat binds.
+     * Rows have no icon space unless they show an icon, so text lines up with the heading.
+     */
+    private fun applyMd3Layouts(group: PreferenceGroup) {
+        for (i in 0 until group.preferenceCount) {
+            val pref = group.getPreference(i)
+            if (pref is PreferenceCategory) {
+                pref.layoutResource = R.layout.preference_md3_category
+                applyMd3Layouts(pref)
+                continue
+            }
+            pref.layoutResource = R.layout.preference_md3
+            pref.isIconSpaceReserved = false
+            if (pref is SwitchPreferenceCompat) {
+                pref.widgetLayoutResource = R.layout.preference_md3_switch
+            }
+        }
+    }
+
+    override fun onCreateRecyclerView(
+        inflater: LayoutInflater,
+        parent: ViewGroup,
+        savedInstanceState: Bundle?
+    ): RecyclerView {
+        val list = super.onCreateRecyclerView(inflater, parent, savedInstanceState)
+        // Width limit in the measure pass; see SettingsListLayout.kt.
+        return wrapSettingsListWidth(list, parent, resources.displayMetrics.density)
     }
 
     private fun getColorIcon(color: Int): Drawable {

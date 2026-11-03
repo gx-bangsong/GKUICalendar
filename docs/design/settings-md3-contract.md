@@ -62,3 +62,11 @@ Not verified yet (round 7 pages):
 - Lint. CI does not run lint, and lint was not run locally.
 - Soong (Android.bp) build. The `build` composite action runs `generateBp` and fails if `git status` shows a change. That proves the generated file is in sync. It does not prove a Soong build.
 - Android CLI screenshot, layout and input checks. The CLI was not available in this environment.
+
+## 4. Round 8: calendar settings page
+
+Scope change: the per-calendar settings page (`CalendarPreferences`, opened from 设置 > calendar row) now uses the same Material 3 rows as the lunar sample. Its 显示事件 switch was the last framework `SwitchPreference` in the app, so it drew the old switch style. It is now `SwitchPreferenceCompat` with `preference_md3_switch` (`MaterialSwitch`). Rows use `preference_md3`, the category heading uses `preference_md3_category`, and the list width is limited on wide screens by the shared helper.
+
+- Keys, defaults and storage are unchanged. The switch still writes `VISIBLE` through `CalendarDataStore`.
+- The account list page (`MainListPreferences`) and the add-calendar dialog keep their current look.
+- Verification: static guard `CalendarPreferencesSourceTest` only (source and layout file checks). Visual result, switch state, rotation and TalkBack are not verified on a device.
