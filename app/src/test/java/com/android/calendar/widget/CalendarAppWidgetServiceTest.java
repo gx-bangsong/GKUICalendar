@@ -26,6 +26,7 @@ import android.content.Context;
 import android.database.MatrixCursor;
 import android.test.AndroidTestCase;
 import android.test.suitebuilder.annotation.SmallTest;
+import android.test.suitebuilder.annotation.Suppress;
 import android.text.format.DateUtils;
 import android.util.Log;
 import android.view.View;

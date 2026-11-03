@@ -88,6 +88,7 @@ import com.android.calendar.common.Rfc822InputFilter;
 import com.android.calendar.common.Rfc822Validator;
 import com.android.calendar.chips.AccountSpecifier;
 import com.android.calendar.chips.BaseRecipientAdapter;
+import com.android.calendar.chips.ChipsUtil;
 import com.android.calendar.chips.RecipientEditTextView;
 import com.android.calendar.timezonepicker.TimeZoneSearchFragment;
 import com.android.calendar.timezonepicker.TimeZonePickerUtils;
@@ -410,8 +411,8 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         int size = vals.length;
         ArrayList<Integer> list = new ArrayList<Integer>(size);
 
-        for (int val : vals) {
-            list.add(val);
+        for (int i = 0; i < size; i++) {
+            list.add(vals[i]);
         }
 
         return list;

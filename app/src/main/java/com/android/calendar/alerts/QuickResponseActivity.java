@@ -26,8 +26,8 @@ import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.Toast;
 
-import com.android.calendar.Utils;
 import com.android.calendar.DynamicTheme;
+import com.android.calendar.Utils;
 
 import java.util.Arrays;
 
