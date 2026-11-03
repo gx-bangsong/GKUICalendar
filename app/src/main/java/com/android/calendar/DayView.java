@@ -25,6 +25,7 @@ import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.database.Cursor;
@@ -80,6 +81,8 @@ import android.widget.PopupWindow;
 import android.widget.TextView;
 import android.widget.ViewSwitcher;
 
+import androidx.core.content.res.ResourcesCompat;
+
 import com.android.calendar.CalendarController.EventType;
 import com.android.calendar.CalendarController.ViewType;
 import com.android.calendar.settings.GeneralPreferences;
@@ -92,7 +95,9 @@ import java.text.DateFormatSymbols;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Comparator;
 import java.util.Formatter;
+import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 import java.util.regex.Matcher;
@@ -327,6 +332,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private long mLastReloadMillis;
 
     private ArrayList<Event> mEvents = new ArrayList<Event>();
+    private ArrayList<Integer> mVisibleEventIndices = new ArrayList<Integer>();
     private ArrayList<Event> mAllDayEvents = new ArrayList<Event>();
     private StaticLayout[] mLayouts = null;
     private StaticLayout[] mAllDayLayouts = null;
@@ -444,6 +450,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private static int EVENT_RECT_LEFT_MARGIN = 1;
     private static int EVENT_RECT_RIGHT_MARGIN = 4;
     private static int EVENT_RECT_STROKE_WIDTH = 2;
+    private static int STAGGERED_EVENT_SHADOW_WIDTH = 4;
     private static int EVENT_TEXT_TOP_MARGIN = 2;
     private static int EVENT_TEXT_BOTTOM_MARGIN = 2;
     private static float EVENT_CORNER_RADIUS;
@@ -464,6 +471,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private static int mClickedColor;
     private static int mEventTextColor;
     private static int mMoreEventsTextColor;
+    private static int mStaggeredEventShadowColor;
 
     private static int mWeek_todayColor;
     private static int mWeek_saturdayColor;
@@ -699,6 +707,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private int mSlotTouchSlop;
 
     private boolean mScrolling = false;
+    private boolean mDrawStaggered = false;
 
     // Pixels scrolled
     private float mInitialScrollX;
@@ -817,6 +826,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 EVENT_RECT_LEFT_MARGIN *= mScale;
                 EVENT_RECT_RIGHT_MARGIN *= mScale;
                 EVENT_RECT_STROKE_WIDTH *= mScale;
+                STAGGERED_EVENT_SHADOW_WIDTH *= mScale;
                 EVENT_SQUARE_WIDTH *= mScale;
                 EVENT_LINE_PADDING *= mScale;
                 NEW_EVENT_MARGIN *= mScale;
@@ -883,6 +893,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
     @Override
     protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
         if (mHandler == null) {
             mHandler = getHandler();
             mHandler.post(mUpdateCurrentTime);
@@ -1502,7 +1513,9 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
         final long minimumDurationMillis = (long)
                 (MIN_EVENT_HEIGHT * DateUtils.MINUTE_IN_MILLIS / (mCellHeight / 60.0f));
-        Event.computePositions(mEvents, minimumDurationMillis);
+        SharedPreferences prefs = GeneralPreferences.Companion.getSharedPreferences(mContext);
+        mDrawStaggered = prefs.getBoolean(GeneralPreferences.KEY_STAGGERED_DISPLAY, false);
+        Event.computePositions(mEvents, minimumDurationMillis, mDrawStaggered);
 
         // Compute the top of our reachable view
         mMaxViewStartY = HOUR_GAP + 24 * (mCellHeight + HOUR_GAP) - mGridAreaHeight;
@@ -2159,7 +2172,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 if (mViewStartY < 0) {
                     mViewStartY = 0;
                 }
-                return;
             } else if (mFirstHour == 24 - mNumHours && mFirstHourOffset > 0) {
                 mViewStartY = mMaxViewStartY;
             }
@@ -2683,7 +2695,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         setupHourTextPaint(p);
         int totCellHeight =  mCellHeight + HOUR_GAP;
         int hourStep = (mHoursTextHeight + totCellHeight - 1)/ totCellHeight;
-        int i = mFirstHour;
+        int i = Math.max(mFirstHour, 0);
         if (   (mFirstHourOffset < mHoursTextHeight / 2)
             && (mAlldayHeight == 0)
             && (mNumDays == 1))
@@ -2991,9 +3003,8 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private int computeMaxStringWidth(int currentMax, String[] strings, Paint p) {
         float maxWidthF = 0.0f;
 
-        int len = strings.length;
-        for (int i = 0; i < len; i++) {
-            float width = p.measureText(strings[i]);
+        for (String string : strings) {
+            float width = p.measureText(string);
             maxWidthF = Math.max(width, maxWidthF);
         }
         int maxWidth = (int) (maxWidthF + 0.5);
@@ -3020,13 +3031,19 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         return box;
     }
 
-    private void setupTextRect(Rect r) {
+    private boolean getEventTextRect(Rect r, Event event) {
+        r.top = (int) event.textTop + EVENT_RECT_TOP_MARGIN;
+        r.bottom = (int) event.bottom - EVENT_RECT_BOTTOM_MARGIN;
+        r.left = (int) event.left + EVENT_RECT_LEFT_MARGIN;
+        r.right = (int) event.right - EVENT_RECT_RIGHT_MARGIN;
+
         if (r.bottom <= r.top || r.right <= r.left) {
             r.bottom = r.top;
             r.right = r.left;
-            return;
+            return false;
         }
 
+        // Add margin if there is enough space
         if (r.bottom - r.top > EVENT_TEXT_TOP_MARGIN + EVENT_TEXT_BOTTOM_MARGIN) {
             r.top += EVENT_TEXT_TOP_MARGIN;
             r.bottom -= EVENT_TEXT_BOTTOM_MARGIN;
@@ -3035,15 +3052,22 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             r.left += EVENT_TEXT_LEFT_MARGIN;
             r.right -= EVENT_TEXT_RIGHT_MARGIN;
         }
+        return true;
     }
 
-    private void setupAllDayTextRect(Rect r) {
+    private boolean getAllDayEventTextRect(Rect r, Event event) {
+        r.top = (int) event.top + EVENT_RECT_TOP_MARGIN;
+        r.bottom = (int) event.bottom - EVENT_RECT_BOTTOM_MARGIN;
+        r.left = (int) event.left + EVENT_RECT_LEFT_MARGIN;
+        r.right = (int) event.right - EVENT_RECT_RIGHT_MARGIN;
+
         if (r.bottom <= r.top || r.right <= r.left) {
             r.bottom = r.top;
             r.right = r.left;
-            return;
+            return false;
         }
 
+        // Add margin if there is enough space
         if (r.bottom - r.top > EVENT_ALL_DAY_TEXT_TOP_MARGIN + EVENT_ALL_DAY_TEXT_BOTTOM_MARGIN) {
             r.top += EVENT_ALL_DAY_TEXT_TOP_MARGIN;
             r.bottom -= EVENT_ALL_DAY_TEXT_BOTTOM_MARGIN;
@@ -3052,6 +3076,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             r.left += EVENT_ALL_DAY_TEXT_LEFT_MARGIN;
             r.right -= EVENT_ALL_DAY_TEXT_RIGHT_MARGIN;
         }
+        return true;
     }
 
     /**
@@ -3229,11 +3254,12 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                     event.bottom = allDayEventClip;
                 }
             }
-            Rect r = drawEventRect(event, canvas, p, eventTextPaint, (int) event.top,
-                    (int) event.bottom);
-            setupAllDayTextRect(r);
-            StaticLayout layout = getEventLayout(mAllDayLayouts, i, event, eventTextPaint, r);
-            drawEventText(layout, r, canvas, r.top, r.bottom, true);
+            drawEventRect(event, canvas, p, (int) event.left, (int) event.top, (int) event.right, (int) event.bottom);
+            Rect r = mRect;
+            if (getAllDayEventTextRect(r, event)) {
+                StaticLayout layout = getEventLayout(mAllDayLayouts, i, event, eventTextPaint, r);
+                drawEventText(layout, r, canvas, r.top, r.bottom, true);
+            }
 
             // Check if this all-day event intersects the selected day
             if (mSelectionAllday && mComputeSelectedEvents) {
@@ -3365,6 +3391,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         int left = computeDayLeftPosition(dayIndex) + 1;
         int cellWidth = computeDayLeftPosition(dayIndex + 1) - left + 1;
         int cellHeight = mCellHeight;
+        int right = left + cellWidth - 1; // We need to subtract 1 because 1 is added to left above
 
         // Use the selected hour as the selection region
         Rect selectionArea = mSelectionRect;
@@ -3381,6 +3408,10 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
         int alpha = eventTextPaint.getAlpha();
         eventTextPaint.setAlpha(mEventsAlpha);
+
+        // Pre-compute rects and filter for the day
+        final ArrayList<Integer> visibleEventIndices = mVisibleEventIndices;
+        visibleEventIndices.clear();
         for (int i = 0; i < numEvents; i++) {
             Event event = events.get(i);
             if (!geometry.computeEventRect(date, left, top, cellWidth, event)) {
@@ -3392,13 +3423,30 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 continue;
             }
 
+            visibleEventIndices.add(i);
+        }
+
+        if (mDrawStaggered) {
+            // Sort by column
+            // This makes sure that staggered events are drawn in the right order
+            visibleEventIndices.sort(Comparator.comparingInt((Integer i) -> events.get(i).getColumn()));
+        }
+
+        for (int k = 0; k < visibleEventIndices.size(); k++) {
+            int i = visibleEventIndices.get(k);
+            Event event = events.get(i);
+
             if (date == mSelectionDay && !mSelectionAllday && mComputeSelectedEvents
                     && geometry.eventIntersectsSelection(event, selectionArea)) {
                 mSelectedEvents.add(event);
             }
 
-            Rect r = drawEventRect(event, canvas, p, eventTextPaint, mViewStartY, viewEndY);
-            setupTextRect(r);
+            drawEventRect(event, canvas, p, left, mViewStartY, right, viewEndY);
+
+            Rect r = mRect;
+            if (!getEventTextRect(r, event)) {
+                continue;
+            }
 
             // Don't draw text if it is not visible
             if (r.top > viewEndY || r.bottom < mViewStartY) {
@@ -3704,8 +3752,8 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         setSelectedEvent(startEvent);
     }
 
-    private Rect drawEventRect(Event event, Canvas canvas, Paint p, Paint eventTextPaint,
-            int visibleTop, int visibleBot) {
+    private void drawEventRect(Event event, Canvas canvas, Paint p, int visibleLeft, int visibleTop,
+            int visibleRight, int visibleBot) {
         // Draw the Event Rect
         Rect r = mRect;
         r.top = Math.max((int) event.top + EVENT_RECT_TOP_MARGIN, visibleTop);
@@ -3802,13 +3850,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         // r.right--;
         // p.setColor(event.color);
         // canvas.drawRect(r, p);
-
-        // Setup rect for drawEventText which follows
-        r.top = (int) event.top + EVENT_RECT_TOP_MARGIN;
-        r.bottom = (int) event.bottom - EVENT_RECT_BOTTOM_MARGIN;
-        r.left = (int) event.left + EVENT_RECT_LEFT_MARGIN;
-        r.right = (int) event.right - EVENT_RECT_RIGHT_MARGIN;
-        return r;
     }
 
     private final Pattern drawTextSanitizerFilter = Pattern.compile("[\t\n],");
@@ -5494,6 +5535,12 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             if (geometry.eventIntersectsSelection(event, region)) {
                 mSelectedEvents.add(event);
             }
+        }
+
+        if (mDrawStaggered) {
+            // Sort by column in descending order
+            // This makes sure that staggered events are checked in the right order when tapped
+            mSelectedEvents.sort(Comparator.comparingInt(event -> -event.getColumn()));
         }
 
         // If there are any events in the selected region, then assign the

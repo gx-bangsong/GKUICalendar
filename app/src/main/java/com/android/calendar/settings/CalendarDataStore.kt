@@ -43,7 +43,6 @@ class CalendarDataStore(activity: FragmentActivity, calendarId: Long) : Preferen
 
     private fun mapPreferenceKeyToDatabaseKey(key: String): String {
         return when (key) {
-            CalendarPreferences.SYNCHRONIZE_KEY -> CalendarContract.Calendars.SYNC_EVENTS
             CalendarPreferences.VISIBLE_KEY -> CalendarContract.Calendars.VISIBLE
             CalendarPreferences.COLOR_KEY -> CalendarContract.Calendars.CALENDAR_COLOR
             CalendarPreferences.DISPLAY_NAME_KEY -> CalendarContract.Calendars.CALENDAR_DISPLAY_NAME
@@ -63,8 +62,9 @@ class CalendarDataStore(activity: FragmentActivity, calendarId: Long) : Preferen
         val databaseKey = mapPreferenceKeyToDatabaseKey(key)
 
         contentResolver.query(calendarUri, PROJECTION, null, null, null)?.use {
+            val columnIndex = it.getColumnIndexOrThrow(databaseKey)
             if (it.moveToFirst()) {
-                return it.getInt(it.getColumnIndex(databaseKey)) == 1
+                return it.getInt(columnIndex) == 1
             }
         }
         return defValue
@@ -82,8 +82,9 @@ class CalendarDataStore(activity: FragmentActivity, calendarId: Long) : Preferen
         val databaseKey = mapPreferenceKeyToDatabaseKey(key)
 
         contentResolver.query(calendarUri, PROJECTION, null, null, null)?.use {
+            val columnIndex = it.getColumnIndexOrThrow(databaseKey)
             if (it.moveToFirst()) {
-                return it.getInt(it.getColumnIndex(databaseKey))
+                return it.getInt(columnIndex)
             }
         }
         return defValue
@@ -101,8 +102,9 @@ class CalendarDataStore(activity: FragmentActivity, calendarId: Long) : Preferen
         val databaseKey = mapPreferenceKeyToDatabaseKey(key)
 
         contentResolver.query(calendarUri, PROJECTION, null, null, null)?.use {
+            val columnIndex = it.getColumnIndexOrThrow(databaseKey)
             if (it.moveToFirst()) {
-                return it.getString(it.getColumnIndex(databaseKey))
+                return it.getString(columnIndex)
             }
         }
         return defValue

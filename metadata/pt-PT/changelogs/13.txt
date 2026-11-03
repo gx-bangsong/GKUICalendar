@@ -1,0 +1,4 @@
+- Suportar partilhar calendários via ics e habilidade de importar/exportar do cartão sd.
+- Remover permissões não usadas.
+- Corrigir configuração de som no Android 6.
+- Várias correções de bugs.

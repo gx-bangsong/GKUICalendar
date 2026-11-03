@@ -280,10 +280,10 @@ public class AgendaByDayAdapter extends BaseAdapter {
 
             // Set the background of the view, it is grayed for day that are in the past and today
             if (row.mDay > mTodayJulianDay) {
-                agendaDayView.setBackgroundResource(DynamicTheme.getDrawableId(mContext, "agenda_item_bg_primary"));
+                agendaDayView.setBackgroundResource(DynamicThemeKt.getDrawableId(mContext, "agenda_item_bg_primary"));
                 holder.grayed = false;
             } else {
-                agendaDayView.setBackgroundResource(DynamicTheme.getDrawableId(mContext, "agenda_item_bg_secondary"));
+                agendaDayView.setBackgroundResource(DynamicThemeKt.getDrawableId(mContext, "agenda_item_bg_secondary"));
                 holder.grayed = true;
             }
             return agendaDayView;

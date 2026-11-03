@@ -43,7 +43,6 @@ import android.graphics.drawable.LayerDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.PowerManager;
 import android.provider.CalendarContract;
@@ -444,15 +443,11 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
                 != PackageManager.PERMISSION_GRANTED ||
                 ContextCompat.checkSelfPermission(this,
                 Manifest.permission.READ_CALENDAR)
-                != PackageManager.PERMISSION_GRANTED ||
-                ContextCompat.checkSelfPermission(this,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 != PackageManager.PERMISSION_GRANTED)) {
 
             ArrayList<String> permissionsList = new ArrayList<>(Arrays.asList(
                     Manifest.permission.WRITE_CALENDAR,
-                    Manifest.permission.READ_CALENDAR,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    Manifest.permission.READ_CALENDAR)
             );
 
             // Permission for calendar notifications
@@ -782,8 +777,8 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
      * The files are of the format *.ics and *.vcs
      */
     private void cleanupCachedEventFiles() {
-        if (!isExternalStorageWritable()) return;
         File cacheDir = getExternalCacheDir();
+        if (cacheDir == null) return;
         File[] files = cacheDir.listFiles();
         if (files == null) return;
         for (File file : files) {
@@ -794,13 +789,7 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
         }
     }
 
-    /**
-     * Checks if external storage is available for read and write
-     */
-    public boolean isExternalStorageWritable() {
-        String state = Environment.getExternalStorageState();
-        return Environment.MEDIA_MOUNTED.equals(state);
-    }
+
 
     private void initFragments(long timeMillis, int viewType, Bundle icicle) {
         if (DEBUG) {
@@ -898,7 +887,9 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
         }
 
         MenuItem item = menu.findItem(R.id.action_import);
-        item.setVisible(ImportActivity.hasThingsToImport());
+        if (item != null) {
+            item.setVisible(true);
+        }
 
         mSearchMenu = menu.findItem(R.id.action_search);
         mSearchView = (SearchView) menu.findItem(R.id.action_search).getActionView();
@@ -948,6 +939,8 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
 
         return true;
     }
+
+    private static final int REQUEST_CODE_IMPORT = 101;
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -1003,6 +996,19 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
         }
 
         return true;
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_CODE_IMPORT && resultCode == RESULT_OK && data != null) {
+            Uri uri = data.getData();
+            if (uri != null) {
+                Intent importIntent = new Intent(this, ImportActivity.class);
+                importIntent.setData(uri);
+                startActivity(importIntent);
+            }
+        }
+        super.onActivityResult(requestCode, resultCode, data);
     }
 
     @Override
@@ -1345,7 +1351,7 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
         MaterialPickerOnPositiveButtonClickListener<Long> materialPickerOnPositiveButtonClickListener = new MaterialPickerOnPositiveButtonClickListener<>() {
             @Override
             public void onPositiveButtonClick(Long selection) {
-                Calendar calendar = Calendar.getInstance();
+                Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
                 calendar.setTime(new Date(selection));
 
                 Time selectedTime = new Time(mTimeZone);

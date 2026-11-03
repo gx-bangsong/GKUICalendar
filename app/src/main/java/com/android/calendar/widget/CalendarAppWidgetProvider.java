@@ -35,7 +35,7 @@ import android.util.Log;
 import android.widget.RemoteViews;
 
 import com.android.calendar.AllInOneActivity;
-import com.android.calendar.DynamicTheme;
+import com.android.calendar.theme.DynamicThemeKt;
 import com.android.calendar.EventInfoActivity;
 import com.android.calendar.Utils;
 import com.android.calendar.event.EditEventActivity;
@@ -87,11 +87,14 @@ public class CalendarAppWidgetProvider extends AppWidgetProvider {
     static PendingIntent getLaunchPendingIntentTemplate(Context context) {
         Intent launchIntent = new Intent();
         launchIntent.setAction(Intent.ACTION_VIEW);
-        launchIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK |
-                Intent.FLAG_ACTIVITY_TASK_ON_HOME);
-        launchIntent.setClass(context, AllInOneActivity.class);
+        launchIntent.setPackage(context.getPackageName());
+        launchIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK |
+                Intent.FLAG_ACTIVITY_CLEAR_TASK |
+                Intent.FLAG_ACTIVITY_TASK_ON_HOME |
+                Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
         return PendingIntent.getActivity(context, 0 /* no requestCode */, launchIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
     }
 
     /**
@@ -252,7 +255,7 @@ public class CalendarAppWidgetProvider extends AppWidgetProvider {
             Intent intent = new Intent(Intent.ACTION_VIEW);
             intent.setClass(context, EditEventActivity.class);
             intent.putExtra(EXTRA_EVENT_ALL_DAY, false);
-            intent.putExtra(CalendarContract.Events.CALENDAR_ID, -1);
+            intent.putExtra(CalendarContract.Events.CALENDAR_ID, -1L);
 
             final PendingIntent addEventPendingIntent = PendingIntent.getActivity(
                     context, 0 /* no requestCode */, intent, PendingIntent.FLAG_IMMUTABLE);

@@ -17,8 +17,8 @@
     <string name="when_label" msgid="894636567327261599">"时间"</string>
     <string name="today" msgid="8577375020252453006">"今天"</string>
     <string name="tomorrow" msgid="614434811813859237">"明天"</string>
-    <string name="today_at_time_fmt" msgid="1981279213130049736">"今天 <xliff:g id="TIME_INTERVAL">%s</xliff:g>"</string>
-    <string name="tomorrow_at_time_fmt" msgid="1330779112841767432">"明天 <xliff:g id="TIME_INTERVAL">%s</xliff:g>"</string>
+    <string name="today_at_time_fmt" msgid="1981279213130049736">今天 <xliff:g id="time_interval">%s</xliff:g></string>
+    <string name="tomorrow_at_time_fmt" msgid="1330779112841767432">明天 <xliff:g id="time_interval">%s</xliff:g></string>
     <string name="date_time_fmt" msgid="1642972650061946484"><xliff:g id="date">%1$s</xliff:g>, <xliff:g id="time_interval">%2$s</xliff:g></string>
     <string name="no_title_label" msgid="302177118061368042">"（无标题）"</string>
     <plurals name="Nminutes">
@@ -102,12 +102,12 @@
     <string name="quick_response_custom_msg" msgid="8792374208224108798">"自行撰写回复…"</string>
     <string name="event_info_organizer" msgid="9138683335394832629">"组织者："</string>
     <string name="event_info_reminders_label" msgid="8913097552956388972">"提醒"</string>
-    <string name="agenda_today" msgid="5965841338467422191">"今天，<xliff:g id="DATE">%1$s</xliff:g>"</string>
-    <string name="agenda_yesterday" msgid="4170964206728599693">"昨天，<xliff:g id="DATE">%1$s</xliff:g>"</string>
-    <string name="agenda_tomorrow" msgid="3893625470780723605">"明天，<xliff:g id="DATE">%1$s</xliff:g>"</string>
+    <string name="agenda_today" msgid="5965841338467422191">今天，<xliff:g id="date">%1$s</xliff:g></string>
+    <string name="agenda_yesterday" msgid="4170964206728599693">昨天，<xliff:g id="date">%1$s</xliff:g></string>
+    <string name="agenda_tomorrow" msgid="3893625470780723605">明天，<xliff:g id="date">%1$s</xliff:g></string>
     <string name="loading" msgid="3772533493214331230">正在加载…</string>
-    <string name="show_older_events" msgid="5140647493681439926">"触摸可查看<xliff:g id="OLDEST_SEARCH_RANGE">%1$s</xliff:g>之前的活动"</string>
-    <string name="show_newer_events" msgid="2604638815440163080">"触摸可查看<xliff:g id="NEWEST_SEARCH_RANGE">%1$s</xliff:g>之后的活动"</string>
+    <string name="show_older_events" msgid="5140647493681439926">触摸查看 <xliff:g id="oldest_search_range">%1$s</xliff:g> 前的活动</string>
+    <string name="show_newer_events" msgid="2604638815440163080">触摸查看 <xliff:g id="newest_search_range">%1$s</xliff:g> 后的活动</string>
     <string name="search_title" msgid="8898015280250716254">"搜索我的日历"</string>
     <string name="edit_event_label" msgid="7413222956349977161">"详细信息"</string>
     <string name="edit_label" msgid="8934331258435656534">"编辑"</string>
@@ -117,7 +117,7 @@
     <string name="dismiss_all_label" msgid="1834400025868091301">"全部关闭"</string>
     <string name="snooze_label" msgid="1515893621063224666">"稍后再提醒"</string>
     <string name="does_not_repeat" msgid="1877681921029738999">"一次性活动"</string>
-    <string name="endByDate" msgid="7654221304929538201">"；直到<xliff:g id="DATE">%s</xliff:g>"</string>
+    <string name="endByDate" msgid="7654221304929538201">；直到 <xliff:g id="date">%s</xliff:g></string>
     <plurals name="endByCount">
         <item quantity="other">; 重复 <xliff:g id="number">%d</xliff:g> 次</item>
     </plurals>
@@ -137,7 +137,7 @@
     <string name="new_event_dialog_label" msgid="7553105224561147916">"新建活动"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"新建活动"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">"要删除此活动吗？"</string>
-    <string name="delete_recurring_event_title" msgid="5609046778422180206">"要删除<xliff:g id="EVENTTITLE">%s</xliff:g>吗？"</string>
+    <string name="delete_recurring_event_title" msgid="5609046778422180206">删除 <xliff:g id="eventtitle">%s</xliff:g> 吗？</string>
     <string name="change_response_title" msgid="7704714776070974984">"更改答复"</string>
     <string name="preferences_title" msgid="8045855493262131773">"设置"</string>
     <string name="preferences_general_title" msgid="2069075513760573117">"日历视图设置"</string>
@@ -168,7 +168,7 @@
     <string name="preferences_reminders_responded_label" msgid="1196570678238475838">"免去提醒"</string>
     <string name="preferences_reminders_responded_dialog" msgid="1873289128793828352">"免去提醒"</string>
     <string name="copy_db" msgid="437691290566699292">"发送数据库"</string>
-    <string name="directory_searching_fmt" msgid="1232037509095606687">"正在搜索 <xliff:g id="DOMAIN">%s</xliff:g>…"</string>
+    <string name="directory_searching_fmt" msgid="1232037509095606687">正在搜索 <xliff:g id="domain">%s</xliff:g>…</string>
     <string name="accessibility_remove_attendee" msgid="7082751172654698863">"删除参加者"</string>
     <string name="accessibility_pick_start_date" msgid="3926641487042699037">"开始日期"</string>
     <string name="accessibility_pick_start_time" msgid="4913428100936555149">"开始时间"</string>
@@ -185,12 +185,12 @@
     <string name="accessibility_reminder_showmeas" msgid="6669129015980006570">将我的状态显示为</string>
     <string name="accessibility_reminder_privacy" msgid="8669288484484022771">"隐私设置"</string>
     <string name="day_view_new_event_hint" msgid="2131483437911536229">"+ 新建活动"</string>
-    <string name="template_announce_item_index" msgid="4067877800670753110">"第 <xliff:g id="ITEM_INDEX">%1$s</xliff:g> 个活动，共 <xliff:g id="ITEM_COUNT">%2$s</xliff:g> 个。"</string>
+    <string name="template_announce_item_index" msgid="4067877800670753110">第 <xliff:g id="item_index">%1$s</xliff:g> 个活动，共 <xliff:g id="item_count">%2$s</xliff:g> 个。</string>
     <plurals name="Nevents">
-        <item quantity="other"><xliff:g id="count">%d</xliff:g> 个事件</item>
+        <item quantity="other"><xliff:g id="count">%d</xliff:g> 个活动</item>
     </plurals>
     <plurals name="N_remaining_events">
-        <item quantity="other">+<xliff:g id="count">%d</xliff:g> 个事件</item>
+        <item quantity="other">+<xliff:g id="count">%d</xliff:g> 个活动</item>
     </plurals>
     <string name="acessibility_selected_marker_description" msgid="3010149843148810768">"所选活动"</string>
     <plurals name="recurrence_interval_daily">
@@ -208,11 +208,10 @@
     <string name="recurrence_month_pattern_by_day" msgid="4400107556121003459">"在每个月的同一天"</string>
     <string name="recurrence_end_continously" msgid="6898950241634912991">"无限重复"</string>
     <string name="recurrence_end_date_label" msgid="4142791438636994952">"截至某个日期"</string>
-    <string name="recurrence_end_date" msgid="3693751578164711701">"截至<xliff:g id="DATE">%s</xliff:g>"</string>
+    <string name="recurrence_end_date" msgid="3693751578164711701">直到 <xliff:g id="date">%s</xliff:g></string>
     <string name="recurrence_end_count_label" msgid="1233883668293087977">"限定次数"</string>
     <plurals name="recurrence_end_count">
-        <item quantity="one" msgid="1400782968090516215">"重复<xliff:g id="EVENT_COUNT">%d</xliff:g>次"</item>
-        <item quantity="other" msgid="8779598489398048259">"重复<xliff:g id="EVENT_COUNT">%d</xliff:g>次"</item>
+        <item quantity="other">重复 <xliff:g id="event_count">%d</xliff:g> 次</item>
     </plurals>
     <string name="acessibility_recurrence_choose_end_date_description" msgid="5899029840837836711">"更改结束日期"</string>
     <string name="visibility_default">默认</string>
@@ -237,10 +236,10 @@
     <string name="preferences_color_pick">基础色</string>
     <string name="preferences_days_per_week_title">每周天数</string>
     <string name="preferences_days_per_week_dialog">每周天数</string>
-    <string name="preferences_default_event_duration_title">默认事件持续时间</string>
+    <string name="preferences_default_event_duration_title">默认活动持续时间</string>
     <string name="preferences_issues">报告问题</string>
     <string name="user_rejected_calendar_write_permission">Etar 需要日历读取和写入权限才能正常工作。请重试。</string>
-    <string name="calendar_permission_not_granted">需要授予被拒绝的权限，在系统设置中允许这些权限以编辑事件</string>
+    <string name="calendar_permission_not_granted">需要授予被拒绝的权限，在系统设置中允许这些权限以编辑活动</string>
     <string name="visibility_confidential">秘密</string>
     <string name="zero_minutes">0 分钟</string>
     <string name="fifteen_minutes">15 分钟</string>
@@ -251,12 +250,12 @@
     <string name="share_label">分享</string>
     <string name="default_start_title">默认视图</string>
     <string name="default_start_last">先前使用视图</string>
-    <string name="error_generating_ics">分享事件时遇到问题</string>
-    <string name="cal_share_intent_title">发送事件到：</string>
-    <string name="cal_export_event_sdcard_title">导出至SD卡</string>
-    <string name="cal_export_succ_msg">成功导出事件: %1$s</string>
-    <string name="cal_import_menu_title">导入事件</string>
-    <string name="cal_nothing_to_import">无可导入事件</string>
+    <string name="error_generating_ics">分享活动时遇到问题</string>
+    <string name="cal_share_intent_title">发送活动到：</string>
+    <string name="cal_export_event_title">导出活动</string>
+    <string name="cal_export_succ_msg">成功导出了活动</string>
+    <string name="cal_import_menu_title">导入活动</string>
+    <string name="cal_nothing_to_import">无可导入活动</string>
     <string name="cal_import_error_msg">导入日历失败</string>
     <string name="cal_import_error_date_msg">无法理解给定日期:%s</string>
     <string name="cal_pick_ics">选择导入文件</string>
@@ -269,8 +268,8 @@
     <string name="show_time_no">不要显示时间</string>
     <string name="show_time_start">仅开始时间</string>
     <string name="show_time_start_end">开始和结束时间</string>
-    <string name="show_time_start_end_below">在事件下方显示开始和结束时间</string>
-    <string name="maximum_number_of_lines">事件最大行数</string>
+    <string name="show_time_start_end_below">在活动下方显示开始和结束时间</string>
+    <string name="maximum_number_of_lines">活动最大行数</string>
     <string name="foreground_notification_channel_name">后台任务</string>
     <string name="foreground_notification_channel_description">内部同步需要通知。你可以安全地隐藏这个通道。</string>
     <string name="cal_import_error_time_zone_msg">无法理解给定时区： %s</string>
@@ -278,10 +277,10 @@
     <string name="preferences_calendar_delete">删除日历</string>
     <string name="preferences_calendar_display_name">更改名称</string>
     <string name="preferences_calendar_color">颜色</string>
-    <string name="preferences_calendar_visible">显示事件</string>
+    <string name="preferences_calendar_visible">显示活动</string>
     <string name="preferences_calendar_synchronize">同步此日历</string>
     <string name="preferences_list_calendar_summary_sync_off">未同步</string>
-    <string name="preferences_list_calendar_summary_invisible">事件未显示</string>
+    <string name="preferences_list_calendar_summary_invisible">活动未显示</string>
     <string name="preferences_list_general">通用设置</string>
     <string name="preferences_list_add_offline">添加离线日历</string>
     <string name="preferences_list_add_offline_title">添加离线日历</string>
@@ -308,7 +307,7 @@
     <string name="preferences_calendar_no_display_name">未命名日历</string>
     <string name="preferences_calendar_account_local">离线日历</string>
     <string name="preferences_calendar_configure_account">配置 %1$s的日历</string>
-    <string name="preferences_calendar_number_of_events">%1$d 事件</string>
+    <string name="preferences_calendar_number_of_events">%1$d 活动</string>
     <string name="preferences_calendar_info_category">日历信息</string>
     <string name="seven_days">7天</string>
     <string name="six_days">6天</string>
@@ -325,8 +324,8 @@
         <item quantity="other"><xliff:g id="count">%d</xliff:g> 周</item>
     </plurals>
     <string name="foreground_notification_title">安排新提醒中…</string>
-    <string name="after_start_of_event">在事件开始后</string>
-    <string name="preferences_real_event_colors">使用真实事件颜色</string>
+    <string name="after_start_of_event">在活动开始后</string>
+    <string name="preferences_real_event_colors">使用真实活动颜色</string>
     <string name="menu_info">信息</string>
     <string name="duplicate_label">复制</string>
     <string name="hint_url">URL</string>
@@ -344,14 +343,13 @@
     <string name="searchview_description_clear" msgid="1603860069305867810">"清除查询"</string>
     <string name="no_results_found" msgid="5475293015394772651">"找不到任何结果"</string>
     <string name="palestine_display_name" msgid="3485026339977302148">"巴勒斯坦"</string>
-
-    <string name="more_string" msgid="643992135011109762">"+<xliff:g id="COUNT">%1$d</xliff:g>"</string>
+    <string name="more_string" msgid="643992135011109762">+<xliff:g id="count">%1$d</xliff:g></string>
     <string name="copy_email" msgid="1084563757174121331">"复制电子邮件地址"</string>
     <string name="copy_number" msgid="8860802152973030914">"复制电话号码"</string>
     <string name="action_label" msgid="7172664623795021857">"回车"</string>
     <string name="accessbility_suggestion_dropdown_opened" msgid="9015267358421989409">"联系人推荐已打开"</string>
     <string name="accessbility_suggestion_dropdown_closed" msgid="91481373431329121">"没有任何建议"</string>
-    <string name="dropdown_delete_button_desc" msgid="4359394656487762022">"从收件人列表中移除<xliff:g id="CONTACT">%s</xliff:g>"</string>
+    <string name="dropdown_delete_button_desc" msgid="4359394656487762022">从收件人中移除 <xliff:g id="contact">%s</xliff:g></string>
     <string name="chips_action_copy" msgid="6984158516334578792">"复制"</string>
     <string name="chips_action_cancel" msgid="2582257014578396781">"取消"</string>
     <string name="chips_permission_text" msgid="5601284803674008863">"允许推荐联系人"</string>

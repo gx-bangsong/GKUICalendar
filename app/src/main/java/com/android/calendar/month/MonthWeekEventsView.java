@@ -60,6 +60,7 @@ import com.android.calendar.settings.ViewDetailsPreferences;
 import com.android.calendar.subscription.CellInfo;
 import com.android.calendar.subscription.SubscriptionRegistry;
 import com.android.calendar.calendarcommon2.Time;
+import com.android.calendar.theme.DynamicThemeKt;
 
 import java.util.ArrayList;
 import java.util.Formatter;
@@ -1121,14 +1122,12 @@ public class MonthWeekEventsView extends SimpleWeekView {
             for (int i = 0; i < mMaxNumberOfLines + 1; i++) {
                 mEventsByHeight.add(new ArrayList<FormattedEventBase>());
             }
-            ListIterator<FormattedEventBase> iterator = mEventDay.listIterator();
-            while (iterator.hasNext()) {
-                FormattedEventBase event = iterator.next();
+            for (FormattedEventBase event : mEventDay) {
                 final int eventHeight = event.getFormat().getEventLines();
                 if (eventHeight > 0) {
                     mVisibleEvents++;
                     if (event.isBordered()) {
-                    mFullDayEventsCount++;
+                        mFullDayEventsCount++;
                     }
                 }
                 mEventsByHeight.get(eventHeight).add(event);

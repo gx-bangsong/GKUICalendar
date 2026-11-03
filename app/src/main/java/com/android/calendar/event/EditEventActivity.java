@@ -80,7 +80,7 @@ public class EditEventActivity extends AbstractCalendarActivity {
 
     @Override
     protected void onCreate(Bundle icicle) {
-        DynamicThemeKt.applyThemeAndPrimaryColor(this);
+        DynamicThemeKt.applyTheme(this);
         super.onCreate(icicle);
         mThemeKey = ThemeUtils.INSTANCE.effectiveThemeKey(this);
 

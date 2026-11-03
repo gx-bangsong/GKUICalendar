@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="app_label">ساڵنامە</string>
+    <string name="when_label">کەی</string>
+    <string name="today">ئەمڕۆ</string>
+    <string name="tomorrow">بەیانی</string>
+    <string name="today_at_time_fmt">ئەمڕۆ لە <xliff:g id="time_interval">%s</xliff:g></string>
+    <string name="tomorrow_at_time_fmt">سبەی لە xliff:g id=\"time_interval\"&gt;%s&lt;/xliff:g&gt;</string>
+    <string name="date_time_fmt"><xliff:g id="date">%1$s</xliff:g>, <xliff:g id="time_interval">%2$s</xliff:g></string>
+    <string name="no_reminder_label">هیچیان</string>
+    <string name="no_snooze_label">هیچیان</string>
+    <string name="day_view">ڕۆژ</string>
+    <string name="week_view">حەفتە</string>
+    <string name="month_view">مانگ</string>
+    <string name="event_view">بینینی بۆنە</string>
+    <string name="event_create">بۆنەی نوێ</string>
+    <string name="event_edit">دەستکاری بۆنە</string>
+    <string name="event_delete">سڕینەوەی بۆنە</string>
+    <string name="share_label">هاوبەشی</string>
+    <string name="goto_today">ئەمڕۆ</string>
+    <string name="goto_date">بڕۆ بۆ…</string>
+    <string name="menu_preferences">ڕێکخستنەکان</string>
+    <string name="search">گەڕان</string>
+    <string name="view_settings">بینینی ڕێکخستنەکان</string>
+    <string name="hint_what">ناوی بۆنە</string>
+    <string name="hint_where">شوێن</string>
+    <string name="hint_description">پێناسە</string>
+    <string name="hint_url">بەستەر</string>
+    <string name="hint_attendees">مێوان</string>
+    <string name="creating_event">بۆنەکە دروست کرا.</string>
+    <string name="saving_event">بۆنەکە پاشەکەوتکرا.</string>
+    <string name="empty_event">بۆنەکە دروست نەکرا.</string>
+    <string name="create_event_dialog_save">پاشەکەوتکردن</string>
+    <string name="alert_title">ئاگانامەکانی ساڵنامە</string>
+    <string name="edit_event_all_day_label">هەموو ڕۆژێک</string>
+    <string name="edit_event_calendar_label">ساڵنامە</string>
+    <string name="add_calendar">زیادکردنی ساڵنامە</string>
+    <string name="view_event_calendar_label">ساڵنامە:</string>
+    <string name="view_event_organizer_label">ڕێکخەر:</string>
+    <string name="choose_event_color_label">ڕەنگی بۆنەکە هەڵبژێرە</string>
+    <string name="event_color_picker_dialog_title">ڕەنگی بۆنە</string>
+    <string name="calendar_color_picker_dialog_title">ڕەنگی ساڵنامە</string>
+    <string name="calendar_square_color_picker_description">ڕەنگهەڵگر</string>
+    <string name="response_yes">بەڵێ</string>
+    <string name="response_maybe">لەوانەیە</string>
+    <string name="response_no">نەخێر</string>
+    <string name="map_label">نەخشە</string>
+    <string name="no_map">هیچ نەخشەیەک دانمەزراوە</string>
+    <string name="edit_label">دەستکاری</string>
+    <string name="delete_label">سڕینەوە</string>
+    <string name="save_label">تەواو</string>
+    <string name="discard_label">هەڵوەشاندنەوە</string>
+    <string name="monthly">مانگانە</string>
+    <string name="yearly_plain">ساڵانە</string>
+    <string name="preferences_title">ڕێکخستنەکان</string>
+    <string name="preferences_light_theme">ڕۆشن</string>
+    <string name="preferences_dark_theme">تاریک</string>
+    <string name="preferences_black_theme">ڕەش</string>
+    <string name="preferences_color">ڕەنگی سەرەکی</string>
+    <string name="preferences_color_pick">ڕەنگی سەرەکی</string>
+    <string name="preferences_default_reminder_default">١٠</string>
+    <string name="new_event_dialog_label">بۆنەی نوێ</string>
+    <string name="new_event_dialog_option">بۆنەی نوێ</string>
+    <string name="quick_response_settings_edit_title">وەڵامی خێرا</string>
+    <string name="quick_response_dialog_title">وەڵامێکی خێرا هەڵبژێرە</string>
+    <string name="quick_response_settings">وەڵامە خێراکان</string>
+    <string name="edit_event_label">وردەکاری</string>
+    <string name="modify_event">تەنیا ئەم بۆنەیە بگۆڕە</string>
+    <string name="change_response_title">گۆڕینی وەڵام</string>
+    <string name="preferences_show_week_num_title">پیشاندانی ژمارەی حەفتە</string>
+    <string name="authors">دانەران</string>
+    <string name="no_title_label">(بێ سەرناو)</string>
+    <plurals name="Nminutes">
+        <item quantity="one">خولەکێک</item>
+        <item quantity="other"><xliff:g id="count">%d</xliff:g> خولەک</item>
+    </plurals>
+    <plurals name="Nmins">
+        <item quantity="one">١ خولەک</item>
+        <item quantity="other"><xliff:g id="count">%d</xliff:g> خولەک</item>
+    </plurals>
+    <plurals name="Nhours">
+        <item quantity="one">کاژێرێک</item>
+        <item quantity="other"><xliff:g id="count">%d</xliff:g> کاژێر</item>
+    </plurals>
+    <plurals name="Ndays">
+        <item quantity="one">ڕۆژێک</item>
+        <item quantity="other"><xliff:g id="count">%d</xliff:g> ڕۆژ</item>
+    </plurals>
+    <plurals name="Nweeks">
+        <item quantity="one">حەفتەک</item>
+        <item quantity="other"><xliff:g id="count">%d</xliff:g> حەفتە</item>
+    </plurals>
+    <plurals name="weekN">
+        <item quantity="one">حەفتەی <xliff:g id="count">%d</xliff:g></item>
+        <item quantity="other">حەفتەی <xliff:g id="count">%d</xliff:g></item>
+    </plurals>
+    <string name="show_day_view">پیشاندانی ڕۆژ</string>
+    <string name="agenda_view">بەرنامە</string>
+    <string name="menu_info">زانیار</string>
+    <string name="creating_event_with_guest">بانگهێشتنامەکان دەنێردرێن.</string>
+    <string name="rsvp_accepted">بە بەڵێ وەڵامدرایەوە.</string>
+    <string name="rsvp_tentative">بە لەوانەیە وەڵامدرایەوە.</string>
+    <string name="rsvp_declined">بە نەخێر وەڵامدرایەوە.</string>
+    <string name="event_info_title">بینینی بۆنە</string>
+    <string name="event_info_title_invite">بانگهێشتی چاوپێکەوتن</string>
+    <string name="call_label">پەیوەندی</string>
+    <string name="quick_response_custom_msg">وەڵامەکەت بنووسە…</string>
+    <string name="event_info_organizer">ڕێکخەر:</string>
+    <string name="agenda_today">ئەمڕۆ، <xliff:g id="date">%1$s</xliff:g></string>
+    <string name="agenda_yesterday">دوێنێ، <xliff:g id="date">%1$s</xliff:g></string>
+    <string name="agenda_tomorrow">سبەی، <xliff:g id="date">%1$s</xliff:g></string>
+    <string name="loading">باردەکات…</string>
+    <plurals name="endByCount">
+        <item quantity="one">؛ بۆ یەکجار</item>
+        <item quantity="other">؛ بۆ <xliff:g id="number">%d</xliff:g> جار</item>
+    </plurals>
+    <plurals name="daily">
+        <item quantity="one">ڕۆژانە</item>
+        <item quantity="other">هەموو <xliff:g id="number">%d</xliff:g> ڕۆژ جارەک</item>
+    </plurals>
+    <string name="every_weekday">هەموو ڕۆژانی حەفتە (دووشەم-هەینی)</string>
+    <plurals name="weekly">
+        <item quantity="one">حەفتانە لە <xliff:g id="days_of_week">%2$s</xliff:g></item>
+        <item quantity="other">هەموو <xliff:g id="number">%1$d</xliff:g> حەفتەک لە <xliff:g id="days_of_week">%2$s</xliff:g></item>
+    </plurals>
+    <string name="preferences_days_per_week_title">ڕۆژ لە حەفتە</string>
+    <string name="preferences_days_per_week_dialog">ڕۆژ لە حەفتە</string>
+    <string name="display_time">پیشاندانی کات</string>
+    <string name="display_location">پیشاندانی شوون</string>
+    <plurals name="Nevents">
+        <item quantity="one">بۆنەیەک</item>
+        <item quantity="other"><xliff:g id="count">%d</xliff:g> بۆنە</item>
+    </plurals>
+    <string name="recurrence_month_pattern_by_day">هەموو مانگەک لە هەمان ڕۆژ</string>
+    <string name="recurrence_end_continously">هەمیشە</string>
+    <string name="recurrence_end_date">هەتا <xliff:g id="date">%s</xliff:g></string>
+    <string name="acessibility_recurrence_choose_end_date_description">گۆڕینی ڕێکەوتی کۆتایی</string>
+    <string name="two_days">٢ ڕۆژ</string>
+    <string name="three_days">٣ ڕۆژ</string>
+    <string name="four_days">٤ ڕۆژ</string>
+    <string name="five_days">٥ ڕۆژ</string>
+    <string name="six_days">٦ ڕۆژ</string>
+    <string name="seven_days">٧ ڕۆژ</string>
+    <string name="zero_minutes">٠ خولەک</string>
+    <string name="fifteen_minutes">١٥ خولەک</string>
+    <string name="thirty_minutes">٣٠ خولەک</string>
+    <string name="one_hour">کاژێرێک</string>
+    <string name="one_and_a_half_hours">کاژێر و نیوەک</string>
+    <string name="two_hours">دوو کاژێر</string>
+    <string name="cal_share_intent_title">بۆنەکە بنێرە بۆ:</string>
+    <string name="preferences_calendar_color">ڕەنگ</string>
+    <string name="show_time_no">کات پیشان مەدە</string>
+    <string name="show_time_start">تەنیا کاتی دەستپێک</string>
+    <string name="show_time_start_end">کاتی دەستپێک و کۆتا</string>
+    <string name="show_time_start_end_below">کاتی دەستپێک و کۆتایی لە خوارەوەی بۆنەکە</string>
+    <string name="preferences_calendar_no_display_name">ساڵنامەی بێناو</string>
+    <string name="preferences_calendar_account">%1$s هەژمار</string>
+    <string name="preferences_calendar_account_local">ساڵنامەی دەرهێڵ</string>
+    <string name="preferences_calendar_number_of_events">%1$d بۆنە</string>
+    <string name="preferences_calendar_delete">سڕینەوەی ساڵنامە</string>
+    <string name="preferences_calendar_display_name">گۆڕینی ناو</string>
+    <string name="preferences_calendar_info_category">زانیارییەکانی ساڵنامە</string>
+    <string name="preferences_calendar_visible">پیشاندانی بۆنەکان</string>
+    <string name="preferences_manage_notifications">بەڕێوەبردنی ئاگانامەکان</string>
+    <string name="preferences_calendar_color_warning_title">ئاگاداری</string>
+    <string name="preferences_calendar_color_warning_button">دەزانم</string>
+    <string name="preferences_calendar_delete_message">دڵنیای دەتەوێت ئەم ساڵنامەیە بسڕیتەوە؟</string>
+    <string name="preferences_calendar_delete_delete">سڕینەوەی ساڵنامە</string>
+    <string name="preferences_calendar_delete_cancel">پاشگەزبوونەوە</string>
+    <string name="preferences_list_general">ڕێکخستنە گشتییەکان</string>
+    <string name="preferences_list_add_offline">زیادکردنی ساڵنامەی دەرهێڵ</string>
+    <string name="preferences_list_add_offline_title">زیادکردنی ساڵنامەی دەرهێڵ</string>
+    <string name="preferences_list_add_offline_error_empty">ناوی ساڵنامە بنووسە!</string>
+    <string name="preferences_list_add_offline_button">زیادکردنی ساڵنامە</string>
+    <string name="preferences_list_add_offline_name">ناو</string>
+    <string name="preferences_list_add_offline_cancel">هەڵوەشاندنەوە</string>
+    <string name="preferences_menu_about">دەربارەی ئێتار</string>
+    <string name="offline_account_name">ساڵنامەی دەرهێڵ</string>
+    <string name="after_start_of_event">پاش دەستپێکی بۆنە</string>
+    <string name="calendars">ساڵنامەکان</string>
+    <string name="cancel">هەڵوەشاندنەوە</string>
+    <string name="hint_time_zone_search">ناوی وڵات بنووسە</string>
+    <string name="palestine_display_name">فەڵەستین</string>
+    <string name="more_string">+<xliff:g id="count">%1$d</xliff:g></string>
+    <string name="chips_action_copy">لەبەرگرتنەوە</string>
+    <string name="chips_action_cancel">پاشگەزبوونەوە</string>
+    <string name="preferences_list_calendar_summary_sync_off">هاودەم نەکراوە</string>
+    <string name="visibility_private">تایبەت</string>
+    <string name="visibility_public">گشتی</string>
+    <string name="source_code">کۆدی ژێدەر</string>
+    <string name="license">مۆڵەت</string>
+    <string name="preferences_issues">هەواڵدان لە کێشەیەک</string>
+    <string name="accessibility_pick_start_date">ڕێکەوتی دەستپێک</string>
+    <string name="accessibility_pick_start_time">کاتی دەستپێک</string>
+    <string name="accessibility_pick_end_date">ڕێکەوتی کۆتاییهاتن</string>
+    <string name="accessibility_pick_end_time">کاتی کۆتاییهاتن</string>
+    <string name="accessibility_pick_time_zone">ناوچەی کات</string>
+    <string name="accessibility_reminder_privacy">تایبەتمەندێتی</string>
+    <string name="day_view_new_event_hint">+ بۆنەیەکی نوێ</string>
+    <string name="visibility_default">بنەڕەت</string>
+    <string name="preferences_calendar_synchronize">ئەم ساڵنامەیە هاودەم بکە</string>
+    <string name="copy_email">ئیمێڵەکە لەبەربگرەوە</string>
+    <string name="copy_number">ژمارەی پەیوەندییەکە لەبەربگرەوە</string>
+    <string name="action_label">گەڕانەوە</string>
+</resources>

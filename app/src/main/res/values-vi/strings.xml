@@ -266,7 +266,7 @@
     <string name="cal_nothing_to_import">Không có gì để nhập</string>
     <string name="cal_import_menu_title">Nhập sự kiện</string>
     <string name="cal_export_succ_msg">Xuất sự kiện thành công: %1$s</string>
-    <string name="cal_export_event_sdcard_title">Xuất ra thẻ SD</string>
+    <string name="cal_export_event_title">Xuất ra thẻ SD</string>
     <string name="cal_share_intent_title">Gửi sự kiện đến:</string>
     <string name="error_generating_ics">Đã gặp vấn đề khi chia sẻ sự kiện</string>
     <string name="two_hours">2 tiếng</string>
@@ -340,7 +340,6 @@
     <string name="searchview_description_clear" msgid="1603860069305867810">"Xóa truy vấn"</string>
     <string name="no_results_found" msgid="5475293015394772651">"Không tìm thấy kết quả"</string>
     <string name="palestine_display_name" msgid="3485026339977302148">"Palestine"</string>
-
     <string name="more_string" msgid="643992135011109762">"+<xliff:g id="COUNT">%1$d</xliff:g>"</string>
     <string name="copy_email" msgid="1084563757174121331">"Sao chép địa chỉ email"</string>
     <string name="copy_number" msgid="8860802152973030914">"Sao chép số điện thoại"</string>
@@ -351,4 +350,5 @@
     <string name="chips_action_copy" msgid="6984158516334578792">"Sao chép"</string>
     <string name="chips_action_cancel" msgid="2582257014578396781">"Hủy"</string>
     <string name="chips_permission_text" msgid="5601284803674008863">"Cho phép đề xuất liên hệ"</string>
+    <string name="no_snooze_label">Không có</string>
 </resources>
