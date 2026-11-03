@@ -1,5 +1,11 @@
 # Release workflow
 
+> **State (2026-11-03).** `.github/workflows/release.yml` is already in the repository (Variant A,
+> commit `21af15e`), and `release-signer.sha256` is filled in. The two failures of the first run
+> are fixed on this branch; see [What the first release run got wrong](#what-the-first-release-run-got-wrong).
+> Automation still cannot write files under `.github/`, so everything below the workflow itself
+> lives in `scripts/ci-build.sh`, `app/build.gradle.kts` and this document.
+
 Automation cannot write files under `.github/workflows/`. The owner pastes one of the two
 variants below into the repository. Both do the same thing; pick one.
 
@@ -23,14 +29,72 @@ script, so the workflow itself stays short.
    `KEYSTORE_BASE64` (contents of `release.jks.b64`), `KEYSTORE_PASS`, `KEY_ALIAS`
    (`gkui-release` in the command above), `KEY_PASS`.
 3. **Paste one variant** into `.github/workflows/release.yml` (A), or the two files (B).
+   *Done: Variant A is in the repository.*
 4. **Run the workflow once** (push to `lineage-23.0`, or Actions → release → Run workflow).
-   The first run fails at the signer gate and prints the signer SHA-256, because
-   `release-signer.sha256` does not exist yet.
+   With no `release-signer.sha256` the run stops at the signer gate and prints the signer SHA-256.
 5. **Create `release-signer.sha256`** at the repository root with that 64-character hex value,
    commit it, and run again. After this the gate blocks any other signing key.
+   *Done: the file is committed. It is never rewritten by the build — if a run reports a mismatch,
+   the keystore in the secrets is not the pinned one, and the owner has to decide which is right.*
 6. **Remove the stale `sed` lines** from `.github/workflows/build/action.yml`. They rewrite
    `package="..."` in `AndroidManifest.xml`, which the manifest no longer has, so they do nothing.
    The file is not changed by this change because automation cannot edit `.github/`.
+
+## What the first release run got wrong
+
+Run `41580870244` on `lineage-23.0` (`21af15e`) failed two ways.
+
+**1. `lintVitalRelease` reported 46 errors and the build still said `BUILD SUCCESSFUL`.**
+45 of them were `ExtraTranslation` for `cal_export_event_sdcard_title`: the SD-card export was
+replaced by the SAF export, the default string was deleted, and the 45 translations were left
+behind. No Java or Kotlin code references the name. They are removed here rather than given a new
+default, because the feature is gone. The 46th was `MissingDefaultResource` for
+`agenda_card_text_max_width`, declared only in `values-sw600dp`; `values/dimens.xml` now carries
+the base value. `abortOnError` was `false`, which is why lint could not fail the build; it is now
+`true` in CI (see [Lint gate](#lint-gate)).
+
+**2. `assembleRelease` succeeded, then the signer gate said `expected exactly one signer, found 0`.**
+The APK was **not** unsigned. The run shows `validateSigningRelease` executing, the Gradle guard
+not firing (it refuses a CI release build when a signing input is missing), the output named
+`app-release.apk` (AGP names an unsigned release `app-release-unsigned.apk`), and `apksigner verify`
+exiting 0 — an unsigned APK makes it exit 1 with `DOES NOT VERIFY`, which the script reports as
+"apksigner verify failed". The failure was in how the gate **read** apksigner's output:
+it matched only `^Signer #N certificate SHA-256 digest:`. When an APK also verifies with the v3.1
+scheme, apksigner (build-tools 33+) prints the same certificate as
+`Signer (minSdkVersion=…, maxSdkVersion=…) certificate SHA-256 digest: …`, once per scheme, so the
+old pattern counted zero. The gate now matches any `Signer…` certificate line, counts **distinct**
+SHA-256 digests, and still requires exactly one. The workflow installs `build-tools;36.0.0`.
+
+The old script never logged apksigner's output, so the exact label of that run cannot be read back
+from the log. The mechanism is reproduced: feeding the old script a verified APK whose certificate
+lines use the v3.1 labels produces `expected exactly one signer, found 0`; the new script accepts
+the same input. The gate now prints the whole `apksigner verify --verbose --print-certs` output to
+the job log, so the next run shows the real labels either way.
+
+## Signing chain
+
+| Step | Where | Behaviour |
+|---|---|---|
+| Secrets → env | workflow `env:` | `KEYSTORE_BASE64`, `KEYSTORE_PASS`, `KEY_ALIAS`, `KEY_PASS`, never as arguments |
+| Presence check | `ci-build.sh` `require_signing_env` | before Gradle; names every missing variable and refuses |
+| Decode | `ci-build.sh` `decode_keystore` | private temp file, `umask 077`, removed by the EXIT trap, exports `KEYSTORE_FILE` |
+| Keystore check | `ci-build.sh` `check_keystore` | before Gradle; `keytool -list` with `-storepass:env` proves the store opens and the alias exists |
+| Second line of defence | `app/build.gradle.kts` task graph | a CI release build with a missing input throws before packaging and lists what is missing |
+| Local builds | `app/build.gradle.kts` | debug key fallback stays, with a `WARNING … Do not distribute it.` |
+| Certificate gate | `ci-build.sh` Gate 2 | one distinct signer, compared with `release-signer.sha256` |
+
+`ci-build.sh` writes only to `dist/`, `build/release-notes.md` and `$GITHUB_OUTPUT`. It never
+writes a tracked file, and it refuses to continue if the build changed one.
+
+## Lint gate
+
+`.github/workflows/build.yml` runs `assembleDebug` on every push and pull request, and the release
+workflow only runs on `lineage-23.0`. Release-only lint errors would therefore first appear
+*after* a merge. Because `.github/` cannot be edited here, `app/build.gradle.kts` adds the hook:
+when `CI` is set, `assembleDebug` also depends on `lintVitalRelease`, and `lint.abortOnError` is
+`true`. A release-only lint error now fails the branch build. `lintVitalRelease` analyzes sources
+and resources; it does not package or sign, so it needs no keystore. Locally nothing changes:
+`abortOnError` stays `false` and `assembleDebug` does not run release lint.
 
 ## Variant A: `.github/workflows/release.yml`
 
