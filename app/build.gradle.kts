@@ -238,11 +238,16 @@ configure<GenerateBpPluginExtension> {
 // A release build must never be signed with the debug key in CI. Locally it falls back to the
 // debug key with a warning, so development builds keep working without the release secrets.
 // Only tasks that produce or sign a release package count. Test tasks such as testReleaseUnitTest
-// do not, so `./gradlew test` is not affected.
+// do not, so `./gradlew test` is not affected. Neither does packageReleaseResources: it only
+// builds the compiled resource archive that AAPT and lint read, and lintVitalRelease pulls it in
+// without ever producing an APK. A "package…Release" prefix test alone matched it and made a
+// plain lint run demand the release key and the full git history.
+val releasePackageTask =
+	Regex("^(assemble|bundle|install|validateSigning)[A-Za-z]*Release$|^package[A-Za-z]*Release(Bundle)?$")
+
 gradle.taskGraph.whenReady {
 	val packagesRelease = allTasks.any { task ->
-		task.project.path == ":app" && task.name.contains("Release") &&
-			listOf("assemble", "bundle", "package", "validateSigning", "install").any { task.name.startsWith(it) }
+		task.project.path == ":app" && releasePackageTask.matches(task.name)
 	}
 	if (packagesRelease) {
 		if (isCi && isShallowClone) {
