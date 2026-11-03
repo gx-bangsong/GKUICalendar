@@ -206,7 +206,7 @@ public class AlarmScheduler {
                 long localStartTime;
                 if (allday) {
                     // Adjust allday to local time.
-                    localStartTime = Utils.convertAlldayUtcToLocal(null, begin,
+                    localStartTime = Utils.convertAlldayUtcToLocal(timeObj, begin,
                             Utils.getCurrentTimezone());
                 } else {
                     localStartTime = begin;

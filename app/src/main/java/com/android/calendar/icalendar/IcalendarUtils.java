@@ -207,21 +207,12 @@ public class IcalendarUtils {
             while ((line = reader.readLine()) != null) {
                 result.add(line);
             }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
         return result;
-    }
-
-    public static boolean writeCalendarToStream(VCalendar calendar, OutputStream outStream) {
-        if (calendar == null || outStream == null) return false;
-        String icsFormattedString = calendar.getICalFormattedString();
-        try {
-            outStream.write(icsFormattedString.getBytes());
-        } catch (IOException e) {
-            return false;
-        }
-        return true;
     }
 
     /**
@@ -232,11 +223,21 @@ public class IcalendarUtils {
      */
     public static boolean writeCalendarToFile(VCalendar calendar, File file) {
         if (calendar == null || file == null) return false;
-        try (FileOutputStream outStream = new FileOutputStream(file)) {
-            return writeCalendarToStream(calendar, outStream);
+        String icsFormattedString = calendar.getICalFormattedString();
+        FileOutputStream outStream = null;
+        try {
+            outStream = new FileOutputStream(file);
+            outStream.write(icsFormattedString.getBytes());
         } catch (IOException e) {
             return false;
+        } finally {
+            try {
+                if (outStream != null) outStream.close();
+            } catch (IOException ioe) {
+                return false;
+            }
         }
+        return true;
     }
 
     /**

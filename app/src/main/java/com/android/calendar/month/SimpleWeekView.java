@@ -18,6 +18,7 @@ package com.android.calendar.month;
 
 import android.app.Service;
 import android.content.Context;
+import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Paint.Align;
@@ -30,7 +31,7 @@ import android.view.View;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityManager;
 
-import com.android.calendar.theme.DynamicThemeKt;
+import com.android.calendar.DynamicTheme;
 import com.android.calendar.Utils;
 import com.android.calendar.calendarcommon2.Time;
 
@@ -38,6 +39,7 @@ import java.security.InvalidParameterException;
 import java.text.NumberFormat;
 import java.util.HashMap;
 
+import ws.xsoh.etar.R;
 
 /**
  * <p>
@@ -169,13 +171,15 @@ public class SimpleWeekView extends View {
     public SimpleWeekView(Context context) {
         super(context);
 
-        mBGColor = DynamicThemeKt.getColor(context, "month_bgcolor");
-        mSelectedWeekBGColor = DynamicThemeKt.getColor(context, "month_selected_week_bgcolor");
-        mFocusMonthColor = DynamicThemeKt.getColor(context, "month_mini_day_number");
-        mOtherMonthColor = DynamicThemeKt.getColor(context, "month_other_month_day_number");
-        mDaySeparatorColor = DynamicThemeKt.getColor(context, "month_grid_lines");
-        mTodayOutlineColor = DynamicThemeKt.getColor(context, "mini_month_today_outline_color");
-        mWeekNumColor = DynamicThemeKt.getColor(context, "month_week_num_color");
+        Resources res = context.getResources();
+        mBGColor = DynamicTheme.getColor(context, "month_bgcolor");
+        mSelectedWeekBGColor = DynamicTheme.getColor(context, "month_selected_week_bgcolor");
+        mFocusMonthColor = DynamicTheme.getColor(context, "month_mini_day_number");
+        mOtherMonthColor = DynamicTheme.getColor(context, "month_other_month_day_number");
+        mDaySeparatorColor = DynamicTheme.getColor(context, "month_grid_lines");
+        mTodayOutlineColor = DynamicTheme.getColor(context, "mini_month_today_outline_color");
+        mWeekNumColor = DynamicTheme.getColor(context, "month_week_num_color");
+        mSelectedDayLine = res.getDrawable(R.drawable.dayline_minical_holo_light);
 
         mTimeZone = Utils.getTimeZone(context, mTZUpdater);
 

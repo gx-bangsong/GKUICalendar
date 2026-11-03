@@ -29,6 +29,7 @@ import android.widget.TextView
 import androidx.fragment.app.Fragment
 import ws.xsoh.etar.R
 import java.util.Calendar
+import ws.xsoh.etar.BuildConfig
 
 class AboutFragment : Fragment() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -38,7 +39,7 @@ class AboutFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        view.findViewById<TextView>(R.id.version).text = Utils.getVersionCode(context)
+        view.findViewById<TextView>(R.id.version).text = BuildConfig.VERSION_NAME
 
         val year = Calendar.getInstance().get(Calendar.YEAR).toString()
         view.findViewById<TextView>(R.id.copyright).text = getString(R.string.app_copyright, year)

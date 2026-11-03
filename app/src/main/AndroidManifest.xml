@@ -21,6 +21,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:installLocation="auto">
 
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.GET_ACCOUNTS" />
     <uses-permission android:name="android.permission.VIBRATE"/>
     <uses-permission android:name="android.permission.READ_CONTACTS"/>
@@ -53,6 +54,7 @@
     </queries>
 
     <application android:name="com.android.calendar.CalendarApplication"
+        android:requestLegacyExternalStorage="true"
         android:hardwareAccelerated="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_label"
@@ -84,9 +86,6 @@
                 android:resource="@xml/shortcuts" />
 
             <meta-data android:name="${applicationId}.dynamic_icons"
-                android:resource="@array/calendar_icons_dynamic" />
-
-            <meta-data android:name="com.teslacoilsw.launcher.calendarIconArray"
                 android:resource="@array/calendar_icons_dynamic" />
 
         </activity>

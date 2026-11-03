@@ -22,6 +22,7 @@ import android.Manifest;
 import android.accounts.Account;
 import android.app.Activity;
 import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.app.SearchManager;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -699,11 +700,13 @@ public class Utils {
             startDay = Integer.parseInt(pref);
         }
 
-        return convertCalendarDayToTimeDay(startDay);
-    }
-
-    private static int convertCalendarDayToTimeDay(int calendarDay) {
-        return calendarDay - 1;
+        if (startDay == Calendar.SATURDAY) {
+            return Time.SATURDAY;
+        } else if (startDay == Calendar.MONDAY) {
+            return Time.MONDAY;
+        } else {
+            return Time.SUNDAY;
+        }
     }
 
     /**
@@ -796,7 +799,9 @@ public class Utils {
      * @return true if the column is Saturday position
      */
     public static boolean isSaturday(int column, int firstDayOfWeek) {
-        return column == (6 - firstDayOfWeek + 7) % 7;
+        return (firstDayOfWeek == Time.SUNDAY && column == 6)
+                || (firstDayOfWeek == Time.MONDAY && column == 5)
+                || (firstDayOfWeek == Time.SATURDAY && column == 0);
     }
 
     /**
@@ -807,7 +812,9 @@ public class Utils {
      * @return true if the column is Sunday position
      */
     public static boolean isSunday(int column, int firstDayOfWeek) {
-        return column == (-firstDayOfWeek + 7) % 7;
+        return (firstDayOfWeek == Time.SUNDAY && column == 0)
+                || (firstDayOfWeek == Time.MONDAY && column == 6)
+                || (firstDayOfWeek == Time.SATURDAY && column == 1);
     }
 
     /**
@@ -1478,16 +1485,17 @@ public class Utils {
         weekTime.set(millisSinceEpoch);
         weekTime.normalize();
         int firstDayOfWeek = getFirstDayOfWeek(context);
-        // ISO 8601 defines a week's number by its Thursday. Any 7-day period
-        // contains exactly one Thursday. Find the Thursday within the user's
-        // current week and return its ISO week number.
-        int weekDay = weekTime.getWeekDay();
-        int daysSinceWeekStart = (weekDay - firstDayOfWeek + 7) % 7;
-        weekTime.setDay(weekTime.getDay() - daysSinceWeekStart);
-        weekTime.normalize();
-        int thursdayOffset = (Time.THURSDAY - firstDayOfWeek + 7) % 7;
-        weekTime.setDay(weekTime.getDay() + thursdayOffset);
-        weekTime.normalize();
+        // if the date is on Saturday or Sunday and the start of the week
+        // isn't Monday we may need to shift the date to be in the correct
+        // week
+        if (weekTime.getWeekDay() == Time.SUNDAY
+                && (firstDayOfWeek == Time.SUNDAY || firstDayOfWeek == Time.SATURDAY)) {
+            weekTime.setDay(weekTime.getDay() + 1);
+            weekTime.normalize();
+        } else if (weekTime.getWeekDay() == Time.SATURDAY && firstDayOfWeek == Time.SATURDAY) {
+            weekTime.setDay(weekTime.getDay() + 2);
+            weekTime.normalize();
+        }
         return weekTime.getWeekNumber();
     }
 
