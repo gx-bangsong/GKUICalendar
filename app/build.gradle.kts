@@ -147,8 +147,12 @@ android {
 
 	lint {
 		lintConfig = file("lint.xml")
+		// In CI the release lint gate must be able to fail the build. lintVitalRelease is the only
+		// check that sees release-only resource errors (ExtraTranslation, MissingDefaultResource),
+		// and the CI hook at the bottom of this file runs it on every build. Locally the full
+		// `lint` task still reports the known issues below, so developers keep the old behaviour.
 		// TODO: Resolve lint errors due to 363aa9c237a33e9e1a40bdfd9039dcaaa855a5a0
-		abortOnError = false
+		abortOnError = isCi
 	}
 
 	testOptions {
@@ -303,6 +307,11 @@ if (System.getenv("CI") != null) {
 	tasks.configureEach {
 		if (name == "assembleDebug") {
 			dependsOn("testDebugUnitTest")
+			// The release workflow only runs on lineage-23.0, so without this a pull request never
+			// sees lintVitalRelease and release-only lint errors surface after the merge. Running
+			// it here makes them a CI failure on the branch instead. It needs no signing key:
+			// lint analyzes sources and resources, it does not package or sign an APK.
+			dependsOn("lintVitalRelease")
 		}
 	}
 }
